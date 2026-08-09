@@ -5,6 +5,7 @@ const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
 const MIN_ROUNDS = 1;
 const MAX_ROUNDS = 5;
+const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
 
 const categoryGroups: [string, WordCategory[]][] = Array.from(
   WORD_CATEGORIES.reduce((groups, category) => {
@@ -16,18 +17,21 @@ const categoryGroups: [string, WordCategory[]][] = Array.from(
 );
 
 interface TeamSetupScreenProps {
-  onStart: (teamNames: string[], roundsPerTeam: number, categoryId: string) => void;
+  onStart: (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => void;
 }
 
 export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
-  const [categoryId, setCategoryId] = useState(WORD_CATEGORIES[0].id);
+  const [categoryIds, setCategoryIds] = useState<string[]>(ALL_CATEGORY_IDS);
 
   const canAddTeam = teamNames.length < MAX_TEAMS;
   const canRemoveTeam = teamNames.length > MIN_TEAMS;
+  const allSelected = categoryIds.length === ALL_CATEGORY_IDS.length;
   const canStart =
-    teamNames.length >= MIN_TEAMS && teamNames.every((name) => name.trim().length > 0);
+    teamNames.length >= MIN_TEAMS &&
+    teamNames.every((name) => name.trim().length > 0) &&
+    categoryIds.length > 0;
 
   const updateName = (index: number, value: string) => {
     setTeamNames((prev) => prev.map((name, i) => (i === index ? value : name)));
@@ -43,6 +47,16 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
     setTeamNames((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const toggleCategory = (id: string) => {
+    setCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllCategories = () => {
+    setCategoryIds(ALL_CATEGORY_IDS);
+  };
+
   const adjustRounds = (delta: number) => {
     setRoundsPerTeam((prev) => Math.min(MAX_ROUNDS, Math.max(MIN_ROUNDS, prev + delta)));
   };
@@ -52,7 +66,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
     onStart(
       teamNames.map((name) => name.trim()),
       roundsPerTeam,
-      categoryId
+      categoryIds
     );
   };
 
@@ -98,26 +112,40 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
 
         <div className="team-setup__options">
           <div className="category-picker__section">
-            <span className="category-picker__label">Word category</span>
+            <span className="category-picker__label">Word categories</span>
+            <div className="category-picker">
+              <button
+                type="button"
+                className={
+                  "category-chip" + (allSelected ? " category-chip--selected" : "")
+                }
+                onClick={selectAllCategories}
+                aria-pressed={allSelected}
+              >
+                <span aria-hidden="true">✅</span> All
+              </button>
+            </div>
             <div className="category-picker__groups">
               {categoryGroups.map(([group, categories]) => (
                 <div key={group}>
                   <p className="category-picker__group-label">{group}</p>
                   <div className="category-picker">
-                    {categories.map((category) => (
-                      <button
-                        type="button"
-                        key={category.id}
-                        className={
-                          "category-chip" +
-                          (category.id === categoryId ? " category-chip--selected" : "")
-                        }
-                        onClick={() => setCategoryId(category.id)}
-                        aria-pressed={category.id === categoryId}
-                      >
-                        <span aria-hidden="true">{category.emoji}</span> {category.label}
-                      </button>
-                    ))}
+                    {categories.map((category) => {
+                      const selected = categoryIds.includes(category.id);
+                      return (
+                        <button
+                          type="button"
+                          key={category.id}
+                          className={
+                            "category-chip" + (selected ? " category-chip--selected" : "")
+                          }
+                          onClick={() => toggleCategory(category.id)}
+                          aria-pressed={selected}
+                        >
+                          <span aria-hidden="true">{category.emoji}</span> {category.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

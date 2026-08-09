@@ -23,7 +23,7 @@ export interface GameState {
   turnIndex: number;
   currentWord: string;
   roundScore: number;
-  categoryId: string;
+  categoryIds: string[];
   wordBank: string[];
   deckOrder: string[];
   deckIndex: number;
@@ -35,7 +35,7 @@ type GameAction =
       type: "START_TOURNAMENT";
       teamNames: string[];
       roundsPerTeam: number;
-      categoryId: string;
+      categoryIds: string[];
     }
   | { type: "CORRECT" }
   | { type: "PASS" }
@@ -51,8 +51,8 @@ const initialState: GameState = {
   turnIndex: 0,
   currentWord: "",
   roundScore: 0,
-  categoryId: WORD_CATEGORIES[0].id,
-  wordBank: WORD_CATEGORIES[0].words,
+  categoryIds: WORD_CATEGORIES.map((c) => c.id),
+  wordBank: WORD_CATEGORIES.flatMap((c) => c.words),
   deckOrder: [],
   deckIndex: 0,
 };
@@ -95,9 +95,16 @@ function reducer(state: GameState, action: GameAction): GameState {
         name,
         totalScore: 0,
       }));
-      const wordBank =
-        WORD_CATEGORIES.find((c) => c.id === action.categoryId)?.words ??
-        WORD_CATEGORIES[0].words;
+      const selectedCategories = WORD_CATEGORIES.filter((c) =>
+        action.categoryIds.includes(c.id)
+      );
+      const wordBank = Array.from(
+        new Set(
+          (selectedCategories.length > 0 ? selectedCategories : WORD_CATEGORIES).flatMap(
+            (c) => c.words
+          )
+        )
+      );
       const deckOrder = shuffle(wordBank);
       return {
         ...initialState,
@@ -108,7 +115,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         turnIndex: 0,
         currentWord: deckOrder[0],
         roundScore: 0,
-        categoryId: action.categoryId,
+        categoryIds: action.categoryIds,
         wordBank,
         deckOrder,
         deckIndex: 1,
@@ -196,8 +203,8 @@ export function useGameState() {
   return {
     state,
     startTeamSetup: () => dispatch({ type: "START_TEAM_SETUP" }),
-    startTournament: (teamNames: string[], roundsPerTeam: number, categoryId: string) =>
-      dispatch({ type: "START_TOURNAMENT", teamNames, roundsPerTeam, categoryId }),
+    startTournament: (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) =>
+      dispatch({ type: "START_TOURNAMENT", teamNames, roundsPerTeam, categoryIds }),
     markCorrect: () => dispatch({ type: "CORRECT" }),
     markPass: () => dispatch({ type: "PASS" }),
     timeUp: () => dispatch({ type: "TIME_UP" }),
