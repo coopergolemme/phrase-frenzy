@@ -1,6 +1,8 @@
 import { WordCard } from "./WordCard";
 
 interface GameScreenProps {
+  teamName: string;
+  roundLabel: string;
   currentWord: string;
   timeRemaining: number;
   score: number;
@@ -10,6 +12,8 @@ interface GameScreenProps {
 }
 
 export function GameScreen({
+  teamName,
+  roundLabel,
   currentWord,
   timeRemaining,
   score,
@@ -19,6 +23,11 @@ export function GameScreen({
 }: GameScreenProps) {
   return (
     <div className="screen screen--game">
+      <div className="game__header">
+        <p className="game__team-name">{teamName}</p>
+        <p className="game__round-label">{roundLabel}</p>
+      </div>
+
       <div className="game__top-bar">
         <div className="chip chip--score">Score: {score}</div>
         <div className="chip chip--timer" aria-live="polite">

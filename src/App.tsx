@@ -2,13 +2,24 @@ import { useCallback } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
 import { HomeScreen } from "./components/HomeScreen";
+import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
-import { EndScreen } from "./components/EndScreen";
+import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
+import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
 const ROUND_DURATION_SEC = 60;
 
 function App() {
-  const { state, startGame, markCorrect, markPass, timeUp, reset } = useGameState();
+  const {
+    state,
+    startTeamSetup,
+    startTournament,
+    markCorrect,
+    markPass,
+    timeUp,
+    nextTurn,
+    reset,
+  } = useGameState();
 
   const onExpire = useCallback(() => {
     timeUp();
@@ -20,22 +31,50 @@ function App() {
     onExpire
   );
 
+  const activeTeamIndex = state.turnOrder[state.turnIndex];
+  const activeTeam = state.teams[activeTeamIndex];
+  const currentRoundNumber =
+    state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
+
+  const isLastTurn = state.turnIndex + 1 >= state.turnOrder.length;
+  const nextTeamIndex = state.turnOrder[state.turnIndex + 1];
+  const nextTeamName = isLastTurn ? null : state.teams[nextTeamIndex]?.name ?? null;
+
   return (
     <div className="app-shell">
       <div className="screen-container" key={state.gameStatus}>
-        {state.gameStatus === "home" && <HomeScreen onStart={startGame} />}
-        {state.gameStatus === "playing" && (
+        {state.gameStatus === "home" && <HomeScreen onStart={startTeamSetup} />}
+
+        {state.gameStatus === "teamSetup" && (
+          <TeamSetupScreen onStart={startTournament} />
+        )}
+
+        {state.gameStatus === "playing" && activeTeam && (
           <GameScreen
+            teamName={activeTeam.name}
+            roundLabel={`Round ${currentRoundNumber} of ${state.roundsPerTeam}`}
             currentWord={state.currentWord}
             timeRemaining={timeRemaining}
-            score={state.score}
+            score={state.roundScore}
             passUsed={state.passUsed}
             onCorrect={markCorrect}
             onPass={markPass}
           />
         )}
-        {state.gameStatus === "ended" && (
-          <EndScreen score={state.score} onPlayAgain={reset} />
+
+        {state.gameStatus === "roundSummary" && activeTeam && (
+          <RoundSummaryScreen
+            teamName={activeTeam.name}
+            roundScore={state.roundScore}
+            teams={state.teams}
+            isLastTurn={isLastTurn}
+            nextTeamName={nextTeamName}
+            onNext={nextTurn}
+          />
+        )}
+
+        {state.gameStatus === "gameOver" && (
+          <FinalStandingsScreen teams={state.teams} onPlayAgain={reset} />
         )}
       </div>
     </div>
