@@ -1,15 +1,6 @@
-import { WORD_CATEGORIES, type WordCategory } from "../data/words";
+import { WORD_CATEGORIES } from "../data/words";
 
 const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
-
-const categoryGroups: [string, WordCategory[]][] = Array.from(
-  WORD_CATEGORIES.reduce((groups, category) => {
-    const list = groups.get(category.group) ?? [];
-    list.push(category);
-    groups.set(category.group, list);
-    return groups;
-  }, new Map<string, WordCategory[]>())
-);
 
 interface CategoryPickerSheetProps {
   categoryIds: string[];
@@ -52,30 +43,23 @@ export function CategoryPickerSheet({
           </button>
         </div>
 
-        <div className="category-picker__groups">
-          {categoryGroups.map(([group, categories]) => (
-            <div key={group}>
-              <p className="category-picker__group-label">{group}</p>
-              <div className="category-picker">
-                {categories.map((category) => {
-                  const selected = categoryIds.includes(category.id);
-                  return (
-                    <button
-                      type="button"
-                      key={category.id}
-                      className={
-                        "category-chip" + (selected ? " category-chip--selected" : "")
-                      }
-                      onClick={() => onToggleCategory(category.id)}
-                      aria-pressed={selected}
-                    >
-                      <span aria-hidden="true">{category.emoji}</span> {category.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <div className="category-picker">
+          {WORD_CATEGORIES.map((category) => {
+            const selected = categoryIds.includes(category.id);
+            return (
+              <button
+                type="button"
+                key={category.id}
+                className={
+                  "category-chip" + (selected ? " category-chip--selected" : "")
+                }
+                onClick={() => onToggleCategory(category.id)}
+                aria-pressed={selected}
+              >
+                <span aria-hidden="true">{category.emoji}</span> {category.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

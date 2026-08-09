@@ -6,15 +6,25 @@ const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
 const MIN_ROUNDS = 1;
 const MAX_ROUNDS = 5;
+const MIN_ROUND_DURATION_SEC = 30;
+const MAX_ROUND_DURATION_SEC = 120;
+const ROUND_DURATION_STEP_SEC = 15;
+const DEFAULT_ROUND_DURATION_SEC = 60;
 const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
 
 interface TeamSetupScreenProps {
-  onStart: (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => void;
+  onStart: (
+    teamNames: string[],
+    roundsPerTeam: number,
+    categoryIds: string[],
+    roundDurationSec: number
+  ) => void;
 }
 
 export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
+  const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
   const [categoryIds, setCategoryIds] = useState<string[]>(ALL_CATEGORY_IDS);
   const [isPickingCategories, setIsPickingCategories] = useState(false);
 
@@ -57,12 +67,19 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
     setRoundsPerTeam((prev) => Math.min(MAX_ROUNDS, Math.max(MIN_ROUNDS, prev + delta)));
   };
 
+  const adjustRoundDuration = (delta: number) => {
+    setRoundDurationSec((prev) =>
+      Math.min(MAX_ROUND_DURATION_SEC, Math.max(MIN_ROUND_DURATION_SEC, prev + delta))
+    );
+  };
+
   const handleStart = () => {
     if (!canStart) return;
     onStart(
       teamNames.map((name) => name.trim()),
       roundsPerTeam,
-      categoryIds
+      categoryIds,
+      roundDurationSec
     );
   };
 
@@ -140,6 +157,31 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
                 onClick={() => adjustRounds(1)}
                 disabled={roundsPerTeam >= MAX_ROUNDS}
                 aria-label="Increase rounds per team"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="rounds-stepper">
+            <span className="rounds-stepper__label">Round timer</span>
+            <div className="rounds-stepper__control">
+              <button
+                type="button"
+                className="rounds-stepper__btn"
+                onClick={() => adjustRoundDuration(-ROUND_DURATION_STEP_SEC)}
+                disabled={roundDurationSec <= MIN_ROUND_DURATION_SEC}
+                aria-label="Decrease round timer"
+              >
+                &minus;
+              </button>
+              <span className="rounds-stepper__value">{roundDurationSec}s</span>
+              <button
+                type="button"
+                className="rounds-stepper__btn"
+                onClick={() => adjustRoundDuration(ROUND_DURATION_STEP_SEC)}
+                disabled={roundDurationSec >= MAX_ROUND_DURATION_SEC}
+                aria-label="Increase round timer"
               >
                 +
               </button>

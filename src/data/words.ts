@@ -2,16 +2,14 @@ export interface WordCategory {
   id: string;
   label: string;
   emoji: string;
-  group: string;
   words: string[];
 }
 
 export const WORD_CATEGORIES: WordCategory[] = [
   {
     id: "catchphrase-easy",
-    label: "Easy",
+    label: "Catchphrase Easy",
     emoji: "🟢",
-    group: "Catchphrase",
     words: [
     "shoelace",
     "iron",
@@ -544,9 +542,8 @@ export const WORD_CATEGORIES: WordCategory[] = [
   },
   {
     id: "catchphrase-medium",
-    label: "Medium",
+    label: "Catchphrase Medium",
     emoji: "🟡",
-    group: "Catchphrase",
     words: [
     "drums",
     "chin",
@@ -924,9 +921,8 @@ export const WORD_CATEGORIES: WordCategory[] = [
   },
   {
     id: "catchphrase-hard",
-    label: "Hard",
+    label: "Catchphrase Hard",
     emoji: "🔴",
-    group: "Catchphrase",
     words: [
     "teleconference",
     "audacity",
@@ -1204,7 +1200,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "catchphrase-animals",
     label: "Animals",
     emoji: "🐘",
-    group: "Catchphrase",
     words: [
     "cat",
     "mole",
@@ -1450,7 +1445,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "catchphrase-food",
     label: "Food",
     emoji: "🍕",
-    group: "Catchphrase",
     words: [
     "pea",
     "yam",
@@ -1818,7 +1812,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "catchphrase-travel",
     label: "Travel",
     emoji: "✈️",
-    group: "Catchphrase",
     words: [
     "New York City",
     "binoculars",
@@ -2017,7 +2010,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "catchphrase-people",
     label: "People",
     emoji: "🧑",
-    group: "Catchphrase",
     words: [
     "Marie Curie",
     "Samuel L. Jackson",
@@ -2261,7 +2253,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "catchphrase-household",
     label: "Household",
     emoji: "🏠",
-    group: "Catchphrase",
     words: [
     "paint",
     "ribbon",
@@ -2531,9 +2522,8 @@ export const WORD_CATEGORIES: WordCategory[] = [
   },
   {
     id: "pictionary-easy",
-    label: "Easy",
+    label: "Pictionary Easy",
     emoji: "🟢",
-    group: "Pictionary",
     words: [
     "pen",
     "caterpillar",
@@ -2699,9 +2689,8 @@ export const WORD_CATEGORIES: WordCategory[] = [
   },
   {
     id: "pictionary-medium",
-    label: "Medium",
+    label: "Pictionary Medium",
     emoji: "🟡",
-    group: "Pictionary",
     words: [
     "trip",
     "cobra",
@@ -3100,7 +3089,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "pictionary-difficult",
     label: "Difficult",
     emoji: "🟠",
-    group: "Pictionary",
     words: [
     "drought",
     "professor",
@@ -3307,9 +3295,8 @@ export const WORD_CATEGORIES: WordCategory[] = [
   },
   {
     id: "pictionary-hard",
-    label: "Hard",
+    label: "Pictionary Hard",
     emoji: "🔴",
-    group: "Pictionary",
     words: [
     "offstage",
     "eureka",
@@ -3416,7 +3403,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "pictionary-idioms",
     label: "Idioms",
     emoji: "💬",
-    group: "Pictionary",
     words: [
     "at the bottom of the totem pole",
     "a bird in the hand is worth two in the bush",
@@ -3634,7 +3620,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "pictionary-characters",
     label: "Characters",
     emoji: "🎭",
-    group: "Pictionary",
     words: [
     "Bill Cosby",
     "Luke Skywalker",
@@ -3778,7 +3763,6 @@ export const WORD_CATEGORIES: WordCategory[] = [
     id: "pictionary-movies",
     label: "Movies",
     emoji: "🎬",
-    group: "Pictionary",
     words: [
     "Lady and the Tramp",
     "The Wizard of Oz",

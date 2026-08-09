@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
@@ -11,7 +11,7 @@ import { GameScreen } from "./components/GameScreen";
 import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
-const ROUND_DURATION_SEC = 60;
+const DEFAULT_ROUND_DURATION_SEC = 60;
 
 function App() {
   const {
@@ -30,9 +30,16 @@ function App() {
   const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
   const { canInstall, promptInstall } = useInstallPrompt();
+  const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
 
   const handleStartTournament = useCallback(
-    (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => {
+    (
+      teamNames: string[],
+      roundsPerTeam: number,
+      categoryIds: string[],
+      roundDuration: number
+    ) => {
+      setRoundDurationSec(roundDuration);
       startTournament(teamNames, roundsPerTeam, categoryIds, flaggedWords);
     },
     [startTournament, flaggedWords]
@@ -44,7 +51,7 @@ function App() {
 
   const timeRemaining = useCountdown(
     state.gameStatus === "playing",
-    ROUND_DURATION_SEC,
+    roundDurationSec,
     onExpire
   );
 
