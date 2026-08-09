@@ -1,5 +1,5 @@
 import { useReducer } from "react";
-import { WORD_BANK } from "../data/words";
+import { WORD_CATEGORIES } from "../data/words";
 import { shuffle } from "../utils/shuffle";
 
 export type GameStatus =
@@ -23,13 +23,20 @@ export interface GameState {
   turnIndex: number;
   currentWord: string;
   roundScore: number;
+  categoryId: string;
+  wordBank: string[];
   deckOrder: string[];
   deckIndex: number;
 }
 
 type GameAction =
   | { type: "START_TEAM_SETUP" }
-  | { type: "START_TOURNAMENT"; teamNames: string[]; roundsPerTeam: number }
+  | {
+      type: "START_TOURNAMENT";
+      teamNames: string[];
+      roundsPerTeam: number;
+      categoryId: string;
+    }
   | { type: "CORRECT" }
   | { type: "PASS" }
   | { type: "TIME_UP" }
@@ -44,13 +51,20 @@ const initialState: GameState = {
   turnIndex: 0,
   currentWord: "",
   roundScore: 0,
+  categoryId: WORD_CATEGORIES[0].id,
+  wordBank: WORD_CATEGORIES[0].words,
   deckOrder: [],
   deckIndex: 0,
 };
 
-function drawNextWord(deckOrder: string[], deckIndex: number, currentWord: string) {
+function drawNextWord(
+  deckOrder: string[],
+  deckIndex: number,
+  currentWord: string,
+  wordBank: string[]
+) {
   if (deckIndex >= deckOrder.length) {
-    const reshuffled = shuffle(WORD_BANK);
+    const reshuffled = shuffle(wordBank);
     if (reshuffled[0] === currentWord && reshuffled.length > 1) {
       const swapIndex = 1 + Math.floor(Math.random() * (reshuffled.length - 1));
       [reshuffled[0], reshuffled[swapIndex]] = [reshuffled[swapIndex], reshuffled[0]];
@@ -81,7 +95,10 @@ function reducer(state: GameState, action: GameAction): GameState {
         name,
         totalScore: 0,
       }));
-      const deckOrder = shuffle(WORD_BANK);
+      const wordBank =
+        WORD_CATEGORIES.find((c) => c.id === action.categoryId)?.words ??
+        WORD_CATEGORIES[0].words;
+      const deckOrder = shuffle(wordBank);
       return {
         ...initialState,
         gameStatus: "playing",
@@ -91,6 +108,8 @@ function reducer(state: GameState, action: GameAction): GameState {
         turnIndex: 0,
         currentWord: deckOrder[0],
         roundScore: 0,
+        categoryId: action.categoryId,
+        wordBank,
         deckOrder,
         deckIndex: 1,
       };
@@ -98,7 +117,12 @@ function reducer(state: GameState, action: GameAction): GameState {
 
     case "CORRECT": {
       if (state.gameStatus !== "playing") return state;
-      const next = drawNextWord(state.deckOrder, state.deckIndex, state.currentWord);
+      const next = drawNextWord(
+        state.deckOrder,
+        state.deckIndex,
+        state.currentWord,
+        state.wordBank
+      );
       return {
         ...state,
         roundScore: state.roundScore + 1,
@@ -110,7 +134,12 @@ function reducer(state: GameState, action: GameAction): GameState {
 
     case "PASS": {
       if (state.gameStatus !== "playing") return state;
-      const next = drawNextWord(state.deckOrder, state.deckIndex, state.currentWord);
+      const next = drawNextWord(
+        state.deckOrder,
+        state.deckIndex,
+        state.currentWord,
+        state.wordBank
+      );
       return {
         ...state,
         currentWord: next.word,
@@ -136,7 +165,12 @@ function reducer(state: GameState, action: GameAction): GameState {
       if (nextTurnIndex >= state.turnOrder.length) {
         return { ...state, gameStatus: "gameOver" };
       }
-      const next = drawNextWord(state.deckOrder, state.deckIndex, state.currentWord);
+      const next = drawNextWord(
+        state.deckOrder,
+        state.deckIndex,
+        state.currentWord,
+        state.wordBank
+      );
       return {
         ...state,
         gameStatus: "playing",
@@ -162,8 +196,8 @@ export function useGameState() {
   return {
     state,
     startTeamSetup: () => dispatch({ type: "START_TEAM_SETUP" }),
-    startTournament: (teamNames: string[], roundsPerTeam: number) =>
-      dispatch({ type: "START_TOURNAMENT", teamNames, roundsPerTeam }),
+    startTournament: (teamNames: string[], roundsPerTeam: number, categoryId: string) =>
+      dispatch({ type: "START_TOURNAMENT", teamNames, roundsPerTeam, categoryId }),
     markCorrect: () => dispatch({ type: "CORRECT" }),
     markPass: () => dispatch({ type: "PASS" }),
     timeUp: () => dispatch({ type: "TIME_UP" }),

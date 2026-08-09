@@ -23,9 +23,11 @@ export function RoundSummaryScreen({
   return (
     <div className="screen screen--round-summary">
       <div className="round-summary__content">
-        <p className="round-summary__team-label">{teamName}'s round</p>
-        <p className="round-summary__score">{roundScore}</p>
-        <p className="round-summary__score-caption">words guessed</p>
+        <div className="round-summary__score-block">
+          <p className="round-summary__team-label">{teamName}'s round</p>
+          <p className="round-summary__score">{roundScore}</p>
+          <p className="round-summary__score-caption">words guessed</p>
+        </div>
 
         <div className="standings">
           <p className="standings__title">Standings</p>

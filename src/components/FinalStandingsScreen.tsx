@@ -14,13 +14,15 @@ export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScree
   return (
     <div className="screen screen--final-standings">
       <div className="final-standings__content">
-        <h1 className="final-standings__title">Game Over!</h1>
-        <p className="final-standings__winner-label">
-          {isTie ? "It's a tie!" : "Winner"}
-        </p>
-        <p className="final-standings__winner-name">
-          {winners.map((team) => team.name).join(" & ")}
-        </p>
+        <div className="final-standings__header-block">
+          <h1 className="final-standings__title">Game Over!</h1>
+          <p className="final-standings__winner-label">
+            {isTie ? "It's a tie!" : "Winner"}
+          </p>
+          <p className="final-standings__winner-name">
+            {winners.map((team) => team.name).join(" & ")}
+          </p>
+        </div>
 
         <div className="standings">
           {standings.map((team, index) => (

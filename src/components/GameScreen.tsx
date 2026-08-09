@@ -33,6 +33,13 @@ export function GameScreen({
         </div>
       </div>
 
+      <div className="game__rotate-hint">
+        <span className="game__rotate-hint-icon" aria-hidden="true">
+          📱
+        </span>
+        Turn your phone sideways
+      </div>
+
       <div className="game__word-area">
         <WordCard word={currentWord} />
       </div>

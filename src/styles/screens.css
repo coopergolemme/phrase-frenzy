@@ -65,7 +65,7 @@
 }
 
 .home__title {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 8vmin, 2.5rem);
   font-weight: 800;
   margin: 0;
   text-align: center;
@@ -95,6 +95,41 @@
   line-height: 1.4;
 }
 
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen--home {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+    overflow-y: auto;
+  }
+
+  .home__content {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+  }
+
+  .home__intro {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .home__title {
+    text-align: left;
+  }
+
+  .home__subtitle {
+    text-align: left;
+  }
+
+  .home__instructions {
+    flex: 1;
+    padding: var(--space-4);
+    gap: var(--space-2);
+  }
+}
+
 /* Team setup screen */
 
 .screen--team-setup {
@@ -108,7 +143,7 @@
 }
 
 .team-setup__title {
-  font-size: 2rem;
+  font-size: clamp(1.6rem, 7vmin, 2rem);
   font-weight: 800;
   margin: 0;
   text-align: center;
@@ -151,8 +186,8 @@
   border: none;
   background: var(--color-disabled);
   color: #ffffff;
-  width: 32px;
-  height: 32px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   border-radius: 50%;
   font-size: 1.1rem;
   line-height: 1;
@@ -177,6 +212,51 @@
   border-color: var(--color-disabled);
   color: var(--color-disabled);
   cursor: not-allowed;
+}
+
+.category-picker__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.category-picker__label {
+  font-weight: 600;
+  padding: 0 var(--space-1);
+}
+
+.category-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: none;
+  background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-chip);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-2) var(--space-4);
+  min-height: var(--touch-target-min);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 80ms ease-out, background 120ms ease-out, color 120ms ease-out;
+}
+
+.category-chip:active {
+  transform: scale(0.96);
+}
+
+.category-chip--selected {
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 .rounds-stepper {
@@ -205,12 +285,13 @@
   border: none;
   background: var(--color-primary);
   color: #ffffff;
-  width: 36px;
-  height: 36px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   border-radius: 50%;
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .rounds-stepper__btn:disabled {
@@ -223,6 +304,37 @@
   min-width: 1.5ch;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen--team-setup {
+    padding-top: var(--space-2);
+    overflow-y: auto;
+  }
+
+  .team-setup__content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .team-setup__title {
+    grid-column: 1 / -1;
+  }
+
+  .team-setup__teams,
+  .team-setup__options {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .team-setup__list {
+    gap: var(--space-2);
+  }
 }
 
 /* Game screen */
@@ -291,7 +403,7 @@
 }
 
 .word-card__text {
-  font-size: 2.25rem;
+  font-size: clamp(1.75rem, 9vmin, 2.5rem);
   font-weight: 700;
   line-height: 1.2;
   word-break: break-word;
@@ -304,6 +416,123 @@
 
 .game__actions .btn {
   flex: 1;
+  min-height: var(--touch-target-min);
+}
+
+/* Landscape (phone, held sideways for the active round) */
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen--game {
+    display: grid;
+    grid-template-columns: minmax(64px, 96px) 1fr minmax(64px, 96px);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "pass header correct"
+      "pass topbar correct"
+      "pass word correct";
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .game__header {
+    grid-area: header;
+  }
+
+  .game__team-name {
+    font-size: 1.05rem;
+  }
+
+  .game__round-label {
+    font-size: 0.75rem;
+  }
+
+  .game__top-bar {
+    grid-area: topbar;
+  }
+
+  .chip {
+    padding: var(--space-1) var(--space-3);
+    font-size: 0.9rem;
+  }
+
+  .chip--timer {
+    font-size: 1.05rem;
+  }
+
+  .game__word-area {
+    grid-area: word;
+    min-height: 0;
+  }
+
+  .word-card {
+    padding: var(--space-4) var(--space-3);
+    height: 100%;
+  }
+
+  .word-card__text {
+    font-size: clamp(1.5rem, 8vw, 3rem);
+  }
+
+  .game__actions {
+    display: contents;
+  }
+
+  .game__actions .btn {
+    grid-row: 1 / -1;
+    min-height: 0;
+    writing-mode: vertical-rl;
+    text-align: center;
+    padding: var(--space-4) var(--space-2);
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+  }
+
+  .game__actions .btn--pass {
+    grid-area: pass;
+    transform: rotate(180deg);
+  }
+
+  .game__actions .btn--primary {
+    grid-area: correct;
+  }
+}
+
+/* Nudge players to rotate for the active round */
+
+.game__rotate-hint {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .screen--game .game__rotate-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    background: var(--color-surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-chip);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-2) var(--space-4);
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .game__rotate-hint-icon {
+    display: inline-block;
+    animation: rotateHint 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes rotateHint {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
 }
 
 /* Shared standings list */
@@ -383,6 +612,35 @@
   width: 100%;
 }
 
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen--round-summary {
+    gap: var(--space-3);
+    overflow-y: auto;
+  }
+
+  .round-summary__content {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+    text-align: left;
+  }
+
+  .round-summary__score-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .round-summary__score {
+    font-size: clamp(2rem, 10vh, 3.5rem);
+  }
+
+  .standings {
+    flex: 1;
+  }
+}
+
 /* Final standings screen */
 
 .screen--final-standings {
@@ -420,6 +678,39 @@
 
 .screen--final-standings .btn {
   width: 100%;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .screen--final-standings {
+    gap: var(--space-3);
+    overflow-y: auto;
+  }
+
+  .final-standings__content {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+    text-align: left;
+  }
+
+  .final-standings__header-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .final-standings__title {
+    font-size: clamp(1.6rem, 8vh, 2.25rem);
+  }
+
+  .final-standings__winner-name {
+    font-size: clamp(1.4rem, 6vh, 2rem);
+  }
+
+  .standings {
+    flex: 1;
+  }
 }
 
 /* Animations */

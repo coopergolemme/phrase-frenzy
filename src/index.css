@@ -26,6 +26,8 @@
   --space-5: 24px;
   --space-6: 32px;
 
+  --touch-target-min: 44px;
+
   color-scheme: light;
 }
 
@@ -46,6 +48,7 @@ body {
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  overflow: hidden;
 }
 
 button {
@@ -53,11 +56,30 @@ button {
 }
 
 .app-shell {
-  min-height: 100dvh;
+  height: 100dvh;
   padding: max(env(safe-area-inset-top), var(--space-4))
     max(env(safe-area-inset-right), var(--space-4))
     max(env(safe-area-inset-bottom), var(--space-4))
     max(env(safe-area-inset-left), var(--space-4));
   display: flex;
   flex-direction: column;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .app-shell {
+    padding: max(env(safe-area-inset-top), var(--space-2))
+      max(env(safe-area-inset-right), var(--space-3))
+      max(env(safe-area-inset-bottom), var(--space-2))
+      max(env(safe-area-inset-left), var(--space-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
