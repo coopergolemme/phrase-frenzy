@@ -1,20 +1,12 @@
 import { useState } from "react";
-import { WORD_CATEGORIES, type WordCategory } from "../data/words";
+import { WORD_CATEGORIES } from "../data/words";
+import { CategoryPickerSheet } from "./CategoryPickerSheet";
 
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
 const MIN_ROUNDS = 1;
 const MAX_ROUNDS = 5;
 const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
-
-const categoryGroups: [string, WordCategory[]][] = Array.from(
-  WORD_CATEGORIES.reduce((groups, category) => {
-    const list = groups.get(category.group) ?? [];
-    list.push(category);
-    groups.set(category.group, list);
-    return groups;
-  }, new Map<string, WordCategory[]>())
-);
 
 interface TeamSetupScreenProps {
   onStart: (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => void;
@@ -24,10 +16,14 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
   const [categoryIds, setCategoryIds] = useState<string[]>(ALL_CATEGORY_IDS);
+  const [isPickingCategories, setIsPickingCategories] = useState(false);
 
   const canAddTeam = teamNames.length < MAX_TEAMS;
   const canRemoveTeam = teamNames.length > MIN_TEAMS;
   const allSelected = categoryIds.length === ALL_CATEGORY_IDS.length;
+  const categorySummary = allSelected
+    ? "All"
+    : `${categoryIds.length} selected`;
   const canStart =
     teamNames.length >= MIN_TEAMS &&
     teamNames.every((name) => name.trim().length > 0) &&
@@ -111,46 +107,19 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
         </div>
 
         <div className="team-setup__options">
-          <div className="category-picker__section">
-            <span className="category-picker__label">Word categories</span>
-            <div className="category-picker">
-              <button
-                type="button"
-                className={
-                  "category-chip" + (allSelected ? " category-chip--selected" : "")
-                }
-                onClick={selectAllCategories}
-                aria-pressed={allSelected}
-              >
-                <span aria-hidden="true">✅</span> All
-              </button>
-            </div>
-            <div className="category-picker__groups">
-              {categoryGroups.map(([group, categories]) => (
-                <div key={group}>
-                  <p className="category-picker__group-label">{group}</p>
-                  <div className="category-picker">
-                    {categories.map((category) => {
-                      const selected = categoryIds.includes(category.id);
-                      return (
-                        <button
-                          type="button"
-                          key={category.id}
-                          className={
-                            "category-chip" + (selected ? " category-chip--selected" : "")
-                          }
-                          onClick={() => toggleCategory(category.id)}
-                          aria-pressed={selected}
-                        >
-                          <span aria-hidden="true">{category.emoji}</span> {category.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <button
+            type="button"
+            className="category-summary"
+            onClick={() => setIsPickingCategories(true)}
+          >
+            <span className="category-summary__label">Word categories</span>
+            <span className="category-summary__value">
+              {categorySummary}
+              <span className="category-summary__chevron" aria-hidden="true">
+                &rsaquo;
+              </span>
+            </span>
+          </button>
 
           <div className="rounds-stepper">
             <span className="rounds-stepper__label">Rounds per team</span>
@@ -186,6 +155,15 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
       >
         Start Game
       </button>
+
+      {isPickingCategories && (
+        <CategoryPickerSheet
+          categoryIds={categoryIds}
+          onToggleCategory={toggleCategory}
+          onSelectAll={selectAllCategories}
+          onClose={() => setIsPickingCategories(false)}
+        />
+      )}
     </div>
   );
 }
