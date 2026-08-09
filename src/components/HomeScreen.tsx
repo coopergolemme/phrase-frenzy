@@ -1,8 +1,15 @@
+import { useState } from "react";
+import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
+
 interface HomeScreenProps {
   onStart: () => void;
+  flaggedWords: string[];
+  onUnflagWord: (word: string) => void;
 }
 
-export function HomeScreen({ onStart }: HomeScreenProps) {
+export function HomeScreen({ onStart, flaggedWords, onUnflagWord }: HomeScreenProps) {
+  const [isManagingFlags, setIsManagingFlags] = useState(false);
+
   return (
     <div className="screen screen--home">
       <div className="home__content">
@@ -19,10 +26,27 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           <li>Tap <strong>Pass</strong> as many times as you need if you're stuck.</li>
           <li>When the timer hits zero, whoever's holding the phone is out!</li>
         </ul>
+        {flaggedWords.length > 0 && (
+          <button
+            type="button"
+            className="btn btn--text"
+            onClick={() => setIsManagingFlags(true)}
+          >
+            Manage flagged words ({flaggedWords.length})
+          </button>
+        )}
       </div>
       <button className="btn btn--primary btn--large" onClick={onStart}>
         Start Game
       </button>
+
+      {isManagingFlags && (
+        <FlaggedWordsSheet
+          flaggedWords={flaggedWords}
+          onUnflag={onUnflagWord}
+          onClose={() => setIsManagingFlags(false)}
+        />
+      )}
     </div>
   );
 }

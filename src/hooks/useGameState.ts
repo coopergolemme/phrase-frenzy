@@ -44,6 +44,7 @@ type GameAction =
       teamNames: string[];
       roundsPerTeam: number;
       categoryIds: string[];
+      flaggedWords: string[];
     }
   | { type: "CORRECT" }
   | { type: "PASS" }
@@ -108,13 +109,14 @@ function reducer(state: GameState, action: GameAction): GameState {
       const selectedCategories = WORD_CATEGORIES.filter((c) =>
         action.categoryIds.includes(c.id)
       );
+      const flaggedSet = new Set(action.flaggedWords);
       const wordBank = Array.from(
         new Set(
           (selectedCategories.length > 0 ? selectedCategories : WORD_CATEGORIES).flatMap(
             (c) => c.words
           )
         )
-      );
+      ).filter((word) => !flaggedSet.has(word.toLowerCase()));
       const deckOrder = shuffle(wordBank);
       return {
         ...initialState,
@@ -244,8 +246,19 @@ export function useGameState() {
   return {
     state,
     startTeamSetup: () => dispatch({ type: "START_TEAM_SETUP" }),
-    startTournament: (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) =>
-      dispatch({ type: "START_TOURNAMENT", teamNames, roundsPerTeam, categoryIds }),
+    startTournament: (
+      teamNames: string[],
+      roundsPerTeam: number,
+      categoryIds: string[],
+      flaggedWords: string[]
+    ) =>
+      dispatch({
+        type: "START_TOURNAMENT",
+        teamNames,
+        roundsPerTeam,
+        categoryIds,
+        flaggedWords,
+      }),
     markCorrect: () => dispatch({ type: "CORRECT" }),
     markPass: () => dispatch({ type: "PASS" }),
     timeUp: () => dispatch({ type: "TIME_UP" }),

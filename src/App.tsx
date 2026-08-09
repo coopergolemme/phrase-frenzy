@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
+import { useFlaggedWords } from "./hooks/useFlaggedWords";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
@@ -21,6 +22,15 @@ function App() {
     toggleWordOutcome,
     reset,
   } = useGameState();
+
+  const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
+
+  const handleStartTournament = useCallback(
+    (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => {
+      startTournament(teamNames, roundsPerTeam, categoryIds, flaggedWords);
+    },
+    [startTournament, flaggedWords]
+  );
 
   const onExpire = useCallback(() => {
     timeUp();
@@ -44,10 +54,16 @@ function App() {
   return (
     <div className="app-shell">
       <div className="screen-container" key={state.gameStatus}>
-        {state.gameStatus === "home" && <HomeScreen onStart={startTeamSetup} />}
+        {state.gameStatus === "home" && (
+          <HomeScreen
+            onStart={startTeamSetup}
+            flaggedWords={flaggedWords}
+            onUnflagWord={unflagWord}
+          />
+        )}
 
         {state.gameStatus === "teamSetup" && (
-          <TeamSetupScreen onStart={startTournament} />
+          <TeamSetupScreen onStart={handleStartTournament} />
         )}
 
         {state.gameStatus === "playing" && activeTeam && (
@@ -73,6 +89,8 @@ function App() {
             nextTeamName={nextTeamName}
             onNext={nextTurn}
             onToggleWordOutcome={toggleWordOutcome}
+            isWordFlagged={isFlagged}
+            onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
           />
         )}
 

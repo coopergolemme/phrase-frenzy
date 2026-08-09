@@ -10,6 +10,8 @@ interface RoundSummaryScreenProps {
   nextTeamName: string | null;
   onNext: () => void;
   onToggleWordOutcome: (index: number) => void;
+  isWordFlagged: (word: string) => boolean;
+  onToggleFlag: (word: string) => void;
 }
 
 export function RoundSummaryScreen({
@@ -21,6 +23,8 @@ export function RoundSummaryScreen({
   nextTeamName,
   onNext,
   onToggleWordOutcome,
+  isWordFlagged,
+  onToggleFlag,
 }: RoundSummaryScreenProps) {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const standings = [...teams].sort((a, b) => b.totalScore - a.totalScore);
@@ -80,23 +84,41 @@ export function RoundSummaryScreen({
           </div>
 
           <div className="review-sheet__list">
-            {roundLog.map((entry, index) => (
-              <div className="review-row" key={index}>
-                <span className="review-row__word">{entry.word}</span>
-                <button
-                  type="button"
-                  className={
-                    "outcome-pill" +
-                    (entry.outcome === "correct"
-                      ? " outcome-pill--correct"
-                      : " outcome-pill--skipped")
-                  }
-                  onClick={() => onToggleWordOutcome(index)}
-                >
-                  {entry.outcome === "correct" ? "Correct" : "Skipped"}
-                </button>
-              </div>
-            ))}
+            {roundLog.map((entry, index) => {
+              const flagged = isWordFlagged(entry.word);
+              return (
+                <div className="review-row" key={index}>
+                  <span className="review-row__word">{entry.word}</span>
+                  <div className="review-row__actions">
+                    <button
+                      type="button"
+                      className={
+                        "outcome-pill" +
+                        (entry.outcome === "correct"
+                          ? " outcome-pill--correct"
+                          : " outcome-pill--skipped")
+                      }
+                      onClick={() => onToggleWordOutcome(index)}
+                    >
+                      {entry.outcome === "correct" ? "Correct" : "Skipped"}
+                    </button>
+                    <button
+                      type="button"
+                      className={"flag-btn" + (flagged ? " flag-btn--active" : "")}
+                      onClick={() => onToggleFlag(entry.word)}
+                      aria-pressed={flagged}
+                      aria-label={
+                        flagged
+                          ? `Unflag "${entry.word}"`
+                          : `Flag "${entry.word}" as too hard`
+                      }
+                    >
+                      🚩
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <button
