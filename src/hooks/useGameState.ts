@@ -15,6 +15,13 @@ export interface Team {
   totalScore: number;
 }
 
+export type WordOutcome = "correct" | "passed";
+
+export interface RoundLogEntry {
+  word: string;
+  outcome: WordOutcome;
+}
+
 export interface GameState {
   gameStatus: GameStatus;
   teams: Team[];
@@ -23,6 +30,7 @@ export interface GameState {
   turnIndex: number;
   currentWord: string;
   roundScore: number;
+  roundLog: RoundLogEntry[];
   categoryIds: string[];
   wordBank: string[];
   deckOrder: string[];
@@ -41,6 +49,7 @@ type GameAction =
   | { type: "PASS" }
   | { type: "TIME_UP" }
   | { type: "NEXT_TURN" }
+  | { type: "TOGGLE_WORD_OUTCOME"; index: number }
   | { type: "RESET" };
 
 const initialState: GameState = {
@@ -51,6 +60,7 @@ const initialState: GameState = {
   turnIndex: 0,
   currentWord: "",
   roundScore: 0,
+  roundLog: [],
   categoryIds: WORD_CATEGORIES.map((c) => c.id),
   wordBank: WORD_CATEGORIES.flatMap((c) => c.words),
   deckOrder: [],
@@ -115,6 +125,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         turnIndex: 0,
         currentWord: deckOrder[0],
         roundScore: 0,
+        roundLog: [],
         categoryIds: action.categoryIds,
         wordBank,
         deckOrder,
@@ -133,6 +144,7 @@ function reducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         roundScore: state.roundScore + 1,
+        roundLog: [...state.roundLog, { word: state.currentWord, outcome: "correct" }],
         currentWord: next.word,
         deckOrder: next.deckOrder,
         deckIndex: next.deckIndex,
@@ -149,6 +161,7 @@ function reducer(state: GameState, action: GameAction): GameState {
       );
       return {
         ...state,
+        roundLog: [...state.roundLog, { word: state.currentWord, outcome: "passed" }],
         currentWord: next.word,
         deckOrder: next.deckOrder,
         deckIndex: next.deckIndex,
@@ -186,6 +199,34 @@ function reducer(state: GameState, action: GameAction): GameState {
         deckOrder: next.deckOrder,
         deckIndex: next.deckIndex,
         roundScore: 0,
+        roundLog: [],
+      };
+    }
+
+    case "TOGGLE_WORD_OUTCOME": {
+      if (state.gameStatus !== "roundSummary") return state;
+      const entry = state.roundLog[action.index];
+      if (!entry) return state;
+
+      const newOutcome: WordOutcome = entry.outcome === "correct" ? "passed" : "correct";
+      const scoreDelta = newOutcome === "correct" ? 1 : -1;
+
+      const roundLog = state.roundLog.map((logEntry, index) =>
+        index === action.index ? { ...logEntry, outcome: newOutcome } : logEntry
+      );
+
+      const activeTeamIndex = state.turnOrder[state.turnIndex];
+      const teams = state.teams.map((team, index) =>
+        index === activeTeamIndex
+          ? { ...team, totalScore: team.totalScore + scoreDelta }
+          : team
+      );
+
+      return {
+        ...state,
+        roundLog,
+        roundScore: state.roundScore + scoreDelta,
+        teams,
       };
     }
 
@@ -209,6 +250,8 @@ export function useGameState() {
     markPass: () => dispatch({ type: "PASS" }),
     timeUp: () => dispatch({ type: "TIME_UP" }),
     nextTurn: () => dispatch({ type: "NEXT_TURN" }),
+    toggleWordOutcome: (index: number) =>
+      dispatch({ type: "TOGGLE_WORD_OUTCOME", index }),
     reset: () => dispatch({ type: "RESET" }),
   };
 }

@@ -18,6 +18,7 @@ function App() {
     markPass,
     timeUp,
     nextTurn,
+    toggleWordOutcome,
     reset,
   } = useGameState();
 
@@ -58,6 +59,7 @@ function App() {
             score={state.roundScore}
             onCorrect={markCorrect}
             onPass={markPass}
+            onDebugSkipRound={import.meta.env.DEV ? timeUp : undefined}
           />
         )}
 
@@ -65,10 +67,12 @@ function App() {
           <RoundSummaryScreen
             teamName={activeTeam.name}
             roundScore={state.roundScore}
+            roundLog={state.roundLog}
             teams={state.teams}
             isLastTurn={isLastTurn}
             nextTeamName={nextTeamName}
             onNext={nextTurn}
+            onToggleWordOutcome={toggleWordOutcome}
           />
         )}
 

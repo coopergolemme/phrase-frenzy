@@ -8,6 +8,7 @@ interface GameScreenProps {
   score: number;
   onCorrect: () => void;
   onPass: () => void;
+  onDebugSkipRound?: () => void;
 }
 
 export function GameScreen({
@@ -18,6 +19,7 @@ export function GameScreen({
   score,
   onCorrect,
   onPass,
+  onDebugSkipRound,
 }: GameScreenProps) {
   return (
     <div className="screen screen--game">
@@ -31,6 +33,16 @@ export function GameScreen({
         <div className="chip chip--timer" aria-live="polite">
           {timeRemaining}
         </div>
+        {onDebugSkipRound && (
+          <button
+            type="button"
+            className="debug-skip-btn"
+            onClick={onDebugSkipRound}
+            aria-label="Debug: skip to end of round"
+          >
+            Skip ⏭
+          </button>
+        )}
       </div>
 
       <div className="game__rotate-hint">
