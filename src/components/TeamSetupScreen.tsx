@@ -1,10 +1,19 @@
 import { useState } from "react";
-import { WORD_CATEGORIES } from "../data/words";
+import { WORD_CATEGORIES, type WordCategory } from "../data/words";
 
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
 const MIN_ROUNDS = 1;
 const MAX_ROUNDS = 5;
+
+const categoryGroups: [string, WordCategory[]][] = Array.from(
+  WORD_CATEGORIES.reduce((groups, category) => {
+    const list = groups.get(category.group) ?? [];
+    list.push(category);
+    groups.set(category.group, list);
+    return groups;
+  }, new Map<string, WordCategory[]>())
+);
 
 interface TeamSetupScreenProps {
   onStart: (teamNames: string[], roundsPerTeam: number, categoryId: string) => void;
@@ -90,20 +99,27 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
         <div className="team-setup__options">
           <div className="category-picker__section">
             <span className="category-picker__label">Word category</span>
-            <div className="category-picker">
-              {WORD_CATEGORIES.map((category) => (
-                <button
-                  type="button"
-                  key={category.id}
-                  className={
-                    "category-chip" +
-                    (category.id === categoryId ? " category-chip--selected" : "")
-                  }
-                  onClick={() => setCategoryId(category.id)}
-                  aria-pressed={category.id === categoryId}
-                >
-                  <span aria-hidden="true">{category.emoji}</span> {category.label}
-                </button>
+            <div className="category-picker__groups">
+              {categoryGroups.map(([group, categories]) => (
+                <div key={group}>
+                  <p className="category-picker__group-label">{group}</p>
+                  <div className="category-picker">
+                    {categories.map((category) => (
+                      <button
+                        type="button"
+                        key={category.id}
+                        className={
+                          "category-chip" +
+                          (category.id === categoryId ? " category-chip--selected" : "")
+                        }
+                        onClick={() => setCategoryId(category.id)}
+                        aria-pressed={category.id === categoryId}
+                      >
+                        <span aria-hidden="true">{category.emoji}</span> {category.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

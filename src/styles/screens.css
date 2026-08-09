@@ -81,10 +81,8 @@
 
 .home__instructions {
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-5);
   margin: 0;
   list-style: none;
@@ -134,6 +132,7 @@
 
 .screen--team-setup {
   padding-top: var(--space-4);
+  overflow-y: auto;
 }
 
 .team-setup__content {
@@ -160,10 +159,8 @@
   align-items: center;
   gap: var(--space-3);
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-button);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-2) var(--space-3);
 }
 
@@ -225,6 +222,22 @@
   padding: 0 var(--space-1);
 }
 
+.category-picker__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.category-picker__group-label {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 var(--space-1);
+  margin: 0 0 var(--space-1);
+}
+
 .category-picker {
   display: flex;
   flex-wrap: wrap;
@@ -235,12 +248,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  border: none;
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-chip);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-2) var(--space-4);
   min-height: var(--touch-target-min);
   font-weight: 600;
@@ -264,10 +274,8 @@
   align-items: center;
   justify-content: space-between;
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-button);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -367,10 +375,8 @@
 
 .chip {
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-chip);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-2) var(--space-4);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -385,16 +391,18 @@
 .game__word-area {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  min-height: 0;
 }
 
 .word-card {
   width: 100%;
+  height: 100%;
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-6) var(--space-4);
+  border: 1px solid var(--color-border);
+  padding: var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,9 +411,9 @@
 }
 
 .word-card__text {
-  font-size: clamp(1.75rem, 9vmin, 2.5rem);
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: clamp(2.75rem, 15vmin, 5rem);
+  font-weight: 800;
+  line-height: 1.1;
   word-break: break-word;
 }
 
@@ -469,7 +477,7 @@
   }
 
   .word-card__text {
-    font-size: clamp(1.5rem, 8vw, 3rem);
+    font-size: clamp(2rem, 12vw, 4.5rem);
   }
 
   .game__actions {
@@ -509,10 +517,8 @@
     justify-content: center;
     gap: var(--space-2);
     background: var(--color-surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border-radius: var(--radius-chip);
-    box-shadow: var(--shadow-card);
+    border: 1px solid var(--color-border);
     padding: var(--space-2) var(--space-4);
     color: var(--color-text-secondary);
     font-size: 0.85rem;
@@ -556,10 +562,8 @@
   justify-content: space-between;
   align-items: center;
   background: var(--color-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-button);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   padding: var(--space-3) var(--space-4);
   font-weight: 600;
 }
