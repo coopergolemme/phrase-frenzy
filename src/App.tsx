@@ -12,6 +12,7 @@ import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
 const DEFAULT_ROUND_DURATION_SEC = 60;
+const PASS_PENALTY_SEC = 3;
 
 function App() {
   const {
@@ -49,11 +50,16 @@ function App() {
     timeUp();
   }, [timeUp]);
 
-  const timeRemaining = useCountdown(
+  const { timeRemaining, applyPenalty } = useCountdown(
     state.gameStatus === "playing",
     roundDurationSec,
     onExpire
   );
+
+  const handlePass = useCallback(() => {
+    applyPenalty(PASS_PENALTY_SEC);
+    markPass();
+  }, [applyPenalty, markPass]);
 
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
@@ -110,7 +116,7 @@ function App() {
             timeRemaining={timeRemaining}
             score={state.roundScore}
             onCorrect={markCorrect}
-            onPass={markPass}
+            onPass={handlePass}
             onDebugSkipRound={import.meta.env.DEV ? timeUp : undefined}
           />
         )}

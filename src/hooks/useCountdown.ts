@@ -5,22 +5,33 @@ export function useCountdown(active: boolean, durationSec: number, onExpire: () 
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
 
+  const startTimestampRef = useRef(0);
+  const penaltySecRef = useRef(0);
+  const expiredRef = useRef(false);
+
+  const computeRemaining = () => {
+    const elapsedSec = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+    return Math.max(0, durationSec - elapsedSec - penaltySecRef.current);
+  };
+
   useEffect(() => {
     if (!active) {
       setTimeRemaining(durationSec);
+      penaltySecRef.current = 0;
+      expiredRef.current = false;
       return;
     }
 
-    const startTimestamp = Date.now();
-    let expired = false;
+    startTimestampRef.current = Date.now();
+    penaltySecRef.current = 0;
+    expiredRef.current = false;
     setTimeRemaining(durationSec);
 
     const intervalId = window.setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimestamp) / 1000);
-      const remaining = Math.max(0, durationSec - elapsed);
+      const remaining = computeRemaining();
       setTimeRemaining(remaining);
-      if (remaining === 0 && !expired) {
-        expired = true;
+      if (remaining === 0 && !expiredRef.current) {
+        expiredRef.current = true;
         window.clearInterval(intervalId);
         onExpireRef.current();
       }
@@ -30,5 +41,16 @@ export function useCountdown(active: boolean, durationSec: number, onExpire: () 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, durationSec]);
 
-  return timeRemaining;
+  const applyPenalty = (seconds: number) => {
+    if (!active || expiredRef.current) return;
+    penaltySecRef.current += seconds;
+    const remaining = computeRemaining();
+    setTimeRemaining(remaining);
+    if (remaining === 0 && !expiredRef.current) {
+      expiredRef.current = true;
+      onExpireRef.current();
+    }
+  };
+
+  return { timeRemaining, applyPenalty };
 }
