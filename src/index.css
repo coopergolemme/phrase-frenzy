@@ -3,9 +3,10 @@
     Roboto, sans-serif;
 
   --color-bg: #f2f2f7;
-  --color-surface: #ffffff;
+  --color-surface: rgba(255, 255, 255, 0.55);
   --color-surface-solid: #ffffff;
-  --color-border: #e2e2e8;
+  --color-border: rgba(255, 255, 255, 0.55);
+  --color-border-solid: rgba(0, 0, 0, 0.08);
   --color-primary: #34c759;
   --color-primary-pressed: #2ba149;
   --color-pass: #ff9500;
@@ -13,6 +14,9 @@
   --color-disabled: #c7c7cc;
   --color-text: #1c1c1e;
   --color-text-secondary: #8e8e93;
+
+  --blur-glass: blur(20px);
+  --shadow-card: 0 8px 30px rgba(31, 41, 55, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04);
 
   --radius-card: 16px;
   --radius-button: 14px;
@@ -43,7 +47,10 @@ body,
 body {
   margin: 0;
   font-family: var(--font-system);
-  background: var(--color-bg);
+  background: radial-gradient(circle at 15% 8%, #d9f2df 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, #fdecd2 0%, transparent 40%),
+    radial-gradient(circle at 50% 95%, #dbe8fb 0%, transparent 55%), var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
@@ -62,6 +69,7 @@ button {
     max(env(safe-area-inset-left), var(--space-4));
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 @media (orientation: landscape) and (max-height: 600px) {

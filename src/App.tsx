@@ -2,6 +2,9 @@ import { useCallback } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
+import { useMatchHistory } from "./hooks/useMatchHistory";
+import { useWordStats } from "./hooks/useWordStats";
+import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
@@ -24,6 +27,9 @@ function App() {
   } = useGameState();
 
   const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
+  const { stats: wordStats, recordRoundLog } = useWordStats();
+  const { canInstall, promptInstall } = useInstallPrompt();
 
   const handleStartTournament = useCallback(
     (teamNames: string[], roundsPerTeam: number, categoryIds: string[]) => {
@@ -51,6 +57,22 @@ function App() {
   const nextTeamIndex = state.turnOrder[state.turnIndex + 1];
   const nextTeamName = isLastTurn ? null : state.teams[nextTeamIndex]?.name ?? null;
 
+  const handleNextTurn = useCallback(() => {
+    recordRoundLog(state.roundLog);
+    if (isLastTurn) {
+      addMatch(state.teams, state.roundsPerTeam);
+    }
+    nextTurn();
+  }, [
+    recordRoundLog,
+    state.roundLog,
+    isLastTurn,
+    addMatch,
+    state.teams,
+    state.roundsPerTeam,
+    nextTurn,
+  ]);
+
   return (
     <div className="app-shell">
       <div className="screen-container" key={state.gameStatus}>
@@ -59,6 +81,13 @@ function App() {
             onStart={startTeamSetup}
             flaggedWords={flaggedWords}
             onUnflagWord={unflagWord}
+            isWordFlagged={isFlagged}
+            onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
+            wordStats={wordStats}
+            matchHistory={matchHistory}
+            onClearMatchHistory={clearHistory}
+            canInstall={canInstall}
+            onInstall={promptInstall}
           />
         )}
 
@@ -87,7 +116,7 @@ function App() {
             teams={state.teams}
             isLastTurn={isLastTurn}
             nextTeamName={nextTeamName}
-            onNext={nextTurn}
+            onNext={handleNextTurn}
             onToggleWordOutcome={toggleWordOutcome}
             isWordFlagged={isFlagged}
             onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}

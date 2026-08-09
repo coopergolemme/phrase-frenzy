@@ -1,6 +1,7 @@
 .screen-container {
   flex: 1;
   display: flex;
+  min-height: 0;
   animation: screenEnter 220ms ease-out;
 }
 
@@ -10,6 +11,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: var(--space-5);
+  min-height: 0;
 }
 
 /* Buttons */
@@ -83,6 +85,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-card);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-5);
   margin: 0;
   list-style: none;
@@ -161,6 +166,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-button);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-2) var(--space-3);
 }
 
@@ -266,6 +274,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-chip);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-2) var(--space-4);
   min-height: var(--touch-target-min);
   font-weight: 600;
@@ -291,6 +302,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-button);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -409,6 +423,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-chip);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-2) var(--space-4);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -433,7 +450,8 @@
   height: 100%;
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-solid);
+  box-shadow: var(--shadow-card);
   padding: var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
@@ -551,6 +569,9 @@
     background: var(--color-surface);
     border-radius: var(--radius-chip);
     border: 1px solid var(--color-border);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    box-shadow: var(--shadow-card);
     padding: var(--space-2) var(--space-4);
     color: var(--color-text-secondary);
     font-size: 0.85rem;
@@ -596,6 +617,9 @@
   background: var(--color-surface);
   border-radius: var(--radius-button);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   padding: var(--space-3) var(--space-4);
   font-weight: 600;
 }
@@ -658,7 +682,9 @@
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: var(--color-bg);
+  background: radial-gradient(circle at 15% 8%, #d9f2df 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, #fdecd2 0%, transparent 40%),
+    radial-gradient(circle at 50% 95%, #dbe8fb 0%, transparent 55%), var(--color-bg);
   padding: max(env(safe-area-inset-top), var(--space-4))
     max(env(safe-area-inset-right), var(--space-4))
     max(env(safe-area-inset-bottom), var(--space-4))
@@ -711,6 +737,9 @@
   gap: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-button);
   padding: var(--space-3) var(--space-4);
 }
@@ -736,6 +765,9 @@
 
 .flag-btn {
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   border-radius: 50%;
   background: var(--color-surface);
   width: var(--touch-target-min);
@@ -759,6 +791,9 @@
 
 .outcome-pill {
   border: 1px solid var(--color-border);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-chip);
   padding: var(--space-2) var(--space-4);
   min-height: var(--touch-target-min);

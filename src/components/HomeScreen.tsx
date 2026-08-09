@@ -1,14 +1,39 @@
 import { useState } from "react";
 import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
+import { WordStatsSheet } from "./WordStatsSheet";
+import { MatchHistorySheet } from "./MatchHistorySheet";
+import type { WordStats } from "../utils/wordStats";
+import type { MatchRecord } from "../utils/matchHistory";
 
 interface HomeScreenProps {
   onStart: () => void;
   flaggedWords: string[];
   onUnflagWord: (word: string) => void;
+  isWordFlagged: (word: string) => boolean;
+  onToggleFlag: (word: string) => void;
+  wordStats: WordStats;
+  matchHistory: MatchRecord[];
+  onClearMatchHistory: () => void;
+  canInstall: boolean;
+  onInstall: () => void;
 }
 
-export function HomeScreen({ onStart, flaggedWords, onUnflagWord }: HomeScreenProps) {
-  const [isManagingFlags, setIsManagingFlags] = useState(false);
+type ActiveSheet = "flags" | "stats" | "history" | null;
+
+export function HomeScreen({
+  onStart,
+  flaggedWords,
+  onUnflagWord,
+  isWordFlagged,
+  onToggleFlag,
+  wordStats,
+  matchHistory,
+  onClearMatchHistory,
+  canInstall,
+  onInstall,
+}: HomeScreenProps) {
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
+  const hasWordStats = Object.keys(wordStats).length > 0;
 
   return (
     <div className="screen screen--home">
@@ -26,25 +51,67 @@ export function HomeScreen({ onStart, flaggedWords, onUnflagWord }: HomeScreenPr
           <li>Tap <strong>Pass</strong> as many times as you need if you're stuck.</li>
           <li>When the timer hits zero, whoever's holding the phone is out!</li>
         </ul>
-        {flaggedWords.length > 0 && (
-          <button
-            type="button"
-            className="btn btn--text"
-            onClick={() => setIsManagingFlags(true)}
-          >
-            Manage flagged words ({flaggedWords.length})
-          </button>
-        )}
+        <div className="home__links">
+          {flaggedWords.length > 0 && (
+            <button
+              type="button"
+              className="btn btn--text"
+              onClick={() => setActiveSheet("flags")}
+            >
+              Manage flagged words ({flaggedWords.length})
+            </button>
+          )}
+          {hasWordStats && (
+            <button
+              type="button"
+              className="btn btn--text"
+              onClick={() => setActiveSheet("stats")}
+            >
+              Word stats
+            </button>
+          )}
+          {matchHistory.length > 0 && (
+            <button
+              type="button"
+              className="btn btn--text"
+              onClick={() => setActiveSheet("history")}
+            >
+              Match history
+            </button>
+          )}
+          {canInstall && (
+            <button type="button" className="btn btn--text" onClick={onInstall}>
+              Install App
+            </button>
+          )}
+        </div>
       </div>
       <button className="btn btn--primary btn--large" onClick={onStart}>
         Start Game
       </button>
 
-      {isManagingFlags && (
+      {activeSheet === "flags" && (
         <FlaggedWordsSheet
           flaggedWords={flaggedWords}
           onUnflag={onUnflagWord}
-          onClose={() => setIsManagingFlags(false)}
+          onClose={() => setActiveSheet(null)}
+        />
+      )}
+
+      {activeSheet === "stats" && (
+        <WordStatsSheet
+          stats={wordStats}
+          isWordFlagged={isWordFlagged}
+          onToggleFlag={onToggleFlag}
+          onClose={() => setActiveSheet(null)}
+        />
+      )}
+
+      {activeSheet === "history" && (
+        <MatchHistorySheet
+          history={matchHistory}
+          onClearHistory={onClearMatchHistory}
+          onClose={() => setActiveSheet(null)}
         />
       )}
     </div>
