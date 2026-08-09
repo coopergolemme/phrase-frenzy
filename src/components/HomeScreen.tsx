@@ -14,7 +14,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
         <ul className="home__instructions">
           <li>Describe the word on screen &mdash; no saying it outright.</li>
           <li>Tap <strong>Correct</strong> when your team guesses it.</li>
-          <li>You get one <strong>Pass</strong> per round if you're stuck.</li>
+          <li>Tap <strong>Pass</strong> as many times as you need if you're stuck.</li>
           <li>When the timer hits zero, whoever's holding the phone is out!</li>
         </ul>
       </div>

@@ -23,7 +23,6 @@ export interface GameState {
   turnIndex: number;
   currentWord: string;
   roundScore: number;
-  passUsed: boolean;
   deckOrder: string[];
   deckIndex: number;
 }
@@ -45,7 +44,6 @@ const initialState: GameState = {
   turnIndex: 0,
   currentWord: "",
   roundScore: 0,
-  passUsed: false,
   deckOrder: [],
   deckIndex: 0,
 };
@@ -93,7 +91,6 @@ function reducer(state: GameState, action: GameAction): GameState {
         turnIndex: 0,
         currentWord: deckOrder[0],
         roundScore: 0,
-        passUsed: false,
         deckOrder,
         deckIndex: 1,
       };
@@ -112,11 +109,10 @@ function reducer(state: GameState, action: GameAction): GameState {
     }
 
     case "PASS": {
-      if (state.gameStatus !== "playing" || state.passUsed) return state;
+      if (state.gameStatus !== "playing") return state;
       const next = drawNextWord(state.deckOrder, state.deckIndex, state.currentWord);
       return {
         ...state,
-        passUsed: true,
         currentWord: next.word,
         deckOrder: next.deckOrder,
         deckIndex: next.deckIndex,
@@ -149,7 +145,6 @@ function reducer(state: GameState, action: GameAction): GameState {
         deckOrder: next.deckOrder,
         deckIndex: next.deckIndex,
         roundScore: 0,
-        passUsed: false,
       };
     }
 

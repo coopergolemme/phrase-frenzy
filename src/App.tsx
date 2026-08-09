@@ -56,7 +56,6 @@ function App() {
             currentWord={state.currentWord}
             timeRemaining={timeRemaining}
             score={state.roundScore}
-            passUsed={state.passUsed}
             onCorrect={markCorrect}
             onPass={markPass}
           />

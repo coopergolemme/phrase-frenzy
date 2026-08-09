@@ -50,13 +50,6 @@
   background: var(--color-pass-pressed);
 }
 
-.btn--pass:disabled {
-  background: var(--color-disabled);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: not-allowed;
-  transform: none;
-}
-
 /* Home screen */
 
 .screen--home {

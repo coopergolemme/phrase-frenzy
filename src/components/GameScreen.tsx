@@ -6,7 +6,6 @@ interface GameScreenProps {
   currentWord: string;
   timeRemaining: number;
   score: number;
-  passUsed: boolean;
   onCorrect: () => void;
   onPass: () => void;
 }
@@ -17,7 +16,6 @@ export function GameScreen({
   currentWord,
   timeRemaining,
   score,
-  passUsed,
   onCorrect,
   onPass,
 }: GameScreenProps) {
@@ -40,11 +38,7 @@ export function GameScreen({
       </div>
 
       <div className="game__actions">
-        <button
-          className="btn btn--pass btn--large"
-          onClick={onPass}
-          disabled={passUsed}
-        >
+        <button className="btn btn--pass btn--large" onClick={onPass}>
           Pass
         </button>
         <button className="btn btn--primary btn--large" onClick={onCorrect}>
