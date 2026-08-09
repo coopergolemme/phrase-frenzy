@@ -446,25 +446,41 @@
 
 .game__header {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .game__team-name {
-  font-size: 1.4rem;
+  font-size: clamp(1.5rem, 6vmin, 1.9rem);
   font-weight: 800;
   margin: 0;
+  letter-spacing: 0.01em;
 }
 
-.game__round-label {
-  color: var(--color-text-secondary);
+.game__timer {
+  font-size: clamp(2.75rem, 14vmin, 3.75rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   margin: 0;
-  font-size: 0.9rem;
+  color: var(--color-primary);
 }
 
-.game__top-bar {
+.game__meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.game__meta-dot {
+  opacity: 0.5;
 }
 
 .debug-skip-btn {
@@ -481,24 +497,6 @@
 
 .debug-skip-btn:active {
   background: var(--color-border);
-}
-
-.chip {
-  background: var(--color-surface);
-  border-radius: var(--radius-chip);
-  border: 1px solid var(--color-border);
-  backdrop-filter: var(--blur-glass);
-  -webkit-backdrop-filter: var(--blur-glass);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-2) var(--space-4);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.chip--timer {
-  font-size: 1.25rem;
-  min-width: 3ch;
-  text-align: center;
 }
 
 .game__word-area {
@@ -547,37 +545,29 @@
   .screen--game {
     display: grid;
     grid-template-columns: minmax(64px, 96px) 1fr minmax(64px, 96px);
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto 1fr;
     grid-template-areas:
       "pass header correct"
-      "pass topbar correct"
       "pass word correct";
     gap: var(--space-2) var(--space-3);
   }
 
   .game__header {
     grid-area: header;
+    gap: 2px;
   }
 
   .game__team-name {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
   }
 
-  .game__round-label {
-    font-size: 0.75rem;
+  .game__timer {
+    font-size: 1.9rem;
   }
 
-  .game__top-bar {
-    grid-area: topbar;
-  }
-
-  .chip {
-    padding: var(--space-1) var(--space-3);
-    font-size: 0.9rem;
-  }
-
-  .chip--timer {
-    font-size: 1.05rem;
+  .game__meta {
+    font-size: 0.7rem;
+    gap: var(--space-1);
   }
 
   .game__word-area {

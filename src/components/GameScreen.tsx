@@ -25,24 +25,26 @@ export function GameScreen({
     <div className="screen screen--game">
       <div className="game__header">
         <p className="game__team-name">{teamName}</p>
-        <p className="game__round-label">{roundLabel}</p>
-      </div>
-
-      <div className="game__top-bar">
-        <div className="chip chip--score">Score: {score}</div>
-        <div className="chip chip--timer" aria-live="polite">
+        <p className="game__timer" aria-live="polite">
           {timeRemaining}
+        </p>
+        <div className="game__meta">
+          <span className="game__meta-item">{roundLabel}</span>
+          <span className="game__meta-dot" aria-hidden="true">
+            &bull;
+          </span>
+          <span className="game__meta-item">Score: {score}</span>
+          {onDebugSkipRound && (
+            <button
+              type="button"
+              className="debug-skip-btn"
+              onClick={onDebugSkipRound}
+              aria-label="Debug: skip to end of round"
+            >
+              Skip ⏭
+            </button>
+          )}
         </div>
-        {onDebugSkipRound && (
-          <button
-            type="button"
-            className="debug-skip-btn"
-            onClick={onDebugSkipRound}
-            aria-label="Debug: skip to end of round"
-          >
-            Skip ⏭
-          </button>
-        )}
       </div>
 
       <div className="game__rotate-hint">
