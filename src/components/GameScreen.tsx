@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { WordCard } from "./WordCard";
+import { ScoreboardSheet } from "./ScoreboardSheet";
+import type { Team } from "../hooks/useGameState";
 
 interface GameScreenProps {
   teamName: string;
@@ -6,9 +9,11 @@ interface GameScreenProps {
   currentWord: string;
   timeRemaining: number;
   score: number;
+  teams: Team[];
   onCorrect: () => void;
   onPass: () => void;
-  onDebugSkipRound?: () => void;
+  onSkipRound: () => void;
+  onRestart: () => void;
 }
 
 export function GameScreen({
@@ -17,10 +22,14 @@ export function GameScreen({
   currentWord,
   timeRemaining,
   score,
+  teams,
   onCorrect,
   onPass,
-  onDebugSkipRound,
+  onSkipRound,
+  onRestart,
 }: GameScreenProps) {
+  const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
+
   return (
     <div className="screen screen--game">
       <div className="game__header">
@@ -34,16 +43,32 @@ export function GameScreen({
             &bull;
           </span>
           <span className="game__meta-item">Score: {score}</span>
-          {onDebugSkipRound && (
-            <button
-              type="button"
-              className="debug-skip-btn"
-              onClick={onDebugSkipRound}
-              aria-label="Debug: skip to end of round"
-            >
-              Skip ⏭
-            </button>
-          )}
+        </div>
+        <div className="game__controls">
+          <button
+            type="button"
+            className="game-control-btn"
+            onClick={onSkipRound}
+            aria-label="Skip to end of round"
+          >
+            Skip Round ⏭
+          </button>
+          <button
+            type="button"
+            className="game-control-btn"
+            onClick={() => setIsScoreboardOpen(true)}
+            aria-label="View scoreboard"
+          >
+            Scoreboard 🏆
+          </button>
+          <button
+            type="button"
+            className="game-control-btn"
+            onClick={onRestart}
+            aria-label="Restart game"
+          >
+            Restart 🔄
+          </button>
         </div>
       </div>
 
@@ -66,6 +91,10 @@ export function GameScreen({
           Correct
         </button>
       </div>
+
+      {isScoreboardOpen && (
+        <ScoreboardSheet teams={teams} onClose={() => setIsScoreboardOpen(false)} />
+      )}
     </div>
   );
 }

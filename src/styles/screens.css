@@ -483,7 +483,14 @@
   opacity: 0.5;
 }
 
-.debug-skip-btn {
+.game__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.game-control-btn {
   border: 1px dashed var(--color-text-secondary);
   background: transparent;
   color: var(--color-text-secondary);
@@ -495,7 +502,7 @@
   flex-shrink: 0;
 }
 
-.debug-skip-btn:active {
+.game-control-btn:active {
   background: var(--color-border);
 }
 
@@ -568,6 +575,15 @@
   .game__meta {
     font-size: 0.7rem;
     gap: var(--space-1);
+  }
+
+  .game__controls {
+    gap: var(--space-1);
+  }
+
+  .game-control-btn {
+    padding: 2px var(--space-2);
+    font-size: 0.65rem;
   }
 
   .game__word-area {

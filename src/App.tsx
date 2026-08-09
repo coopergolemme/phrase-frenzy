@@ -61,6 +61,12 @@ function App() {
     markPass();
   }, [applyPenalty, markPass]);
 
+  const handleRestart = useCallback(() => {
+    if (window.confirm("Restart the game? This will erase the current scores.")) {
+      reset();
+    }
+  }, [reset]);
+
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
   const currentRoundNumber =
@@ -115,9 +121,11 @@ function App() {
             currentWord={state.currentWord}
             timeRemaining={timeRemaining}
             score={state.roundScore}
+            teams={state.teams}
             onCorrect={markCorrect}
             onPass={handlePass}
-            onDebugSkipRound={import.meta.env.DEV ? timeUp : undefined}
+            onSkipRound={timeUp}
+            onRestart={handleRestart}
           />
         )}
 
