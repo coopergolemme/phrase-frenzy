@@ -98,6 +98,13 @@
   line-height: 1.4;
 }
 
+.home__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-4);
+}
+
 @media (orientation: landscape) and (max-height: 600px) {
   .screen--home {
     padding-top: var(--space-2);
@@ -787,6 +794,35 @@
   opacity: 1;
   background: #fde68a;
   border-color: #f59e0b;
+}
+
+.stat-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.stat-row__counts {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.match-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  padding: var(--space-3) var(--space-4);
+}
+
+.match-card__date {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
 }
 
 .outcome-pill {
