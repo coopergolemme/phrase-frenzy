@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { fetchWordCategories } from "../data/wordDatabase";
 import { SEED_WORD_CATEGORIES } from "../data/seedWords";
@@ -9,6 +9,8 @@ export function useWordCategories() {
     () => getCachedWordCategories() ?? []
   );
   const [isLoading, setIsLoading] = useState(categories.length === 0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,5 +34,19 @@ export function useWordCategories() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { categories, isLoading };
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setRefreshError(null);
+    try {
+      const fetched = await fetchWordCategories();
+      setCategories(fetched);
+      saveCachedWordCategories(fetched);
+    } catch {
+      setRefreshError("Couldn't reach the word database. Try again later.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  return { categories, isLoading, refresh, isRefreshing, refreshError };
 }

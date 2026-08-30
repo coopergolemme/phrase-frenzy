@@ -28,7 +28,13 @@ function App() {
     reset,
   } = useGameState();
 
-  const { categories, isLoading: isLoadingCategories } = useWordCategories();
+  const {
+    categories,
+    isLoading: isLoadingCategories,
+    refresh: refreshWordCategories,
+    isRefreshing: isRefreshingWordCategories,
+    refreshError: wordCategoriesRefreshError,
+  } = useWordCategories();
   const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
   const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
@@ -133,6 +139,9 @@ function App() {
             onClearMatchHistory={clearHistory}
             canInstall={canInstall}
             onInstall={promptInstall}
+            onRefreshWords={refreshWordCategories}
+            isRefreshingWords={isRefreshingWordCategories}
+            refreshWordsError={wordCategoriesRefreshError}
           />
         )}
 

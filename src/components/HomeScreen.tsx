@@ -16,6 +16,9 @@ interface HomeScreenProps {
   onClearMatchHistory: () => void;
   canInstall: boolean;
   onInstall: () => void;
+  onRefreshWords: () => void | Promise<void>;
+  isRefreshingWords: boolean;
+  refreshWordsError: string | null;
 }
 
 type ActiveSheet = "flags" | "stats" | "history" | null;
@@ -31,12 +34,13 @@ export function HomeScreen({
   onClearMatchHistory,
   canInstall,
   onInstall,
+  onRefreshWords,
+  isRefreshingWords,
+  refreshWordsError,
 }: HomeScreenProps) {
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const hasWordStats = Object.keys(wordStats).length > 0;
-  const hasMenuItems =
-    flaggedWords.length > 0 || hasWordStats || matchHistory.length > 0 || canInstall;
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -50,96 +54,112 @@ export function HomeScreen({
     onInstall();
   };
 
+  const handleRefreshWords = () => {
+    closeMenu();
+    void onRefreshWords();
+  };
+
   return (
     <div className="screen screen--home">
       <div className="home__content">
         <div className="home__intro">
           <div className="home__intro-row">
             <h1 className="home__title">Phrase Frenzy</h1>
-            {hasMenuItems && (
-              <div className="home__menu-anchor">
-                <button
-                  type="button"
-                  className="icon-menu-btn"
-                  onClick={() => setIsMenuOpen((open) => !open)}
-                  aria-label="More options"
-                  aria-haspopup="menu"
-                  aria-expanded={isMenuOpen}
-                >
-                  ⋯
-                </button>
+            <div className="home__menu-anchor">
+              <button
+                type="button"
+                className="icon-menu-btn"
+                onClick={() => setIsMenuOpen((open) => !open)}
+                aria-label="More options"
+                aria-haspopup="menu"
+                aria-expanded={isMenuOpen}
+              >
+                ⋯
+              </button>
 
-                {isMenuOpen && (
-                  <>
+              {isMenuOpen && (
+                <>
+                  <button
+                    type="button"
+                    className="icon-menu__backdrop"
+                    onClick={closeMenu}
+                    aria-label="Close menu"
+                  />
+                  <div className="icon-menu" role="menu">
+                    {flaggedWords.length > 0 && (
+                      <button
+                        type="button"
+                        className="icon-menu__item"
+                        role="menuitem"
+                        onClick={() => openSheet("flags")}
+                      >
+                        <span className="icon-menu__icon" aria-hidden="true">
+                          🚩
+                        </span>
+                        Flagged Words ({flaggedWords.length})
+                      </button>
+                    )}
+                    {hasWordStats && (
+                      <button
+                        type="button"
+                        className="icon-menu__item"
+                        role="menuitem"
+                        onClick={() => openSheet("stats")}
+                      >
+                        <span className="icon-menu__icon" aria-hidden="true">
+                          📊
+                        </span>
+                        Word Stats
+                      </button>
+                    )}
+                    {matchHistory.length > 0 && (
+                      <button
+                        type="button"
+                        className="icon-menu__item"
+                        role="menuitem"
+                        onClick={() => openSheet("history")}
+                      >
+                        <span className="icon-menu__icon" aria-hidden="true">
+                          🕐
+                        </span>
+                        Match History
+                      </button>
+                    )}
+                    {canInstall && (
+                      <button
+                        type="button"
+                        className="icon-menu__item"
+                        role="menuitem"
+                        onClick={handleInstall}
+                      >
+                        <span className="icon-menu__icon" aria-hidden="true">
+                          ⬇️
+                        </span>
+                        Install App
+                      </button>
+                    )}
                     <button
                       type="button"
-                      className="icon-menu__backdrop"
-                      onClick={closeMenu}
-                      aria-label="Close menu"
-                    />
-                    <div className="icon-menu" role="menu">
-                      {flaggedWords.length > 0 && (
-                        <button
-                          type="button"
-                          className="icon-menu__item"
-                          role="menuitem"
-                          onClick={() => openSheet("flags")}
-                        >
-                          <span className="icon-menu__icon" aria-hidden="true">
-                            🚩
-                          </span>
-                          Flagged Words ({flaggedWords.length})
-                        </button>
-                      )}
-                      {hasWordStats && (
-                        <button
-                          type="button"
-                          className="icon-menu__item"
-                          role="menuitem"
-                          onClick={() => openSheet("stats")}
-                        >
-                          <span className="icon-menu__icon" aria-hidden="true">
-                            📊
-                          </span>
-                          Word Stats
-                        </button>
-                      )}
-                      {matchHistory.length > 0 && (
-                        <button
-                          type="button"
-                          className="icon-menu__item"
-                          role="menuitem"
-                          onClick={() => openSheet("history")}
-                        >
-                          <span className="icon-menu__icon" aria-hidden="true">
-                            🕐
-                          </span>
-                          Match History
-                        </button>
-                      )}
-                      {canInstall && (
-                        <button
-                          type="button"
-                          className="icon-menu__item"
-                          role="menuitem"
-                          onClick={handleInstall}
-                        >
-                          <span className="icon-menu__icon" aria-hidden="true">
-                            ⬇️
-                          </span>
-                          Install App
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                      className="icon-menu__item"
+                      role="menuitem"
+                      onClick={handleRefreshWords}
+                      disabled={isRefreshingWords}
+                    >
+                      <span className="icon-menu__icon" aria-hidden="true">
+                        🔄
+                      </span>
+                      {isRefreshingWords ? "Refreshing words…" : "Refresh Word Bank"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <p className="home__subtitle">
             Pass the phone, describe the word before time runs out, and keep the
             streak going with your team.
           </p>
+          {refreshWordsError && <p className="home__error">{refreshWordsError}</p>}
         </div>
         <ul className="home__instructions">
           <li>Describe the word on screen &mdash; no saying it outright.</li>

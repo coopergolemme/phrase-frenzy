@@ -121,6 +121,14 @@
   line-height: 1.4;
 }
 
+.home__error {
+  color: var(--color-danger);
+  text-align: center;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .home__instructions {
   background: var(--color-surface);
   border-radius: var(--radius-card);
