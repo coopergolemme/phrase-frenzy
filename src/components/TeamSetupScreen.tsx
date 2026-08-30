@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { WORD_CATEGORIES } from "../data/words";
+import { useMemo, useState } from "react";
+import type { WordCategory } from "../data/wordCategory";
 import { CategoryPickerSheet } from "./CategoryPickerSheet";
 
 const MIN_TEAMS = 2;
@@ -10,9 +10,9 @@ const MIN_ROUND_DURATION_SEC = 30;
 const MAX_ROUND_DURATION_SEC = 120;
 const ROUND_DURATION_STEP_SEC = 15;
 const DEFAULT_ROUND_DURATION_SEC = 60;
-const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
 
 interface TeamSetupScreenProps {
+  categories: WordCategory[];
   onStart: (
     teamNames: string[],
     teamMembers: string[][],
@@ -22,18 +22,19 @@ interface TeamSetupScreenProps {
   ) => void;
 }
 
-export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
+export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
+  const allCategoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [teamMembers, setTeamMembers] = useState<string[][]>([[], []]);
   const [memberDrafts, setMemberDrafts] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
-  const [categoryIds, setCategoryIds] = useState<string[]>(ALL_CATEGORY_IDS);
+  const [categoryIds, setCategoryIds] = useState<string[]>(allCategoryIds);
   const [isPickingCategories, setIsPickingCategories] = useState(false);
 
   const canAddTeam = teamNames.length < MAX_TEAMS;
   const canRemoveTeam = teamNames.length > MIN_TEAMS;
-  const allSelected = categoryIds.length === ALL_CATEGORY_IDS.length;
+  const allSelected = categoryIds.length === allCategoryIds.length;
   const categorySummary = allSelected
     ? "All"
     : `${categoryIds.length} selected`;
@@ -88,7 +89,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   };
 
   const selectAllCategories = () => {
-    setCategoryIds(ALL_CATEGORY_IDS);
+    setCategoryIds(allCategoryIds);
   };
 
   const adjustRounds = (delta: number) => {
@@ -262,6 +263,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
 
       {isPickingCategories && (
         <CategoryPickerSheet
+          categories={categories}
           categoryIds={categoryIds}
           onToggleCategory={toggleCategory}
           onSelectAll={selectAllCategories}
