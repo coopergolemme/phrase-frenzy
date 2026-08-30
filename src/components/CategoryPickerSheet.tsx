@@ -1,8 +1,7 @@
-import { WORD_CATEGORIES } from "../data/words";
-
-const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
+import type { WordCategory } from "../data/wordCategory";
 
 interface CategoryPickerSheetProps {
+  categories: WordCategory[];
   categoryIds: string[];
   onToggleCategory: (id: string) => void;
   onSelectAll: () => void;
@@ -10,12 +9,13 @@ interface CategoryPickerSheetProps {
 }
 
 export function CategoryPickerSheet({
+  categories,
   categoryIds,
   onToggleCategory,
   onSelectAll,
   onClose,
 }: CategoryPickerSheetProps) {
-  const allSelected = categoryIds.length === ALL_CATEGORY_IDS.length;
+  const allSelected = categoryIds.length === categories.length;
 
   return (
     <div className="review-sheet">
@@ -44,7 +44,7 @@ export function CategoryPickerSheet({
         </div>
 
         <div className="category-picker">
-          {WORD_CATEGORIES.map((category) => {
+          {categories.map((category) => {
             const selected = categoryIds.includes(category.id);
             return (
               <button

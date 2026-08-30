@@ -1,5 +1,5 @@
 import { useReducer } from "react";
-import { WORD_CATEGORIES } from "../data/words";
+import type { WordCategory } from "../data/wordCategory";
 import { shuffle } from "../utils/shuffle";
 
 export type GameStatus =
@@ -47,6 +47,7 @@ type GameAction =
       roundsPerTeam: number;
       categoryIds: string[];
       flaggedWords: string[];
+      categories: WordCategory[];
     }
   | { type: "CORRECT" }
   | { type: "PASS" }
@@ -64,8 +65,8 @@ const initialState: GameState = {
   currentWord: "",
   roundScore: 0,
   roundLog: [],
-  categoryIds: WORD_CATEGORIES.map((c) => c.id),
-  wordBank: WORD_CATEGORIES.flatMap((c) => c.words),
+  categoryIds: [],
+  wordBank: [],
   deckOrder: [],
   deckIndex: 0,
 };
@@ -109,13 +110,13 @@ function reducer(state: GameState, action: GameAction): GameState {
         totalScore: 0,
         members: action.teamMembers[index] ?? [],
       }));
-      const selectedCategories = WORD_CATEGORIES.filter((c) =>
+      const selectedCategories = action.categories.filter((c) =>
         action.categoryIds.includes(c.id)
       );
       const flaggedSet = new Set(action.flaggedWords);
       const wordBank = Array.from(
         new Set(
-          (selectedCategories.length > 0 ? selectedCategories : WORD_CATEGORIES).flatMap(
+          (selectedCategories.length > 0 ? selectedCategories : action.categories).flatMap(
             (c) => c.words
           )
         )
@@ -254,7 +255,8 @@ export function useGameState() {
       teamMembers: string[][],
       roundsPerTeam: number,
       categoryIds: string[],
-      flaggedWords: string[]
+      flaggedWords: string[],
+      categories: WordCategory[]
     ) =>
       dispatch({
         type: "START_TOURNAMENT",
@@ -263,6 +265,7 @@ export function useGameState() {
         roundsPerTeam,
         categoryIds,
         flaggedWords,
+        categories,
       }),
     markCorrect: () => dispatch({ type: "CORRECT" }),
     markPass: () => dispatch({ type: "PASS" }),

@@ -1371,3 +1371,12 @@
     transform: translateY(0);
   }
 }
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+}

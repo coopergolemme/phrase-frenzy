@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
+import { useWordCategories } from "./hooks/useWordCategories";
 import { useMatchHistory } from "./hooks/useMatchHistory";
 import { useWordStats } from "./hooks/useWordStats";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
@@ -27,6 +28,7 @@ function App() {
     reset,
   } = useGameState();
 
+  const { categories, isLoading: isLoadingCategories } = useWordCategories();
   const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
   const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
@@ -42,9 +44,9 @@ function App() {
       roundDuration: number
     ) => {
       setRoundDurationSec(roundDuration);
-      startTournament(teamNames, teamMembers, roundsPerTeam, categoryIds, flaggedWords);
+      startTournament(teamNames, teamMembers, roundsPerTeam, categoryIds, flaggedWords, categories);
     },
-    [startTournament, flaggedWords]
+    [startTournament, flaggedWords, categories]
   );
 
   const onExpire = useCallback(() => {
@@ -106,6 +108,16 @@ function App() {
     nextTurn,
   ]);
 
+  if (categories.length === 0 && isLoadingCategories) {
+    return (
+      <div className="app-shell">
+        <div className="screen-container">
+          <p className="loading-text">Loading word bank…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <div className="screen-container" key={state.gameStatus}>
@@ -125,7 +137,7 @@ function App() {
         )}
 
         {state.gameStatus === "teamSetup" && (
-          <TeamSetupScreen onStart={handleStartTournament} />
+          <TeamSetupScreen categories={categories} onStart={handleStartTournament} />
         )}
 
         {state.gameStatus === "playing" && activeTeam && (
