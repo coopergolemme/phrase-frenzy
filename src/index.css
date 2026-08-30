@@ -6,7 +6,8 @@
   --color-surface: rgba(255, 255, 255, 0.55);
   --color-surface-solid: #ffffff;
   --color-border: rgba(255, 255, 255, 0.55);
-  --color-border-solid: rgba(0, 0, 0, 0.08);
+  --color-border-solid: rgba(0, 0, 0, 0.16);
+  --color-outline: rgba(28, 28, 30, 0.18);
   --color-primary: #34c759;
   --color-primary-pressed: #2ba149;
   --color-pass: #ff9500;
@@ -17,7 +18,6 @@
   --color-text-secondary: #8e8e93;
 
   --blur-glass: blur(20px);
-  --shadow-card: 0 8px 30px rgba(31, 41, 55, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04);
 
   --radius-card: 16px;
   --radius-button: 14px;

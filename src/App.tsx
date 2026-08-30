@@ -36,12 +36,13 @@ function App() {
   const handleStartTournament = useCallback(
     (
       teamNames: string[],
+      teamMembers: string[][],
       roundsPerTeam: number,
       categoryIds: string[],
       roundDuration: number
     ) => {
       setRoundDurationSec(roundDuration);
-      startTournament(teamNames, roundsPerTeam, categoryIds, flaggedWords);
+      startTournament(teamNames, teamMembers, roundsPerTeam, categoryIds, flaggedWords);
     },
     [startTournament, flaggedWords]
   );
@@ -75,6 +76,13 @@ function App() {
 
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
+  const teamTurnsTaken = state.turnOrder
+    .slice(0, state.turnIndex)
+    .filter((teamIndex) => teamIndex === activeTeamIndex).length;
+  const describerName =
+    activeTeam && activeTeam.members.length > 0
+      ? activeTeam.members[teamTurnsTaken % activeTeam.members.length]
+      : null;
   const currentRoundNumber =
     state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
@@ -123,6 +131,7 @@ function App() {
         {state.gameStatus === "playing" && activeTeam && (
           <GameScreen
             teamName={activeTeam.name}
+            describerName={describerName}
             roundLabel={`Round ${currentRoundNumber} of ${state.roundsPerTeam}`}
             currentWord={state.currentWord}
             timeRemaining={timeRemaining}

@@ -13,6 +13,7 @@ export interface Team {
   id: string;
   name: string;
   totalScore: number;
+  members: string[];
 }
 
 export type WordOutcome = "correct" | "passed";
@@ -42,6 +43,7 @@ type GameAction =
   | {
       type: "START_TOURNAMENT";
       teamNames: string[];
+      teamMembers: string[][];
       roundsPerTeam: number;
       categoryIds: string[];
       flaggedWords: string[];
@@ -105,6 +107,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         id: `team-${index}`,
         name,
         totalScore: 0,
+        members: action.teamMembers[index] ?? [],
       }));
       const selectedCategories = WORD_CATEGORIES.filter((c) =>
         action.categoryIds.includes(c.id)
@@ -248,6 +251,7 @@ export function useGameState() {
     startTeamSetup: () => dispatch({ type: "START_TEAM_SETUP" }),
     startTournament: (
       teamNames: string[],
+      teamMembers: string[][],
       roundsPerTeam: number,
       categoryIds: string[],
       flaggedWords: string[]
@@ -255,6 +259,7 @@ export function useGameState() {
       dispatch({
         type: "START_TOURNAMENT",
         teamNames,
+        teamMembers,
         roundsPerTeam,
         categoryIds,
         flaggedWords,

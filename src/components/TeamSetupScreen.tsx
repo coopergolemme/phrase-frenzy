@@ -15,6 +15,7 @@ const ALL_CATEGORY_IDS = WORD_CATEGORIES.map((c) => c.id);
 interface TeamSetupScreenProps {
   onStart: (
     teamNames: string[],
+    teamMembers: string[][],
     roundsPerTeam: number,
     categoryIds: string[],
     roundDurationSec: number
@@ -23,6 +24,8 @@ interface TeamSetupScreenProps {
 
 export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
+  const [teamMembers, setTeamMembers] = useState<string[][]>([[], []]);
+  const [memberDrafts, setMemberDrafts] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
   const [categoryIds, setCategoryIds] = useState<string[]>(ALL_CATEGORY_IDS);
@@ -46,11 +49,36 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
   const addTeam = () => {
     if (!canAddTeam) return;
     setTeamNames((prev) => [...prev, ""]);
+    setTeamMembers((prev) => [...prev, []]);
+    setMemberDrafts((prev) => [...prev, ""]);
   };
 
   const removeTeam = (index: number) => {
     if (!canRemoveTeam) return;
     setTeamNames((prev) => prev.filter((_, i) => i !== index));
+    setTeamMembers((prev) => prev.filter((_, i) => i !== index));
+    setMemberDrafts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateMemberDraft = (teamIndex: number, value: string) => {
+    setMemberDrafts((prev) => prev.map((draft, i) => (i === teamIndex ? value : draft)));
+  };
+
+  const addMember = (teamIndex: number) => {
+    const name = memberDrafts[teamIndex]?.trim();
+    if (!name) return;
+    setTeamMembers((prev) =>
+      prev.map((members, i) => (i === teamIndex ? [...members, name] : members))
+    );
+    setMemberDrafts((prev) => prev.map((draft, i) => (i === teamIndex ? "" : draft)));
+  };
+
+  const removeMember = (teamIndex: number, memberIndex: number) => {
+    setTeamMembers((prev) =>
+      prev.map((members, i) =>
+        i === teamIndex ? members.filter((_, mi) => mi !== memberIndex) : members
+      )
+    );
   };
 
   const toggleCategory = (id: string) => {
@@ -77,6 +105,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
     if (!canStart) return;
     onStart(
       teamNames.map((name) => name.trim()),
+      teamMembers,
       roundsPerTeam,
       categoryIds,
       roundDurationSec
@@ -91,24 +120,57 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
         <div className="team-setup__teams">
           <div className="team-setup__list">
             {teamNames.map((name, index) => (
-              <div className="team-row" key={index}>
-                <input
-                  className="team-row__input"
-                  type="text"
-                  placeholder={`Team ${index + 1}`}
-                  value={name}
-                  maxLength={24}
-                  onChange={(e) => updateName(index, e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="team-row__remove"
-                  onClick={() => removeTeam(index)}
-                  disabled={!canRemoveTeam}
-                  aria-label={`Remove ${name || `Team ${index + 1}`}`}
-                >
-                  &times;
-                </button>
+              <div className="team-row-group" key={index}>
+                <div className="team-row">
+                  <input
+                    className="team-row__input"
+                    type="text"
+                    placeholder={`Team ${index + 1}`}
+                    value={name}
+                    maxLength={24}
+                    onChange={(e) => updateName(index, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="team-row__remove"
+                    onClick={() => removeTeam(index)}
+                    disabled={!canRemoveTeam}
+                    aria-label={`Remove ${name || `Team ${index + 1}`}`}
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <div className="member-list">
+                  {teamMembers[index]?.map((member, memberIndex) => (
+                    <span className="member-chip" key={memberIndex}>
+                      {member}
+                      <button
+                        type="button"
+                        className="member-chip__remove"
+                        onClick={() => removeMember(index, memberIndex)}
+                        aria-label={`Remove ${member}`}
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    className="member-list__input"
+                    type="text"
+                    placeholder="+ Add member"
+                    value={memberDrafts[index] ?? ""}
+                    maxLength={24}
+                    onChange={(e) => updateMemberDraft(index, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addMember(index);
+                      }
+                    }}
+                    onBlur={() => addMember(index)}
+                  />
+                </div>
               </div>
             ))}
           </div>

@@ -5,6 +5,7 @@ import type { Team } from "../hooks/useGameState";
 
 interface GameScreenProps {
   teamName: string;
+  describerName: string | null;
   roundLabel: string;
   currentWord: string;
   timeRemaining: number;
@@ -20,6 +21,7 @@ interface GameScreenProps {
 
 export function GameScreen({
   teamName,
+  describerName,
   roundLabel,
   currentWord,
   timeRemaining,
@@ -67,6 +69,7 @@ export function GameScreen({
 
         <div className="game__hud game__hud--left">
           <p className="game__team-name">{teamName}</p>
+          {describerName && <p className="game__describer">{describerName} describing</p>}
           <p className="game__meta">
             <span className="game__meta-item">{roundLabel}</span>
             <span className="game__meta-item">Score: {score}</span>
