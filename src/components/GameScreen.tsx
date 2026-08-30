@@ -10,10 +10,12 @@ interface GameScreenProps {
   timeRemaining: number;
   score: number;
   teams: Team[];
+  isPaused: boolean;
   onCorrect: () => void;
   onPass: () => void;
   onSkipRound: () => void;
   onRestart: () => void;
+  onTogglePause: () => void;
 }
 
 export function GameScreen({
@@ -23,14 +25,16 @@ export function GameScreen({
   timeRemaining,
   score,
   teams,
+  isPaused,
   onCorrect,
   onPass,
   onSkipRound,
   onRestart,
+  onTogglePause,
 }: GameScreenProps) {
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
+  const isUrgent = !isPaused && timeRemaining <= 10 && timeRemaining > 0;
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -59,7 +63,7 @@ export function GameScreen({
       </div>
 
       <div className="game__word-area">
-        <WordCard word={currentWord} />
+        <WordCard word={isPaused ? "Paused" : currentWord} />
 
         <div className="game__hud game__hud--left">
           <p className="game__team-name">{teamName}</p>
@@ -76,6 +80,15 @@ export function GameScreen({
           >
             {timeRemaining}
           </p>
+          <button
+            type="button"
+            className="game-pause-btn"
+            onClick={onTogglePause}
+            aria-label={isPaused ? "Resume timer" : "Pause timer"}
+            aria-pressed={isPaused}
+          >
+            {isPaused ? "▶" : "⏸"}
+          </button>
           <button
             type="button"
             className="game-menu-btn"
@@ -136,13 +149,21 @@ export function GameScreen({
       </div>
 
       <div className="game__actions">
-        <button className="btn btn--pass btn--large" onClick={onPass}>
+        <button
+          className="btn btn--pass btn--large"
+          onClick={onPass}
+          disabled={isPaused}
+        >
           <span className="btn__icon" aria-hidden="true">
             ✕
           </span>
           Pass
         </button>
-        <button className="btn btn--primary btn--large" onClick={onCorrect}>
+        <button
+          className="btn btn--primary btn--large"
+          onClick={onCorrect}
+          disabled={isPaused}
+        >
           <span className="btn__icon" aria-hidden="true">
             ✓
           </span>

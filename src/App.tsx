@@ -50,16 +50,22 @@ function App() {
     timeUp();
   }, [timeUp]);
 
-  const { timeRemaining, applyPenalty } = useCountdown(
+  const { timeRemaining, applyPenalty, isPaused, togglePause } = useCountdown(
     state.gameStatus === "playing",
     roundDurationSec,
     onExpire
   );
 
   const handlePass = useCallback(() => {
+    if (isPaused) return;
     applyPenalty(PASS_PENALTY_SEC);
     markPass();
-  }, [applyPenalty, markPass]);
+  }, [applyPenalty, markPass, isPaused]);
+
+  const handleCorrect = useCallback(() => {
+    if (isPaused) return;
+    markCorrect();
+  }, [markCorrect, isPaused]);
 
   const handleRestart = useCallback(() => {
     if (window.confirm("Restart the game? This will erase the current scores.")) {
@@ -122,10 +128,12 @@ function App() {
             timeRemaining={timeRemaining}
             score={state.roundScore}
             teams={state.teams}
-            onCorrect={markCorrect}
+            isPaused={isPaused}
+            onCorrect={handleCorrect}
             onPass={handlePass}
             onSkipRound={timeUp}
             onRestart={handleRestart}
+            onTogglePause={togglePause}
           />
         )}
 

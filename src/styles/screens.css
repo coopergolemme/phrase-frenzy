@@ -77,6 +77,13 @@
   box-shadow: 0 2px 6px rgba(255, 149, 0, 0.3);
 }
 
+.btn--pass:disabled {
+  background: var(--color-disabled);
+  color: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* Home screen */
 
 .screen--home {
@@ -546,7 +553,8 @@
   opacity: 0.5;
 }
 
-.game-menu-btn {
+.game-menu-btn,
+.game-pause-btn {
   border: 1px solid var(--color-border-solid);
   background: var(--color-surface);
   backdrop-filter: var(--blur-glass);
@@ -563,9 +571,16 @@
   transition: transform 80ms ease-out, background 120ms ease-out;
 }
 
-.game-menu-btn:active {
+.game-menu-btn:active,
+.game-pause-btn:active {
   background: var(--color-border);
   transform: scale(0.92);
+}
+
+.game-pause-btn[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
 }
 
 .game-menu__backdrop {
@@ -720,7 +735,8 @@
     gap: var(--space-1);
   }
 
-  .game-menu-btn {
+  .game-menu-btn,
+  .game-pause-btn {
     width: 30px;
     height: 30px;
     font-size: 0.9rem;
