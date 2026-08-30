@@ -23,8 +23,17 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   transition: transform 80ms ease-out, box-shadow 120ms ease-out,
     filter 120ms ease-out;
+}
+
+.btn__icon {
+  font-size: 0.85em;
+  line-height: 1;
 }
 
 .btn:active {
@@ -448,74 +457,169 @@
   padding-top: var(--space-2);
 }
 
-.game__header {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.game__team-name {
-  font-size: clamp(1.5rem, 6vmin, 1.9rem);
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: 0.01em;
-}
-
-.game__timer {
-  font-size: clamp(2.75rem, 14vmin, 3.75rem);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  margin: 0;
-  color: var(--color-primary);
-}
-
-.game__meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.game__meta-dot {
-  opacity: 0.5;
-}
-
-.game__controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
-}
-
-.game-control-btn {
-  border: 1px dashed var(--color-text-secondary);
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-chip);
-  padding: var(--space-1) var(--space-3);
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.game-control-btn:active {
-  background: var(--color-border);
-}
-
 .game__word-area {
   flex: 1;
   display: flex;
   align-items: stretch;
   justify-content: center;
   min-height: 0;
+  position: relative;
+}
+
+/* HUD: team/round/score and timer/menu overlaid on the word card's
+   corners, kept clear of the centered word by the card's own padding. */
+
+.game__hud {
+  position: absolute;
+  top: var(--space-3);
+  z-index: 2;
+  display: flex;
+  pointer-events: none;
+}
+
+.game__hud > * {
+  pointer-events: auto;
+}
+
+.game__hud--left {
+  left: var(--space-4);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.game__hud--right {
+  right: var(--space-4);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.game__team-name {
+  font-size: clamp(1rem, 4vmin, 1.3rem);
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 0.01em;
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game__timer {
+  font-size: clamp(1.6rem, 7vmin, 2.25rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 0;
+  color: var(--color-primary);
+  transition: color 200ms ease-out;
+}
+
+.game__timer--urgent {
+  color: var(--color-danger);
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.game__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.game__meta-dot {
+  opacity: 0.5;
+}
+
+.game-menu-btn {
+  border: 1px solid var(--color-border-solid);
+  background: var(--color-surface);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  color: var(--color-text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(31, 41, 55, 0.06);
+  transition: transform 80ms ease-out, background 120ms ease-out;
+}
+
+.game-menu-btn:active {
+  background: var(--color-border);
+  transform: scale(0.92);
+}
+
+.game-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  border: none;
+  background: transparent;
+  cursor: default;
+  padding: 0;
+}
+
+.game-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 168px;
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border-solid);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-1);
+  animation: screenEnter 120ms ease-out;
+}
+
+.game-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  border-radius: var(--radius-button);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 100ms ease-out;
+}
+
+.game-menu__item:active {
+  background: var(--color-bg);
+}
+
+.game-menu__icon {
+  font-size: 1rem;
+  line-height: 1;
+  width: 1.2em;
+  text-align: center;
 }
 
 .word-card {
@@ -524,13 +628,54 @@
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
   border: 1px solid var(--color-border-solid);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 12px 32px rgba(31, 41, 55, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06);
   padding: var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  position: relative;
   animation: wordEnter 180ms ease-out;
+}
+
+.screen--game-urgent .word-card {
+  animation: cardHeat 1s ease-in-out infinite;
+}
+
+.screen--game-urgent .word-card::before {
+  opacity: 0.12;
+}
+
+@keyframes cardHeat {
+  0%,
+  100% {
+    box-shadow: 0 12px 32px rgba(31, 41, 55, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06),
+      0 0 0 rgba(255, 59, 48, 0);
+  }
+  50% {
+    box-shadow: 0 12px 32px rgba(31, 41, 55, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06),
+      0 0 22px rgba(255, 59, 48, 0.35);
+  }
+}
+
+.word-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    var(--color-pass) 0%,
+    transparent 35%,
+    transparent 65%,
+    var(--color-primary) 100%
+  );
+  opacity: 0.35;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .word-card__text {
@@ -555,39 +700,30 @@
 @media (orientation: landscape) and (max-height: 600px) {
   .screen--game {
     display: grid;
-    grid-template-columns: minmax(64px, 96px) 1fr minmax(64px, 96px);
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-      "pass header correct"
-      "pass word correct";
-    gap: var(--space-2) var(--space-3);
-  }
-
-  .game__header {
-    grid-area: header;
-    gap: 2px;
+    grid-template-columns: minmax(56px, 84px) 1fr minmax(56px, 84px);
+    grid-template-rows: 1fr;
+    grid-template-areas: "pass word correct";
+    gap: var(--space-1) var(--space-2);
   }
 
   .game__team-name {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    max-width: 32vw;
   }
 
   .game__timer {
-    font-size: 1.9rem;
+    font-size: 1.5rem;
   }
 
   .game__meta {
-    font-size: 0.7rem;
-    gap: var(--space-1);
-  }
-
-  .game__controls {
-    gap: var(--space-1);
-  }
-
-  .game-control-btn {
-    padding: 2px var(--space-2);
     font-size: 0.65rem;
+    gap: var(--space-1);
+  }
+
+  .game-menu-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
   }
 
   .game__word-area {
@@ -601,7 +737,7 @@
   }
 
   .word-card__text {
-    font-size: clamp(2rem, 12vw, 4.5rem);
+    font-size: clamp(2.5rem, 15vw, 6rem);
   }
 
   .game__actions {
@@ -612,10 +748,16 @@
     grid-row: 1 / -1;
     min-height: 0;
     writing-mode: vertical-rl;
+    flex-direction: column;
     text-align: center;
     padding: var(--space-4) var(--space-2);
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     letter-spacing: 0.02em;
+    border-radius: var(--radius-card);
+  }
+
+  .game__actions .btn__icon {
+    font-size: 1.3rem;
   }
 
   .game__actions .btn--pass {

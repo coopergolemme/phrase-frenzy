@@ -29,49 +29,28 @@ export function GameScreen({
   onRestart,
 }: GameScreenProps) {
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
+
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const handleSkipRound = () => {
+    closeMenu();
+    onSkipRound();
+  };
+
+  const handleOpenScoreboard = () => {
+    closeMenu();
+    setIsScoreboardOpen(true);
+  };
+
+  const handleRestart = () => {
+    closeMenu();
+    onRestart();
+  };
 
   return (
-    <div className="screen screen--game">
-      <div className="game__header">
-        <p className="game__team-name">{teamName}</p>
-        <p className="game__timer" aria-live="polite">
-          {timeRemaining}
-        </p>
-        <div className="game__meta">
-          <span className="game__meta-item">{roundLabel}</span>
-          <span className="game__meta-dot" aria-hidden="true">
-            &bull;
-          </span>
-          <span className="game__meta-item">Score: {score}</span>
-        </div>
-        <div className="game__controls">
-          <button
-            type="button"
-            className="game-control-btn"
-            onClick={onSkipRound}
-            aria-label="Skip to end of round"
-          >
-            Skip Round ⏭
-          </button>
-          <button
-            type="button"
-            className="game-control-btn"
-            onClick={() => setIsScoreboardOpen(true)}
-            aria-label="View scoreboard"
-          >
-            Scoreboard 🏆
-          </button>
-          <button
-            type="button"
-            className="game-control-btn"
-            onClick={onRestart}
-            aria-label="Restart game"
-          >
-            Restart 🔄
-          </button>
-        </div>
-      </div>
-
+    <div className={`screen screen--game${isUrgent ? " screen--game-urgent" : ""}`}>
       <div className="game__rotate-hint">
         <span className="game__rotate-hint-icon" aria-hidden="true">
           📱
@@ -81,13 +60,92 @@ export function GameScreen({
 
       <div className="game__word-area">
         <WordCard word={currentWord} />
+
+        <div className="game__hud game__hud--left">
+          <p className="game__team-name">{teamName}</p>
+          <p className="game__meta">
+            <span className="game__meta-item">{roundLabel}</span>
+            <span className="game__meta-item">Score: {score}</span>
+          </p>
+        </div>
+
+        <div className="game__hud game__hud--right">
+          <p
+            className={`game__timer${isUrgent ? " game__timer--urgent" : ""}`}
+            aria-live="polite"
+          >
+            {timeRemaining}
+          </p>
+          <button
+            type="button"
+            className="game-menu-btn"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label="Game menu"
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+          >
+            ⚙️
+          </button>
+
+          {isMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="game-menu__backdrop"
+                onClick={closeMenu}
+                aria-label="Close menu"
+              />
+              <div className="game-menu" role="menu">
+                <button
+                  type="button"
+                  className="game-menu__item"
+                  role="menuitem"
+                  onClick={handleSkipRound}
+                >
+                  <span className="game-menu__icon" aria-hidden="true">
+                    ⏭
+                  </span>
+                  Skip Round
+                </button>
+                <button
+                  type="button"
+                  className="game-menu__item"
+                  role="menuitem"
+                  onClick={handleOpenScoreboard}
+                >
+                  <span className="game-menu__icon" aria-hidden="true">
+                    🏆
+                  </span>
+                  Scoreboard
+                </button>
+                <button
+                  type="button"
+                  className="game-menu__item"
+                  role="menuitem"
+                  onClick={handleRestart}
+                >
+                  <span className="game-menu__icon" aria-hidden="true">
+                    🔄
+                  </span>
+                  Restart
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="game__actions">
         <button className="btn btn--pass btn--large" onClick={onPass}>
+          <span className="btn__icon" aria-hidden="true">
+            ✕
+          </span>
           Pass
         </button>
         <button className="btn btn--primary btn--large" onClick={onCorrect}>
+          <span className="btn__icon" aria-hidden="true">
+            ✓
+          </span>
           Correct
         </button>
       </div>
