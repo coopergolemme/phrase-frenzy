@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (contains Supabase secret key)
+.env
+.env.*
+!.env.example
+
 .verify*.mjs
 
 # Editor directories and files
