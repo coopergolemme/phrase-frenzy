@@ -91,7 +91,7 @@ export function GameScreen({
           </button>
           <button
             type="button"
-            className="game-menu-btn"
+            className="icon-menu-btn"
             onClick={() => setIsMenuOpen((open) => !open)}
             aria-label="Game menu"
             aria-haspopup="menu"
@@ -104,40 +104,40 @@ export function GameScreen({
             <>
               <button
                 type="button"
-                className="game-menu__backdrop"
+                className="icon-menu__backdrop"
                 onClick={closeMenu}
                 aria-label="Close menu"
               />
-              <div className="game-menu" role="menu">
+              <div className="icon-menu" role="menu">
                 <button
                   type="button"
-                  className="game-menu__item"
+                  className="icon-menu__item"
                   role="menuitem"
                   onClick={handleSkipRound}
                 >
-                  <span className="game-menu__icon" aria-hidden="true">
+                  <span className="icon-menu__icon" aria-hidden="true">
                     ⏭
                   </span>
                   Skip Round
                 </button>
                 <button
                   type="button"
-                  className="game-menu__item"
+                  className="icon-menu__item"
                   role="menuitem"
                   onClick={handleOpenScoreboard}
                 >
-                  <span className="game-menu__icon" aria-hidden="true">
+                  <span className="icon-menu__icon" aria-hidden="true">
                     🏆
                   </span>
                   Scoreboard
                 </button>
                 <button
                   type="button"
-                  className="game-menu__item"
+                  className="icon-menu__item"
                   role="menuitem"
                   onClick={handleRestart}
                 >
-                  <span className="game-menu__icon" aria-hidden="true">
+                  <span className="icon-menu__icon" aria-hidden="true">
                     🔄
                   </span>
                   Restart

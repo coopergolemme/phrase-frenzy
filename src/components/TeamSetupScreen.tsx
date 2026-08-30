@@ -123,10 +123,10 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
           </button>
         </div>
 
-        <div className="team-setup__options">
+        <div className="settings-card">
           <button
             type="button"
-            className="category-summary"
+            className="category-summary settings-card__row"
             onClick={() => setIsPickingCategories(true)}
           >
             <span className="category-summary__label">Word categories</span>
@@ -138,7 +138,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
             </span>
           </button>
 
-          <div className="rounds-stepper">
+          <div className="rounds-stepper settings-card__row">
             <span className="rounds-stepper__label">Rounds per team</span>
             <div className="rounds-stepper__control">
               <button
@@ -163,7 +163,7 @@ export function TeamSetupScreen({ onStart }: TeamSetupScreenProps) {
             </div>
           </div>
 
-          <div className="rounds-stepper">
+          <div className="rounds-stepper settings-card__row">
             <span className="rounds-stepper__label">Round timer</span>
             <div className="rounds-stepper__control">
               <button

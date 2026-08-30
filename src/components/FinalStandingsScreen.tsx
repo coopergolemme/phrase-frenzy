@@ -14,7 +14,7 @@ export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScree
   return (
     <div className="screen screen--final-standings">
       <div className="final-standings__content">
-        <div className="final-standings__header-block">
+        <div className="final-standings__header-block hero-card">
           <h1 className="final-standings__title">Game Over!</h1>
           <p className="final-standings__winner-label">
             {isTie ? "It's a tie!" : "Winner"}

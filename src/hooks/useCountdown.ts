@@ -67,15 +67,14 @@ export function useCountdown(active: boolean, durationSec: number, onExpire: () 
 
   const togglePause = () => {
     if (!active || expiredRef.current) return;
-    setIsPaused((prev) => {
-      if (prev) {
-        pausedAccumMsRef.current += Date.now() - pauseStartedAtRef.current;
-        pauseStartedAtRef.current = 0;
-        return false;
-      }
+    if (isPausedRef.current) {
+      pausedAccumMsRef.current += Date.now() - pauseStartedAtRef.current;
+      pauseStartedAtRef.current = 0;
+      setIsPaused(false);
+    } else {
       pauseStartedAtRef.current = Date.now();
-      return true;
-    });
+      setIsPaused(true);
+    }
   };
 
   return { timeRemaining, applyPenalty, isPaused, togglePause };
