@@ -41,6 +41,17 @@ interface FlaggedWordDto {
   matches: FlaggedWordMatchDto[];
 }
 
+// Catches non-Error throws too (DOMException from a failed/aborted fetch,
+// for example, doesn't pass `instanceof Error` in every runtime) so the
+// client always gets the real failure reason instead of a generic message.
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -98,7 +109,8 @@ Deno.serve(async (req: Request) => {
         return json({ error: `Unknown action "${body.action}"` }, 400);
     }
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Unexpected error" }, 500);
+    console.error("admin-words error", error);
+    return json({ error: extractErrorMessage(error) }, 500);
   }
 });
 

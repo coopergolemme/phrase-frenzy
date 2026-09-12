@@ -31,14 +31,18 @@ export function useGameSync() {
       }
 
       const winnerNames = new Set(match.winnerNames);
-      const teamMembers: TeamMemberEntry[] = teams.flatMap((team) =>
-        team.members.map((name) => ({
+      const teamMembers: TeamMemberEntry[] = teams.flatMap((team) => {
+        // Teams played solo (name only, no "+ Add member" entries) have no
+        // members — fall back to the team name so player stats/roster still
+        // pick up that person instead of silently dropping the match.
+        const names = team.members.length > 0 ? team.members : [team.name];
+        return names.map((name) => ({
           name,
           teamName: team.name,
           teamScore: team.totalScore,
           isWinner: winnerNames.has(team.name),
-        }))
-      );
+        }));
+      });
 
       void syncGameResults(match, Array.from(deltas.values()), flaggedWords, teamMembers);
       resetSession();

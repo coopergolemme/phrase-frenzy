@@ -61,6 +61,40 @@ describe("useGameSync", () => {
     );
   });
 
+  it("falls back to the team name as the sole member when no members were added", async () => {
+    const { useGameSync } = await import("./useGameSync");
+    const { result } = renderHook(() => useGameSync());
+
+    const soloTeams: Team[] = [
+      { id: "t1", name: "Cooper", totalScore: 7, members: [] },
+      { id: "t2", name: "Grace", totalScore: 3, members: [] },
+    ];
+    const soloMatch: MatchRecord = {
+      id: "match-2",
+      playedAt: "2026-01-01T00:00:00.000Z",
+      roundsPerTeam: 1,
+      teams: [
+        { name: "Cooper", score: 7 },
+        { name: "Grace", score: 3 },
+      ],
+      winnerNames: ["Cooper"],
+    };
+
+    act(() => {
+      result.current.finishMatch(soloMatch, soloTeams, []);
+    });
+
+    expect(syncGameResultsMock).toHaveBeenCalledWith(
+      soloMatch,
+      [],
+      [],
+      expect.arrayContaining([
+        { name: "Cooper", teamName: "Cooper", teamScore: 7, isWinner: true },
+        { name: "Grace", teamName: "Grace", teamScore: 3, isWinner: false },
+      ])
+    );
+  });
+
   it("clears the session log after finishing a match", async () => {
     const { useGameSync } = await import("./useGameSync");
     const { result } = renderHook(() => useGameSync());

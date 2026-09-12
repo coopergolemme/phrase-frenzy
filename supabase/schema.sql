@@ -34,16 +34,27 @@ create table match_history (
   winner_names text[] not null
 );
 
+-- word_id links back to the live words row (nullable — a stat/flag row can
+-- outlive the words row it started as: word edited, category removed, or
+-- the text never matched a live word; set null on delete so history
+-- survives a word being deleted). word/word_id stay independent — text is
+-- what gameplay writes by, word_id is resolved case-insensitively inside
+-- sync_game_results below for joins/admin tooling.
 create table word_stats (
   word text primary key,
   correct int not null default 0,
-  skipped int not null default 0
+  skipped int not null default 0,
+  word_id uuid references words(id) on delete set null
 );
 
 create table flagged_words (
   word text primary key,
-  flagged_at timestamptz not null default now()
+  flagged_at timestamptz not null default now(),
+  word_id uuid references words(id) on delete set null
 );
+
+create index word_stats_word_id_idx on word_stats(word_id);
+create index flagged_words_word_id_idx on flagged_words(word_id);
 
 -- Roster of people who have ever been entered as a team member, deduped by
 -- a normalized (trimmed/lowercased) name — there's no login, so name is the
@@ -110,18 +121,27 @@ begin
   end if;
 
   if p_word_deltas is not null then
-    insert into word_stats (word, correct, skipped)
-    select d->>'word', (d->>'correct')::int, (d->>'skipped')::int
+    insert into word_stats (word, correct, skipped, word_id)
+    select
+      d->>'word',
+      (d->>'correct')::int,
+      (d->>'skipped')::int,
+      (select w.id from words w where lower(trim(w.text)) = d->>'word' limit 1)
     from jsonb_array_elements(p_word_deltas) d
     on conflict (word) do update
       set correct = word_stats.correct + excluded.correct,
-          skipped = word_stats.skipped + excluded.skipped;
+          skipped = word_stats.skipped + excluded.skipped,
+          word_id = coalesce(word_stats.word_id, excluded.word_id);
   end if;
 
   if p_flagged_words is not null and array_length(p_flagged_words, 1) > 0 then
-    insert into flagged_words (word)
-    select distinct unnest(p_flagged_words)
-    on conflict (word) do nothing;
+    insert into flagged_words (word, word_id)
+    select distinct
+      w_text,
+      (select w.id from words w where lower(trim(w.text)) = w_text limit 1)
+    from unnest(p_flagged_words) as w_text
+    on conflict (word) do update
+      set word_id = coalesce(flagged_words.word_id, excluded.word_id);
   end if;
 
   if v_match_id is not null and p_team_members is not null then
