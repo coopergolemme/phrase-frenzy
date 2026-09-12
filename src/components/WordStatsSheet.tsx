@@ -54,9 +54,9 @@ export function WordStatsSheet({
           const flagged = isWordFlagged(word);
           return (
             <div className="review-row" key={word}>
-              <div className="stat-row__info">
+              <div className="flex min-w-0 flex-col gap-1">
                 <span className="review-row__word">{word}</span>
-                <span className="stat-row__counts">
+                <span className="text-[0.85rem] text-text-secondary">
                   ✅ {correct} &nbsp; ⏭️ {skipped}
                 </span>
               </div>

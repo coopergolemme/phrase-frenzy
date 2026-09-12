@@ -1,5 +1,11 @@
 import type { WordCategory } from "../data/wordCategory";
 
+const categoryChipClass = (selected: boolean) =>
+  "inline-flex min-h-touch items-center gap-1 rounded-chip border px-4 py-2 text-[0.95rem] font-semibold transition-transform duration-[80ms] active:scale-[0.96] " +
+  (selected
+    ? "border-primary-pressed bg-primary text-white"
+    : "border-outline bg-surface text-text backdrop-blur-[20px]");
+
 interface CategoryPickerSheetProps {
   categories: WordCategory[];
   categoryIds: string[];
@@ -32,10 +38,10 @@ export function CategoryPickerSheet({
       </div>
 
       <div className="review-sheet__list category-sheet__body">
-        <div className="category-picker">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className={"category-chip" + (allSelected ? " category-chip--selected" : "")}
+            className={categoryChipClass(allSelected)}
             onClick={onSelectAll}
             aria-pressed={allSelected}
           >
@@ -43,16 +49,14 @@ export function CategoryPickerSheet({
           </button>
         </div>
 
-        <div className="category-picker">
+        <div className="flex flex-wrap gap-2">
           {categories.map((category) => {
             const selected = categoryIds.includes(category.id);
             return (
               <button
                 type="button"
                 key={category.id}
-                className={
-                  "category-chip" + (selected ? " category-chip--selected" : "")
-                }
+                className={categoryChipClass(selected)}
                 onClick={() => onToggleCategory(category.id)}
                 aria-pressed={selected}
               >

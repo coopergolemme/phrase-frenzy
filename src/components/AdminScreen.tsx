@@ -139,7 +139,7 @@ export function AdminScreen() {
               <button type="submit" className="btn btn--primary" disabled={isCheckingPassword}>
                 {isCheckingPassword ? "Checking…" : "Unlock"}
               </button>
-              {error && <p className="home__error">{error}</p>}
+              {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
             </form>
           </div>
         </div>
@@ -155,7 +155,7 @@ export function AdminScreen() {
           <h1 className="m-0 text-2xl font-extrabold">Word Curation</h1>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
-          {error && <p className="home__error">{error}</p>}
+          {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
           <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
             <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
             <AdminGenerateForm

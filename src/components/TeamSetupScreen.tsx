@@ -20,9 +20,16 @@ interface TeamSetupScreenProps {
     categoryIds: string[],
     roundDurationSec: number
   ) => void;
+  knownPlayerNames?: string[];
 }
 
-export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
+const KNOWN_PLAYERS_DATALIST_ID = "known-player-names";
+
+export function TeamSetupScreen({
+  categories,
+  onStart,
+  knownPlayerNames = [],
+}: TeamSetupScreenProps) {
   const allCategoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [teamMembers, setTeamMembers] = useState<string[][]>([[], []]);
@@ -113,18 +120,23 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
     );
   };
 
-  return (
-    <div className="screen screen--team-setup">
-      <div className="team-setup__content">
-        <h1 className="team-setup__title">Set Up Teams</h1>
+  const stepperBtnClass =
+    "flex h-touch w-touch flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary-pressed bg-primary text-[1.2rem] leading-none text-white transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled";
 
-        <div className="team-setup__teams">
-          <div className="team-setup__list">
+  return (
+    <div className="screen overflow-y-auto pt-4 landscape-compact:pt-2">
+      <div className="flex flex-col gap-4 landscape-compact:grid landscape-compact:grid-cols-2 landscape-compact:items-start landscape-compact:gap-x-4 landscape-compact:gap-y-2">
+        <h1 className="m-0 text-center text-[clamp(1.6rem,7vmin,2rem)] font-extrabold landscape-compact:col-span-2">
+          Set Up Teams
+        </h1>
+
+        <div className="flex flex-col gap-3 landscape-compact:min-w-0 landscape-compact:flex-1">
+          <div className="flex flex-col gap-3 landscape-compact:gap-2">
             {teamNames.map((name, index) => (
-              <div className="team-row-group" key={index}>
-                <div className="team-row">
+              <div className="flex flex-col gap-2" key={index}>
+                <div className="flex items-center gap-3 rounded-button border border-outline bg-surface px-3 py-2 backdrop-blur-[20px]">
                   <input
-                    className="team-row__input"
+                    className="min-h-touch flex-1 border-none bg-transparent font-[inherit] text-[1.05rem] text-text outline-none placeholder:text-text-secondary"
                     type="text"
                     placeholder={`Team ${index + 1}`}
                     value={name}
@@ -133,7 +145,7 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
                   />
                   <button
                     type="button"
-                    className="team-row__remove"
+                    className="h-touch w-touch flex-shrink-0 rounded-full border-[1.5px] border-outline bg-disabled text-[1.1rem] leading-none text-white transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => removeTeam(index)}
                     disabled={!canRemoveTeam}
                     aria-label={`Remove ${name || `Team ${index + 1}`}`}
@@ -142,13 +154,16 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
                   </button>
                 </div>
 
-                <div className="member-list">
+                <div className="flex flex-wrap items-center gap-2 px-2">
                   {teamMembers[index]?.map((member, memberIndex) => (
-                    <span className="member-chip" key={memberIndex}>
+                    <span
+                      className="inline-flex items-center gap-1 rounded-chip border border-outline bg-surface px-2 py-1 text-[0.85rem] font-semibold text-text"
+                      key={memberIndex}
+                    >
                       {member}
                       <button
                         type="button"
-                        className="member-chip__remove"
+                        className="border-none bg-transparent p-0 text-[0.95rem] leading-none text-text-secondary"
                         onClick={() => removeMember(index, memberIndex)}
                         aria-label={`Remove ${member}`}
                       >
@@ -157,11 +172,12 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
                     </span>
                   ))}
                   <input
-                    className="member-list__input"
+                    className="min-h-touch min-w-[8ch] flex-1 border-none bg-transparent font-[inherit] text-[0.85rem] text-text outline-none placeholder:text-text-secondary"
                     type="text"
                     placeholder="+ Add member"
                     value={memberDrafts[index] ?? ""}
                     maxLength={24}
+                    list={KNOWN_PLAYERS_DATALIST_ID}
                     onChange={(e) => updateMemberDraft(index, e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -186,37 +202,39 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
           </button>
         </div>
 
-        <div className="settings-card">
+        <div className="flex flex-col overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px] landscape-compact:min-w-0 landscape-compact:flex-1">
           <button
             type="button"
-            className="category-summary settings-card__row"
+            className="flex min-h-touch w-full items-center justify-between border-b border-border-solid px-4 py-3 font-[inherit] text-base text-text transition-transform transition-[filter] duration-[80ms] active:scale-[0.98] active:brightness-[0.97]"
             onClick={() => setIsPickingCategories(true)}
           >
-            <span className="category-summary__label">Word categories</span>
-            <span className="category-summary__value">
+            <span className="font-semibold">Word categories</span>
+            <span className="flex items-center gap-1 font-semibold text-text-secondary">
               {categorySummary}
-              <span className="category-summary__chevron" aria-hidden="true">
+              <span className="text-[1.2rem] leading-none text-disabled" aria-hidden="true">
                 &rsaquo;
               </span>
             </span>
           </button>
 
-          <div className="rounds-stepper settings-card__row">
-            <span className="rounds-stepper__label">Rounds per team</span>
-            <div className="rounds-stepper__control">
+          <div className="flex items-center justify-between border-b border-border-solid px-4 py-3">
+            <span className="font-semibold">Rounds per team</span>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="rounds-stepper__btn"
+                className={stepperBtnClass}
                 onClick={() => adjustRounds(-1)}
                 disabled={roundsPerTeam <= MIN_ROUNDS}
                 aria-label="Decrease rounds per team"
               >
                 &minus;
               </button>
-              <span className="rounds-stepper__value">{roundsPerTeam}</span>
+              <span className="min-w-[1.5ch] text-center font-bold tabular-nums">
+                {roundsPerTeam}
+              </span>
               <button
                 type="button"
-                className="rounds-stepper__btn"
+                className={stepperBtnClass}
                 onClick={() => adjustRounds(1)}
                 disabled={roundsPerTeam >= MAX_ROUNDS}
                 aria-label="Increase rounds per team"
@@ -226,22 +244,24 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
             </div>
           </div>
 
-          <div className="rounds-stepper settings-card__row">
-            <span className="rounds-stepper__label">Round timer</span>
-            <div className="rounds-stepper__control">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="font-semibold">Round timer</span>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="rounds-stepper__btn"
+                className={stepperBtnClass}
                 onClick={() => adjustRoundDuration(-ROUND_DURATION_STEP_SEC)}
                 disabled={roundDurationSec <= MIN_ROUND_DURATION_SEC}
                 aria-label="Decrease round timer"
               >
                 &minus;
               </button>
-              <span className="rounds-stepper__value">{roundDurationSec}s</span>
+              <span className="min-w-[1.5ch] text-center font-bold tabular-nums">
+                {roundDurationSec}s
+              </span>
               <button
                 type="button"
-                className="rounds-stepper__btn"
+                className={stepperBtnClass}
                 onClick={() => adjustRoundDuration(ROUND_DURATION_STEP_SEC)}
                 disabled={roundDurationSec >= MAX_ROUND_DURATION_SEC}
                 aria-label="Increase round timer"
@@ -270,6 +290,12 @@ export function TeamSetupScreen({ categories, onStart }: TeamSetupScreenProps) {
           onClose={() => setIsPickingCategories(false)}
         />
       )}
+
+      <datalist id={KNOWN_PLAYERS_DATALIST_ID}>
+        {knownPlayerNames.map((name) => (
+          <option value={name} key={name} />
+        ))}
+      </datalist>
     </div>
   );
 }

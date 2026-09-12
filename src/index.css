@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Matches the app's `(orientation: landscape) and (max-height: 600px)` breakpoint
+   used for the compact "phone held sideways" layouts. */
+@custom-variant landscape-compact (@media (orientation: landscape) and (max-height: 600px));
+
 :root {
   --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     Roboto, sans-serif;

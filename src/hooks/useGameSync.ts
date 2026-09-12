@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
-import type { RoundLogEntry } from "./useGameState";
+import type { RoundLogEntry, Team } from "./useGameState";
 import { normalizeWord } from "../utils/flaggedWords";
 import type { MatchRecord } from "../utils/matchHistory";
-import { syncGameResults, type WordStatDelta } from "../utils/gameSync";
+import { syncGameResults, type TeamMemberEntry, type WordStatDelta } from "../utils/gameSync";
 
 // Accumulates this match's round log across turns so word-stat deltas sent
 // to the db reflect only this session, not the all-time local totals —
@@ -20,7 +20,7 @@ export function useGameSync() {
   }, []);
 
   const finishMatch = useCallback(
-    (match: MatchRecord, flaggedWords: string[]) => {
+    (match: MatchRecord, teams: Team[], flaggedWords: string[]) => {
       const deltas = new Map<string, WordStatDelta>();
       for (const entry of sessionLogRef.current) {
         const word = normalizeWord(entry.word);
@@ -29,7 +29,18 @@ export function useGameSync() {
         else current.skipped += 1;
         deltas.set(word, current);
       }
-      void syncGameResults(match, Array.from(deltas.values()), flaggedWords);
+
+      const winnerNames = new Set(match.winnerNames);
+      const teamMembers: TeamMemberEntry[] = teams.flatMap((team) =>
+        team.members.map((name) => ({
+          name,
+          teamName: team.name,
+          teamScore: team.totalScore,
+          isWinner: winnerNames.has(team.name),
+        }))
+      );
+
+      void syncGameResults(match, Array.from(deltas.values()), flaggedWords, teamMembers);
       resetSession();
     },
     [resetSession]

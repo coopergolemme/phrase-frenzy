@@ -65,12 +65,14 @@ export function HomeScreen({
   };
 
   return (
-    <div className="screen screen--home">
-      <div className="home__content">
-        <div className="home__intro">
-          <div className="home__intro-row">
-            <h1 className="home__title">Phrase Frenzy</h1>
-            <div className="home__menu-anchor">
+    <div className="screen flex flex-col justify-between pt-6 pb-4 landscape-compact:pt-2 landscape-compact:pb-2 landscape-compact:overflow-y-auto">
+      <div className="flex flex-col gap-4 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-5">
+        <div className="flex flex-col gap-4 landscape-compact:flex-1 landscape-compact:gap-2">
+          <div className="relative">
+            <h1 className="m-0 text-center text-[clamp(2rem,8vmin,2.5rem)] font-extrabold landscape-compact:text-left">
+              Phrase Frenzy
+            </h1>
+            <div className="absolute right-0 top-1">
               <button
                 type="button"
                 className="icon-menu-btn"
@@ -171,13 +173,17 @@ export function HomeScreen({
               )}
             </div>
           </div>
-          <p className="home__subtitle">
+          <p className="m-0 text-center text-base leading-snug text-text-secondary landscape-compact:text-left">
             Pass the phone, describe the word before time runs out, and keep the
             streak going with your team.
           </p>
-          {refreshWordsError && <p className="home__error">{refreshWordsError}</p>}
+          {refreshWordsError && (
+            <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">
+              {refreshWordsError}
+            </p>
+          )}
         </div>
-        <ul className="home__instructions">
+        <ul className="m-0 flex list-none flex-col gap-3 rounded-card border border-outline bg-surface p-5 text-[0.95rem] leading-snug backdrop-blur-[20px] landscape-compact:flex-1 landscape-compact:gap-2 landscape-compact:p-4">
           <li>Describe the word on screen &mdash; no saying it outright.</li>
           <li>Tap <strong>Correct</strong> when your team guesses it.</li>
           <li>Tap <strong>Pass</strong> as many times as you need if you're stuck.</li>

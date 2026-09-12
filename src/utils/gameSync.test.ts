@@ -19,13 +19,20 @@ describe("syncGameResults", () => {
     const { client, rpc } = mockClient({ error: null });
     vi.doMock("./supabaseClient", () => ({ getSupabaseClient: () => client }));
 
+    const teamMembers = [{ name: "Cooper", teamName: "Red", teamScore: 10, isWinner: true }];
     const { syncGameResults } = await import("./gameSync");
-    await syncGameResults(MATCH, [{ word: "pizza", correct: 1, skipped: 0 }], ["taco"]);
+    await syncGameResults(
+      MATCH,
+      [{ word: "pizza", correct: 1, skipped: 0 }],
+      ["taco"],
+      teamMembers
+    );
 
     expect(rpc).toHaveBeenCalledWith("sync_game_results", {
       p_match: MATCH,
       p_word_deltas: [{ word: "pizza", correct: 1, skipped: 0 }],
       p_flagged_words: ["taco"],
+      p_team_members: teamMembers,
     });
     vi.doUnmock("./supabaseClient");
     vi.resetModules();
@@ -36,7 +43,7 @@ describe("syncGameResults", () => {
     vi.doMock("./supabaseClient", () => ({ getSupabaseClient: () => client }));
 
     const { syncGameResults } = await import("./gameSync");
-    await expect(syncGameResults(MATCH, [], [])).resolves.toBeUndefined();
+    await expect(syncGameResults(MATCH, [], [], [])).resolves.toBeUndefined();
     vi.doUnmock("./supabaseClient");
     vi.resetModules();
   });

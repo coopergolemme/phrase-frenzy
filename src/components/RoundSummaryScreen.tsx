@@ -31,16 +31,18 @@ export function RoundSummaryScreen({
   const leadingScore = standings[0]?.totalScore ?? 0;
 
   return (
-    <div className="screen screen--round-summary">
-      <div className="round-summary__content">
-        <div className="round-summary__score-block hero-card">
-          <p className="round-summary__team-label">{teamName}'s round</p>
-          <p className="round-summary__score">{roundScore}</p>
-          <p className="round-summary__score-caption">words guessed</p>
+    <div className="screen justify-center items-center gap-5 text-center landscape-compact:gap-3 landscape-compact:overflow-y-auto">
+      <div className="flex w-full flex-col items-center gap-2 landscape-compact:flex-row landscape-compact:items-stretch landscape-compact:gap-5 landscape-compact:text-left">
+        <div className="hero-card landscape-compact:flex landscape-compact:flex-1 landscape-compact:flex-col landscape-compact:items-start landscape-compact:justify-center">
+          <p className="m-0 text-[1.1rem] font-bold">{teamName}'s round</p>
+          <p className="m-[4px_0_0] text-[3.5rem] font-extrabold text-primary landscape-compact:text-[clamp(2rem,10vh,3.5rem)]">
+            {roundScore}
+          </p>
+          <p className="m-0 mb-4 text-text-secondary">words guessed</p>
           {roundLog.length > 0 && (
             <button
               type="button"
-              className="btn btn--outline round-summary__review-btn"
+              className="btn btn--outline mt-2 w-full"
               onClick={() => setIsReviewOpen(true)}
             >
               Review Words
@@ -48,8 +50,8 @@ export function RoundSummaryScreen({
           )}
         </div>
 
-        <div className="standings">
-          <p className="standings__title">Standings</p>
+        <div className="standings landscape-compact:flex-1 landscape-compact:justify-center">
+          <p className="standings__title landscape-compact:text-left">Standings</p>
           {standings.map((team) => (
             <div
               key={team.id}
@@ -65,7 +67,7 @@ export function RoundSummaryScreen({
         </div>
       </div>
 
-      <button className="btn btn--primary btn--large" onClick={onNext}>
+      <button className="btn btn--primary btn--large w-full" onClick={onNext}>
         {isLastTurn ? "See Final Results" : `Next Team's Turn — ${nextTeamName}`}
       </button>
 

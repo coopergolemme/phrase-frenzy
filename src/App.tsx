@@ -6,6 +6,7 @@ import { useWordCategories } from "./hooks/useWordCategories";
 import { useMatchHistory } from "./hooks/useMatchHistory";
 import { useWordStats } from "./hooks/useWordStats";
 import { useGameSync } from "./hooks/useGameSync";
+import { useKnownPlayerNames } from "./hooks/useKnownPlayerNames";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
@@ -40,6 +41,7 @@ function App() {
   const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
   const { trackTurn, resetSession, finishMatch } = useGameSync();
+  const knownPlayerNames = useKnownPlayerNames();
   const { canInstall, promptInstall } = useInstallPrompt();
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
 
@@ -106,7 +108,7 @@ function App() {
     trackTurn(state.roundLog);
     if (isLastTurn) {
       const match = addMatch(state.teams, state.roundsPerTeam);
-      finishMatch(match, flaggedWords);
+      finishMatch(match, state.teams, flaggedWords);
     }
     nextTurn();
   }, [
@@ -126,7 +128,9 @@ function App() {
     return (
       <div className="app-shell">
         <div className="screen-container">
-          <p className="loading-text">Loading word bank…</p>
+          <p className="flex h-full items-center justify-center text-[1.1rem] text-text-secondary">
+            Loading word bank…
+          </p>
         </div>
       </div>
     );
@@ -154,7 +158,11 @@ function App() {
         )}
 
         {state.gameStatus === "teamSetup" && (
-          <TeamSetupScreen categories={categories} onStart={handleStartTournament} />
+          <TeamSetupScreen
+            categories={categories}
+            onStart={handleStartTournament}
+            knownPlayerNames={knownPlayerNames}
+          />
         )}
 
         {state.gameStatus === "playing" && activeTeam && (

@@ -7,13 +7,21 @@ export interface WordStatDelta {
   skipped: number;
 }
 
+export interface TeamMemberEntry {
+  name: string;
+  teamName: string;
+  teamScore: number;
+  isWinner: boolean;
+}
+
 // Best-effort telemetry push, called once a game finishes. Never throws —
 // a failed sync (offline, RLS misconfig, etc.) must not block gameplay,
 // since localStorage remains the source of truth for the UI.
 export async function syncGameResults(
   match: MatchRecord,
   wordDeltas: WordStatDelta[],
-  flaggedWords: string[]
+  flaggedWords: string[],
+  teamMembers: TeamMemberEntry[]
 ): Promise<void> {
   try {
     const client = getSupabaseClient();
@@ -21,6 +29,7 @@ export async function syncGameResults(
       p_match: match,
       p_word_deltas: wordDeltas,
       p_flagged_words: flaggedWords,
+      p_team_members: teamMembers,
     });
     if (error) throw error;
   } catch {

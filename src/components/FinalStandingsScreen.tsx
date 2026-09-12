@@ -12,19 +12,19 @@ export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScree
   const isTie = winners.length > 1;
 
   return (
-    <div className="screen screen--final-standings">
-      <div className="final-standings__content">
-        <div className="final-standings__header-block hero-card">
-          <h1 className="final-standings__title">Game Over!</h1>
-          <p className="final-standings__winner-label">
-            {isTie ? "It's a tie!" : "Winner"}
-          </p>
-          <p className="final-standings__winner-name">
+    <div className="screen justify-center items-center gap-6 text-center landscape-compact:gap-3 landscape-compact:overflow-y-auto">
+      <div className="flex w-full flex-col items-center gap-2 landscape-compact:flex-row landscape-compact:items-stretch landscape-compact:gap-5 landscape-compact:text-left">
+        <div className="hero-card landscape-compact:flex landscape-compact:flex-1 landscape-compact:flex-col landscape-compact:items-start landscape-compact:justify-center">
+          <h1 className="m-0 text-[2.25rem] font-extrabold landscape-compact:text-[clamp(1.6rem,8vh,2.25rem)]">
+            Game Over!
+          </h1>
+          <p className="m-0 text-text-secondary">{isTie ? "It's a tie!" : "Winner"}</p>
+          <p className="m-0 mb-4 text-[2rem] font-extrabold text-primary landscape-compact:text-[clamp(1.4rem,6vh,2rem)]">
             {winners.map((team) => team.name).join(" & ")}
           </p>
         </div>
 
-        <div className="standings">
+        <div className="standings landscape-compact:flex-1 landscape-compact:justify-center">
           {standings.map((team, index) => (
             <div
               key={team.id}
@@ -43,7 +43,7 @@ export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScree
         </div>
       </div>
 
-      <button className="btn btn--primary btn--large" onClick={onPlayAgain}>
+      <button className="btn btn--primary btn--large w-full" onClick={onPlayAgain}>
         Play Again
       </button>
     </div>
