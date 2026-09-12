@@ -25,10 +25,13 @@ export function AdminReviewQueue({
   }
 
   return (
-    <div className="admin__queue">
+    <div className="admin-queue">
       {[...byCategory.entries()].map(([label, words]) => (
-        <section key={label} className="admin__queue-group">
-          <h3>{label}</h3>
+        <section key={label} className="admin-queue-group">
+          <div className="admin-queue-group__header">
+            <span className="admin-queue-group__label">{label}</span>
+            <span className="admin-queue-group__count">{words.length}</span>
+          </div>
           {words.map((word) => (
             <AdminReviewRow
               key={word.id}

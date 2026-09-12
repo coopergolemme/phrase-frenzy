@@ -93,26 +93,49 @@ export function AdminScreen() {
     window.location.hash = "";
   };
 
+  const backLink = (
+    <a
+      href="#"
+      className="btn btn--text admin__back-link"
+      onClick={(e) => {
+        e.preventDefault();
+        goToGame();
+      }}
+    >
+      ← Back to game
+    </a>
+  );
+
   if (!isUnlocked) {
     return (
       <div className="app-shell">
         <div className="screen-container admin">
-          <a href="#" className="btn btn--text admin__back-link" onClick={(e) => { e.preventDefault(); goToGame(); }}>
-            ← Back to game
-          </a>
-          <h1>Admin</h1>
-          <form onSubmit={handleUnlock}>
-            <input
-              type="password"
-              aria-label="Admin password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-            />
-            <button type="submit" className="btn btn--primary" disabled={isCheckingPassword}>
-              {isCheckingPassword ? "Checking…" : "Unlock"}
-            </button>
-          </form>
-          {error && <p className="home__error">{error}</p>}
+          <div className="admin__header">
+            {backLink}
+            <h1 className="admin__title">Admin</h1>
+          </div>
+          <div className="admin__body">
+            <form className="admin-card admin-password-form" onSubmit={handleUnlock}>
+              <div className="admin-field">
+                <label className="admin-field__label" htmlFor="admin-password">
+                  Password
+                </label>
+                <input
+                  id="admin-password"
+                  className="admin-input"
+                  type="password"
+                  aria-label="Admin password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <button type="submit" className="btn btn--primary" disabled={isCheckingPassword}>
+                {isCheckingPassword ? "Checking…" : "Unlock"}
+              </button>
+              {error && <p className="home__error">{error}</p>}
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -121,22 +144,27 @@ export function AdminScreen() {
   return (
     <div className="app-shell">
       <div className="screen-container admin">
-        <a href="#" className="btn btn--text admin__back-link" onClick={(e) => { e.preventDefault(); goToGame(); }}>
-          ← Back to game
-        </a>
-        <h1>Word Curation</h1>
-        {error && <p className="home__error">{error}</p>}
-        <AdminGenerateForm
-          categories={categories}
-          isGenerating={isGenerating}
-          onGenerate={handleGenerate}
-        />
-        <AdminReviewQueue
-          pendingWords={pendingWords}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onEditSave={handleEditSave}
-        />
+        <div className="admin__header">
+          {backLink}
+          <h1 className="admin__title">Word Curation</h1>
+        </div>
+        <div className="admin__body">
+          {error && <p className="home__error">{error}</p>}
+          <div className="admin-card">
+            <h2 className="admin-card__title">Generate</h2>
+            <AdminGenerateForm
+              categories={categories}
+              isGenerating={isGenerating}
+              onGenerate={handleGenerate}
+            />
+          </div>
+          <AdminReviewQueue
+            pendingWords={pendingWords}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onEditSave={handleEditSave}
+          />
+        </div>
       </div>
     </div>
   );
