@@ -9,7 +9,7 @@ import {
 export function useMatchHistory() {
   const [history, setHistory] = useState<MatchRecord[]>(() => getMatchHistory());
 
-  const addMatch = useCallback((teams: Team[], roundsPerTeam: number) => {
+  const addMatch = useCallback((teams: Team[], roundsPerTeam: number): MatchRecord => {
     const topScore = teams.reduce((max, team) => Math.max(max, team.totalScore), 0);
     const record: MatchRecord = {
       id: `match-${Date.now()}`,
@@ -25,6 +25,7 @@ export function useMatchHistory() {
       saveMatchHistory(next);
       return next;
     });
+    return record;
   }, []);
 
   const clearHistory = useCallback(() => {

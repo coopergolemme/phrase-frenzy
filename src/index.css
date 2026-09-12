@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     Roboto, sans-serif;
@@ -33,6 +35,39 @@
   --touch-target-min: 44px;
 
   color-scheme: light;
+}
+
+/* Expose the existing design tokens to Tailwind utilities (bg-surface, rounded-card, etc). */
+@theme inline {
+  --font-family-system: var(--font-system);
+
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-solid: var(--color-surface-solid);
+  --color-border: var(--color-border);
+  --color-border-solid: var(--color-border-solid);
+  --color-outline: var(--color-outline);
+  --color-primary: var(--color-primary);
+  --color-primary-pressed: var(--color-primary-pressed);
+  --color-pass: var(--color-pass);
+  --color-pass-pressed: var(--color-pass-pressed);
+  --color-danger: var(--color-danger);
+  --color-disabled: var(--color-disabled);
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --radius-chip: var(--radius-chip);
+
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+
+  --spacing-touch: var(--touch-target-min);
 }
 
 * {

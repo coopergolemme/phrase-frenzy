@@ -7,6 +7,10 @@ interface AdminGenerateFormProps {
   onGenerate: (categoryId: string | undefined, count: number) => void;
 }
 
+const fieldLabelClass = "text-[0.8rem] font-semibold text-text-secondary";
+const fieldControlClass =
+  "min-h-touch w-full rounded-button border-[1.5px] border-border-solid bg-surface-solid px-3 py-2 font-[inherit] text-base text-text focus:outline-2 focus:outline-primary focus:outline-offset-1";
+
 export function AdminGenerateForm({ categories, isGenerating, onGenerate }: AdminGenerateFormProps) {
   const [categoryId, setCategoryId] = useState("");
   const [count, setCount] = useState(20);
@@ -17,15 +21,15 @@ export function AdminGenerateForm({ categories, isGenerating, onGenerate }: Admi
   };
 
   return (
-    <form className="admin-generate-form" onSubmit={handleSubmit}>
-      <div className="admin-generate-form__fields">
-        <div className="admin-field">
-          <label className="admin-field__label" htmlFor="admin-generate-category">
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+      <div className="flex gap-3">
+        <div className="flex flex-1 flex-col gap-1">
+          <label className={fieldLabelClass} htmlFor="admin-generate-category">
             Category
           </label>
           <select
             id="admin-generate-category"
-            className="admin-select"
+            className={fieldControlClass}
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
@@ -37,13 +41,13 @@ export function AdminGenerateForm({ categories, isGenerating, onGenerate }: Admi
             ))}
           </select>
         </div>
-        <div className="admin-field">
-          <label className="admin-field__label" htmlFor="admin-generate-count">
+        <div className="flex flex-none basis-[5.5rem] flex-col gap-1">
+          <label className={fieldLabelClass} htmlFor="admin-generate-count">
             Count
           </label>
           <input
             id="admin-generate-count"
-            className="admin-input"
+            className={fieldControlClass}
             type="number"
             min={1}
             value={count}

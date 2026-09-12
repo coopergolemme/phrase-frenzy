@@ -1,5 +1,13 @@
 # Prompt: Generate More Phrase Frenzy Words
 
+> **Automated path:** `scripts/curate-words.ts` runs this same rule set
+> against the live Supabase word list and writes results back to the DB as
+> inactive rows for review (`npm run curate:words -- --count 50`, then
+> `npm run activate:words` once you've eyeballed the output). Prefer that
+> for routine batches — use the manual prompt below when you want an
+> interactive Claude Code session (e.g. curating a raw source list, or
+> reviewing category fit by hand).
+
 Reusable prompt for adding new entries to `src/data/words.ts` (or curating
 a fresh batch from a raw source list). Paste it into Claude Code along with
 however many new words you want, and point it at the categories that need
@@ -20,7 +28,7 @@ often playing together in the same round (e.g. family gatherings, mixed
 generational friend groups). Every word needs to be guessable and
 recognizable by BOTH age groups without either side feeling left out.
 
-THE #1 RULE, ABOVE EVERYTHING ELSE: every single word or phrase must be
+THE #1 RULE YOU CANNOT BREAK: every single word or phrase must be
 describable by one player, out loud, in a FEW WORDS (a short sentence or
 two, max), without saying the word itself. If you can't imagine a natural
 clue like "the frozen dessert with a stick" or "the guy who played Iron

@@ -96,7 +96,7 @@ export function AdminScreen() {
   const backLink = (
     <a
       href="#"
-      className="btn btn--text admin__back-link"
+      className="btn btn--text self-start min-h-0 py-1"
       onClick={(e) => {
         e.preventDefault();
         goToGame();
@@ -109,20 +109,26 @@ export function AdminScreen() {
   if (!isUnlocked) {
     return (
       <div className="app-shell">
-        <div className="screen-container admin">
-          <div className="admin__header">
+        <div className="screen-container flex min-h-0 flex-col gap-3">
+          <div className="flex shrink-0 flex-col gap-1">
             {backLink}
-            <h1 className="admin__title">Admin</h1>
+            <h1 className="m-0 text-2xl font-extrabold">Admin</h1>
           </div>
-          <div className="admin__body">
-            <form className="admin-card admin-password-form" onSubmit={handleUnlock}>
-              <div className="admin-field">
-                <label className="admin-field__label" htmlFor="admin-password">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
+            <form
+              className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3 rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]"
+              onSubmit={handleUnlock}
+            >
+              <div className="flex flex-col gap-1">
+                <label
+                  className="text-[0.8rem] font-semibold text-text-secondary"
+                  htmlFor="admin-password"
+                >
                   Password
                 </label>
                 <input
                   id="admin-password"
-                  className="admin-input"
+                  className="min-h-touch w-full rounded-button border-[1.5px] border-border-solid bg-surface-solid px-3 py-2 font-[inherit] text-base text-text focus:outline-2 focus:outline-primary focus:outline-offset-1"
                   type="password"
                   aria-label="Admin password"
                   value={passwordInput}
@@ -143,15 +149,15 @@ export function AdminScreen() {
 
   return (
     <div className="app-shell">
-      <div className="screen-container admin">
-        <div className="admin__header">
+      <div className="screen-container flex min-h-0 flex-col gap-3">
+        <div className="flex shrink-0 flex-col gap-1">
           {backLink}
-          <h1 className="admin__title">Word Curation</h1>
+          <h1 className="m-0 text-2xl font-extrabold">Word Curation</h1>
         </div>
-        <div className="admin__body">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
           {error && <p className="home__error">{error}</p>}
-          <div className="admin-card">
-            <h2 className="admin-card__title">Generate</h2>
+          <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
+            <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
             <AdminGenerateForm
               categories={categories}
               isGenerating={isGenerating}

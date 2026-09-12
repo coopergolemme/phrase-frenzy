@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import type { WordCategory } from "./wordCategory";
+import { getSupabaseClient } from "../utils/supabaseClient";
 
 interface CategoryRow {
   id: string;
@@ -15,14 +15,8 @@ interface WordRow {
   active: boolean;
 }
 
-function getClient() {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return createClient(url, anonKey);
-}
-
 export async function fetchWordCategories(): Promise<WordCategory[]> {
-  const client = getClient();
+  const client = getSupabaseClient();
 
   const { data: categoryRows, error: categoryError } = await client
     .from("categories")

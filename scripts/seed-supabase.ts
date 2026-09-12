@@ -49,7 +49,12 @@ async function main() {
     });
     if (categoryError) throw categoryError;
 
-    const rows = category.words.map((text) => ({ category_id: category.id, text, active: true }));
+    const rows = category.words.map((text) => ({
+      category_id: category.id,
+      text,
+      active: true,
+      created_at: new Date().toISOString(),
+    }));
     const { error: wordsError } = await client.from("words").insert(rows);
     if (wordsError) throw wordsError;
 

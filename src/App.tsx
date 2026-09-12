@@ -5,6 +5,7 @@ import { useFlaggedWords } from "./hooks/useFlaggedWords";
 import { useWordCategories } from "./hooks/useWordCategories";
 import { useMatchHistory } from "./hooks/useMatchHistory";
 import { useWordStats } from "./hooks/useWordStats";
+import { useGameSync } from "./hooks/useGameSync";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
@@ -38,6 +39,7 @@ function App() {
   const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
   const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
+  const { trackTurn, resetSession, finishMatch } = useGameSync();
   const { canInstall, promptInstall } = useInstallPrompt();
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
 
@@ -50,9 +52,10 @@ function App() {
       roundDuration: number
     ) => {
       setRoundDurationSec(roundDuration);
+      resetSession();
       startTournament(teamNames, teamMembers, roundsPerTeam, categoryIds, flaggedWords, categories);
     },
-    [startTournament, flaggedWords, categories]
+    [startTournament, flaggedWords, categories, resetSession]
   );
 
   const onExpire = useCallback(() => {
@@ -100,15 +103,20 @@ function App() {
 
   const handleNextTurn = useCallback(() => {
     recordRoundLog(state.roundLog);
+    trackTurn(state.roundLog);
     if (isLastTurn) {
-      addMatch(state.teams, state.roundsPerTeam);
+      const match = addMatch(state.teams, state.roundsPerTeam);
+      finishMatch(match, flaggedWords);
     }
     nextTurn();
   }, [
     recordRoundLog,
+    trackTurn,
     state.roundLog,
     isLastTurn,
     addMatch,
+    finishMatch,
+    flaggedWords,
     state.teams,
     state.roundsPerTeam,
     nextTurn,

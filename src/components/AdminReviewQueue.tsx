@@ -15,7 +15,7 @@ export function AdminReviewQueue({
   onEditSave,
 }: AdminReviewQueueProps) {
   if (pendingWords.length === 0) {
-    return <p className="admin__empty">No pending words.</p>;
+    return <p className="py-5 text-center text-text-secondary">No pending words.</p>;
   }
 
   const byCategory = new Map<string, PendingWord[]>();
@@ -25,12 +25,17 @@ export function AdminReviewQueue({
   }
 
   return (
-    <div className="admin-queue">
+    <div className="flex flex-col gap-4">
       {[...byCategory.entries()].map(([label, words]) => (
-        <section key={label} className="admin-queue-group">
-          <div className="admin-queue-group__header">
-            <span className="admin-queue-group__label">{label}</span>
-            <span className="admin-queue-group__count">{words.length}</span>
+        <section
+          key={label}
+          className="overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px]"
+        >
+          <div className="flex items-center justify-between border-b border-border-solid px-4 py-3">
+            <span className="font-bold">{label}</span>
+            <span className="inline-flex min-w-[1.6rem] items-center justify-center rounded-chip border border-outline bg-surface-solid px-2 text-[0.8rem] font-bold text-text-secondary">
+              {words.length}
+            </span>
           </div>
           {words.map((word) => (
             <AdminReviewRow
@@ -65,9 +70,9 @@ function AdminReviewRow({ word, onApprove, onReject, onEditSave }: AdminReviewRo
   };
 
   return (
-    <div className="admin__row">
+    <div className="flex items-center gap-2 border-b border-border-solid px-4 py-2 last:border-b-0">
       <input
-        className="admin__row-input"
+        className="min-h-touch min-w-0 flex-1 rounded-button border-[1.5px] border-transparent bg-transparent px-3 py-2 font-[inherit] text-base text-text focus:border-border-solid focus:bg-surface-solid focus:outline-none"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={handleBlur}
