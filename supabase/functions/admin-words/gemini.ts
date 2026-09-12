@@ -1,7 +1,7 @@
 import type { GeneratedBatch } from "./curation.ts";
 
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
 
 export async function callGeminiForWords(
   prompt: string,
