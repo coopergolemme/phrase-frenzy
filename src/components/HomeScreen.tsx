@@ -66,6 +66,11 @@ export function HomeScreen({
     window.location.hash = "admin";
   };
 
+  const handleStartTestGame = () => {
+    closeMenu();
+    onStartTestGame?.();
+  };
+
   return (
     <div className="screen flex flex-col justify-between pt-6 pb-4 landscape-compact:pt-2 landscape-compact:pb-2 landscape-compact:overflow-y-auto">
       <div className="flex flex-col gap-4 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-5">
@@ -170,6 +175,19 @@ export function HomeScreen({
                       </span>
                       Admin
                     </button>
+                    {import.meta.env.DEV && onStartTestGame && (
+                      <button
+                        type="button"
+                        className="icon-menu__item"
+                        role="menuitem"
+                        onClick={handleStartTestGame}
+                      >
+                        <span className="icon-menu__icon" aria-hidden="true">
+                          🧪
+                        </span>
+                        Test Game (dev only)
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -195,15 +213,6 @@ export function HomeScreen({
       <button className="btn btn--primary btn--large" onClick={onStart}>
         Start Game
       </button>
-      {import.meta.env.DEV && onStartTestGame && (
-        <button
-          type="button"
-          className="btn btn--large mt-2 border-dashed opacity-70"
-          onClick={onStartTestGame}
-        >
-          🧪 Test Game (dev only)
-        </button>
-      )}
 
       {activeSheet === "flags" && (
         <FlaggedWordsSheet
