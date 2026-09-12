@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { WordCategory } from "../data/wordCategory";
-import { fetchWordCategories } from "../data/wordDatabase";
 import {
   deactivateWords,
   generateWords,
@@ -15,7 +13,6 @@ import { AdminReviewQueue } from "./AdminReviewQueue";
 import { AdminFlaggedWordsQueue } from "./AdminFlaggedWordsQueue";
 
 export function AdminScreen() {
-  const [categories, setCategories] = useState<WordCategory[]>([]);
   const [password, setPassword] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [pendingWords, setPendingWords] = useState<PendingWord[]>([]);
@@ -40,16 +37,16 @@ export function AdminScreen() {
   }, [password]);
 
   useEffect(() => {
-    fetchWordCategories()
-      .then(setCategories)
-      .catch(() => setCategories([]));
-  }, []);
-
-  useEffect(() => {
     return () => {
       const words = approvedWordsRef.current;
       if (words.length === 0) return;
-      const toPublish: LocalWord[] = words.map((w) => ({ categoryId: w.categoryId, text: w.text }));
+      const toPublish: LocalWord[] = words.map((w) => ({
+        categoryId: w.categoryId,
+        categoryLabel: w.categoryLabel,
+        categoryEmoji: w.categoryEmoji,
+        isNewCategory: w.isNewCategory,
+        text: w.text,
+      }));
       void publishWords(passwordRef.current, toPublish);
     };
   }, []);
@@ -70,19 +67,18 @@ export function AdminScreen() {
     }
   };
 
-  const handleGenerate = async (
-    categoryId: string | undefined,
-    count: number,
-    instructions?: string
-  ) => {
+  const handleGenerate = async (count: number, instructions?: string) => {
     setIsGenerating(true);
     setError(null);
     try {
       const localWords: LocalWord[] = [...pendingWords, ...approvedWords].map((w) => ({
         categoryId: w.categoryId,
+        categoryLabel: w.categoryLabel,
+        categoryEmoji: w.categoryEmoji,
+        isNewCategory: w.isNewCategory,
         text: w.text,
       }));
-      const candidates = await generateWords(password, categoryId, count, instructions, localWords);
+      const candidates = await generateWords(password, count, instructions, localWords);
       setPendingWords((current) => [...current, ...candidates]);
     } catch {
       setError("Couldn't generate words. Try again.");
@@ -194,11 +190,7 @@ export function AdminScreen() {
           {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
           <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
             <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
-            <AdminGenerateForm
-              categories={categories}
-              isGenerating={isGenerating}
-              onGenerate={handleGenerate}
-            />
+            <AdminGenerateForm isGenerating={isGenerating} onGenerate={handleGenerate} />
           </div>
           {approvedWords.length > 0 && (
             <p className="m-0 text-center text-[0.85rem] text-text-secondary">

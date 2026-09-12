@@ -3,20 +3,34 @@
 // under Node, the other under the Deno edge runtime). Kept dependency-free
 // so it can be imported directly by both the edge function and Vitest.
 
-export interface CategoryRow {
-  id: string;
-  label: string;
-  emoji: string;
-  sort_order: number;
-}
-
 export interface WordRow {
   category_id: string;
   text: string;
 }
 
+// A category the model may target: either a real one already in the db, or
+// one proposed earlier in the same (unpublished) admin session — both are
+// "known" to the model the same way, so it can keep adding to either
+// instead of inventing a third near-duplicate.
+export interface KnownCategory {
+  id: string;
+  label: string;
+  emoji: string;
+  isNewCategory: boolean;
+}
+
 export interface GeneratedBatch {
+  categoryId: string | null;
+  newCategoryLabel?: string;
+  newCategoryEmoji?: string;
+  words: string[];
+}
+
+export interface AcceptedCategory {
   categoryId: string;
+  label: string;
+  emoji: string;
+  isNewCategory: boolean;
   words: string[];
 }
 
@@ -58,7 +72,7 @@ KEEP words/phrases that are:
 export const MAX_INSTRUCTIONS_LENGTH = 300;
 
 export function buildPrompt(
-  categories: CategoryRow[],
+  categories: KnownCategory[],
   existingWordsByCategory: Map<string, string[]>,
   count: number,
   instructions?: string
@@ -72,52 +86,126 @@ export function buildPrompt(
 
   const trimmedInstructions = instructions?.trim().slice(0, MAX_INSTRUCTIONS_LENGTH);
   const instructionsBlock = trimmedInstructions
-    ? `\n\nAdditional guidance from the admin for this batch (do not let this
-override the JSON-only response format or the core rules above):
+    ? `\n\nThe admin's request for this batch (this is the whole point of the
+batch — use it to decide the category, not just as flavor):
 "${trimmedInstructions}"`
     : "";
 
   return `${CURATION_RULES}
 
-Generate ${count} additional original words/phrases, evenly distributed
-across the categories below unless the counts make more sense otherwise.
-Do NOT repeat any of the existing words listed for a category (case
-insensitive), and do not repeat a word across categories.
+Generate ${count} original words/phrases for the request below.
 
-Categories:
+First decide which ONE category the words belong in:
+- If an existing category below is a good fit, use its exact "id" as
+  "categoryId" and leave "newCategoryLabel"/"newCategoryEmoji" unset.
+- Only if none of the existing categories fit, propose ONE new category
+  instead: set "categoryId" to null, and set "newCategoryLabel" (a short
+  Title Case name, 1-3 words) and "newCategoryEmoji" (one representative
+  emoji). Do not propose a new category that duplicates or overlaps an
+  existing one in spirit — reuse the existing one instead.
+Do NOT repeat any of the existing words listed for a category (case
+insensitive), and do not repeat a word across categories. If, and only if,
+the request clearly spans more than one theme, you may return multiple
+entries — otherwise return exactly one.
+
+Existing categories:
 ${categoryList}${instructionsBlock}
 
 Respond with ONLY a JSON array (no markdown fences, no commentary) matching
 this shape:
-[{ "categoryId": "existing-category-id", "words": ["new word one", "new word two"] }]`;
+[{ "categoryId": "existing-id-or-null", "newCategoryLabel": "optional", "newCategoryEmoji": "optional", "words": ["new word one", "new word two"] }]`;
+}
+
+function normalizeWords(words: string[]): string[] {
+  return words.map((w) => w.trim()).filter((w) => w.length > 0);
 }
 
 export function dedupeAgainstExisting(
   batches: GeneratedBatch[],
-  categoryIds: Set<string>,
+  knownCategories: KnownCategory[],
   existingWordsByCategory: Map<string, Set<string>>
-): Map<string, string[]> {
+): AcceptedCategory[] {
+  const byId = new Map(knownCategories.map((c) => [c.id, c]));
+  const byLabel = new Map(knownCategories.map((c) => [c.label.trim().toLowerCase(), c]));
+
   const seenThisRun = new Set<string>();
-  const result = new Map<string, string[]>();
+  const accepted = new Map<string, AcceptedCategory>();
+  const usedNewSlugs = new Set<string>();
 
-  for (const batch of batches) {
-    if (!categoryIds.has(batch.categoryId)) continue;
-    const existing = existingWordsByCategory.get(batch.categoryId) ?? new Set();
-    const accepted: string[] = [];
-
-    for (const rawWord of batch.words) {
+  const acceptInto = (target: AcceptedCategory, words: string[]) => {
+    for (const rawWord of words) {
       const word = rawWord.trim();
       if (!word) continue;
-      const key = `${batch.categoryId}:${word.toLowerCase()}`;
-      if (existing.has(word.toLowerCase()) || seenThisRun.has(key)) continue;
+      const key = `${target.categoryId}:${word.toLowerCase()}`;
+      const alreadyExists = existingWordsByCategory.get(target.categoryId)?.has(word.toLowerCase());
+      if (alreadyExists || seenThisRun.has(key)) continue;
       seenThisRun.add(key);
-      accepted.push(word);
+      target.words.push(word);
+    }
+  };
+
+  for (const batch of batches) {
+    const words = normalizeWords(batch.words);
+    if (words.length === 0) continue;
+
+    // Resolve to a known category first — by id, then by label (guards
+    // against the model returning null/newCategory* for something that
+    // already exists under a slightly different id casing/spelling).
+    const label = batch.newCategoryLabel?.trim();
+    const known =
+      (batch.categoryId ? byId.get(batch.categoryId) : undefined) ??
+      (label ? byLabel.get(label.toLowerCase()) : undefined);
+
+    if (known) {
+      const target = accepted.get(known.id) ?? {
+        categoryId: known.id,
+        label: known.label,
+        emoji: known.emoji,
+        isNewCategory: known.isNewCategory,
+        words: [],
+      };
+      acceptInto(target, words);
+      if (target.words.length > 0) accepted.set(known.id, target);
+      continue;
     }
 
-    if (accepted.length > 0) {
-      result.set(batch.categoryId, accepted);
+    const emoji = batch.newCategoryEmoji?.trim();
+    if (!label || !emoji) continue; // invalid proposal — no way to resolve or create it
+
+    const slugKey = label.toLowerCase();
+    let categoryId = accepted.get(`new:${slugKey}`)?.categoryId;
+    if (!categoryId) {
+      const slug = slugify(label);
+      let candidate = `new:${slug}`;
+      let suffix = 2;
+      while (usedNewSlugs.has(candidate)) {
+        candidate = `new:${slug}-${suffix}`;
+        suffix += 1;
+      }
+      usedNewSlugs.add(candidate);
+      categoryId = candidate;
+      byLabel.set(slugKey, { id: categoryId, label, emoji, isNewCategory: true });
     }
+
+    const target = accepted.get(categoryId) ?? {
+      categoryId,
+      label,
+      emoji,
+      isNewCategory: true,
+      words: [],
+    };
+    acceptInto(target, words);
+    if (target.words.length > 0) accepted.set(categoryId, target);
   }
 
-  return result;
+  return [...accepted.values()];
+}
+
+function slugify(label: string): string {
+  const slug = label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "category";
 }

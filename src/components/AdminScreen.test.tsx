@@ -4,17 +4,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 const listFlaggedWordsMock = vi.fn();
 const generateWordsMock = vi.fn();
 const publishWordsMock = vi.fn();
-const fetchWordCategoriesMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
   generateWords: (...args: unknown[]) => generateWordsMock(...args),
   publishWords: (...args: unknown[]) => publishWordsMock(...args),
   deactivateWords: vi.fn(),
-}));
-
-vi.mock("../data/wordDatabase", () => ({
-  fetchWordCategories: (...args: unknown[]) => fetchWordCategoriesMock(...args),
 }));
 
 async function unlock() {
@@ -26,14 +21,30 @@ async function unlock() {
   return view;
 }
 
+const TACO = {
+  id: "1",
+  categoryId: "food",
+  categoryLabel: "Food",
+  categoryEmoji: "🍕",
+  isNewCategory: false,
+  text: "Taco",
+};
+
+const RAMBO = {
+  id: "2",
+  categoryId: "new:80s-action-movies",
+  categoryLabel: "80s Action Movies",
+  categoryEmoji: "🎬",
+  isNewCategory: true,
+  text: "Rambo",
+};
+
 describe("AdminScreen", () => {
   beforeEach(() => {
     listFlaggedWordsMock.mockReset();
     listFlaggedWordsMock.mockResolvedValue([]);
     generateWordsMock.mockReset();
     publishWordsMock.mockReset();
-    fetchWordCategoriesMock.mockReset();
-    fetchWordCategoriesMock.mockResolvedValue([]);
   });
 
   it("shows a password prompt and does not reveal the queue up front", async () => {
@@ -64,9 +75,7 @@ describe("AdminScreen", () => {
   });
 
   it("adds generated candidates to the local review queue without persisting them", async () => {
-    generateWordsMock.mockResolvedValue([
-      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" },
-    ]);
+    generateWordsMock.mockResolvedValue([TACO]);
     await unlock();
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
@@ -75,11 +84,18 @@ describe("AdminScreen", () => {
     expect(publishWordsMock).not.toHaveBeenCalled();
   });
 
+  it("shows a proposed brand-new category alongside its words", async () => {
+    generateWordsMock.mockResolvedValue([RAMBO]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+
+    await waitFor(() => expect(screen.getByDisplayValue("Rambo")).toBeInTheDocument());
+    expect(screen.getByText(/80s action movies/i)).toBeInTheDocument();
+  });
+
   it("clears the queue when Reject All is clicked", async () => {
-    generateWordsMock.mockResolvedValue([
-      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" },
-      { id: "2", categoryId: "food", categoryLabel: "Food", text: "Pizza" },
-    ]);
+    generateWordsMock.mockResolvedValue([TACO, { ...TACO, id: "3", text: "Pizza" }]);
     await unlock();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
@@ -89,26 +105,29 @@ describe("AdminScreen", () => {
     expect(screen.getByText(/no pending words/i)).toBeInTheDocument();
   });
 
-  it("publishes only approved words when the screen unmounts", async () => {
-    generateWordsMock.mockResolvedValue([
-      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" },
-      { id: "2", categoryId: "food", categoryLabel: "Food", text: "Pizza" },
-    ]);
+  it("publishes only approved words (including their category info) when the screen unmounts", async () => {
+    generateWordsMock.mockResolvedValue([RAMBO]);
     const { unmount } = await unlock();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
-    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByDisplayValue("Rambo")).toBeInTheDocument());
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
     unmount();
 
-    expect(publishWordsMock).toHaveBeenCalledWith("right", [{ categoryId: "food", text: "Taco" }]);
+    expect(publishWordsMock).toHaveBeenCalledWith("right", [
+      {
+        categoryId: "new:80s-action-movies",
+        categoryLabel: "80s Action Movies",
+        categoryEmoji: "🎬",
+        isNewCategory: true,
+        text: "Rambo",
+      },
+    ]);
   });
 
   it("does not publish anything when nothing was approved on unmount", async () => {
-    generateWordsMock.mockResolvedValue([
-      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" },
-    ]);
+    generateWordsMock.mockResolvedValue([TACO]);
     const { unmount } = await unlock();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
