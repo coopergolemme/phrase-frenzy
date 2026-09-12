@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
+import { useGameStatusHash } from "./hooks/useGameStatusHash";
 import { useCountdown } from "./hooks/useCountdown";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
 import { useWordCategories } from "./hooks/useWordCategories";
@@ -30,6 +31,8 @@ function App() {
     toggleWordOutcome,
     reset,
   } = useGameState();
+
+  useGameStatusHash(state.gameStatus);
 
   const {
     categories,

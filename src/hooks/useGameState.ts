@@ -1,6 +1,7 @@
-import { useReducer } from "react";
+import { useEffect, useReducer } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { shuffle } from "../utils/shuffle";
+import { loadGameState, saveGameState } from "../utils/gameStateStorage";
 
 export type GameStatus =
   | "home"
@@ -245,7 +246,11 @@ function reducer(state: GameState, action: GameAction): GameState {
 }
 
 export function useGameState() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, () => loadGameState() ?? initialState);
+
+  useEffect(() => {
+    saveGameState(state);
+  }, [state]);
 
   return {
     state,
