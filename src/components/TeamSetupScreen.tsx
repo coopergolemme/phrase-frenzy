@@ -21,14 +21,17 @@ interface TeamSetupScreenProps {
     roundDurationSec: number
   ) => void;
   knownPlayerNames?: string[];
+  knownTeamNames?: string[];
 }
 
 const KNOWN_PLAYERS_DATALIST_ID = "known-player-names";
+const KNOWN_TEAMS_DATALIST_ID = "known-team-names";
 
 export function TeamSetupScreen({
   categories,
   onStart,
   knownPlayerNames = [],
+  knownTeamNames = [],
 }: TeamSetupScreenProps) {
   const allCategoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
@@ -141,6 +144,7 @@ export function TeamSetupScreen({
                     placeholder={`Team ${index + 1}`}
                     value={name}
                     maxLength={24}
+                    list={KNOWN_TEAMS_DATALIST_ID}
                     onChange={(e) => updateName(index, e.target.value)}
                   />
                   <button
@@ -293,6 +297,12 @@ export function TeamSetupScreen({
 
       <datalist id={KNOWN_PLAYERS_DATALIST_ID}>
         {knownPlayerNames.map((name) => (
+          <option value={name} key={name} />
+        ))}
+      </datalist>
+
+      <datalist id={KNOWN_TEAMS_DATALIST_ID}>
+        {knownTeamNames.map((name) => (
           <option value={name} key={name} />
         ))}
       </datalist>

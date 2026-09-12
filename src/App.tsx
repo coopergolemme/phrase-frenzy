@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useCountdown } from "./hooks/useCountdown";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
@@ -42,6 +42,20 @@ function App() {
   const { stats: wordStats, recordRoundLog } = useWordStats();
   const { trackTurn, resetSession, finishMatch } = useGameSync();
   const knownPlayerNames = useKnownPlayerNames();
+  const knownTeamNames = useMemo(() => {
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const match of matchHistory) {
+      for (const team of match.teams) {
+        const key = team.name.toLowerCase();
+        if (team.name && !seen.has(key)) {
+          seen.add(key);
+          names.push(team.name);
+        }
+      }
+    }
+    return names;
+  }, [matchHistory]);
   const { canInstall, promptInstall } = useInstallPrompt();
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
 
@@ -162,6 +176,7 @@ function App() {
             categories={categories}
             onStart={handleStartTournament}
             knownPlayerNames={knownPlayerNames}
+            knownTeamNames={knownTeamNames}
           />
         )}
 
