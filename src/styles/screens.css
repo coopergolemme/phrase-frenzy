@@ -2,6 +2,7 @@
   flex: 1;
   display: flex;
   min-height: 0;
+  min-width: 0;
   animation: screenEnter 220ms ease-out;
 }
 
@@ -12,6 +13,7 @@
   justify-content: space-between;
   gap: var(--space-5);
   min-height: 0;
+  min-width: 0;
 }
 
 /* Buttons: chunky "arcade button" with a hard offset shadow that the
@@ -23,8 +25,7 @@
   font-family: var(--font-system);
   font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -206,6 +207,7 @@
 
 .game__timer {
   font-family: var(--font-display);
+  font-weight: 700;
   font-size: clamp(1.5rem, 6.5vmin, 2.1rem);
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -404,6 +406,7 @@
 
 .word-card__text {
   font-family: var(--font-display);
+  font-weight: 700;
   line-height: 1.15;
   white-space: normal;
   overflow-wrap: normal;
@@ -550,8 +553,7 @@
   margin: 0 0 var(--space-1);
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-align: center;
 }
 
@@ -576,6 +578,7 @@
 
 .standings__score {
   font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
 }
@@ -606,6 +609,7 @@
 
 .review-sheet__title {
   font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.15rem;
   margin: 0;
   color: var(--color-yellow);
@@ -727,8 +731,7 @@
   min-height: var(--touch-target-min);
   font-weight: 700;
   font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
   cursor: pointer;
   flex-shrink: 0;
   transition:

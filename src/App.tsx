@@ -16,6 +16,7 @@ import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
 const DEFAULT_ROUND_DURATION_SEC = 60;
 const PASS_PENALTY_SEC = 3;
+const TEST_GAME_DURATION_SEC = 99999;
 
 function App() {
   const {
@@ -73,6 +74,12 @@ function App() {
     },
     [startTournament, flaggedWords, categories, resetSession]
   );
+
+  const handleStartTestGame = useCallback(() => {
+    setRoundDurationSec(TEST_GAME_DURATION_SEC);
+    resetSession();
+    startTournament(["Test Team"], [[]], 1, [], flaggedWords, categories);
+  }, [startTournament, flaggedWords, categories, resetSession]);
 
   const onExpire = useCallback(() => {
     timeUp();
@@ -156,6 +163,7 @@ function App() {
         {state.gameStatus === "home" && (
           <HomeScreen
             onStart={startTeamSetup}
+            onStartTestGame={handleStartTestGame}
             flaggedWords={flaggedWords}
             onUnflagWord={unflagWord}
             isWordFlagged={isFlagged}

@@ -129,7 +129,7 @@ export function TeamSetupScreen({
   return (
     <div className="screen overflow-y-auto pt-4 landscape-compact:pt-2">
       <div className="flex flex-col gap-4 landscape-compact:grid landscape-compact:grid-cols-2 landscape-compact:items-start landscape-compact:gap-x-4 landscape-compact:gap-y-2">
-        <h1 className="m-0 text-center font-display text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow landscape-compact:col-span-2">
+        <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow landscape-compact:col-span-2">
           Set Up Teams
         </h1>
 

@@ -148,7 +148,7 @@ export function AdminScreen() {
         <div className="screen-container flex min-h-0 flex-col gap-3">
           <div className="flex shrink-0 flex-col gap-1">
             {backLink}
-            <h1 className="m-0 font-display text-xl text-yellow">Admin</h1>
+            <h1 className="m-0 font-display font-bold text-xl text-yellow">Admin</h1>
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
             <form
@@ -188,7 +188,7 @@ export function AdminScreen() {
       <div className="screen-container flex min-h-0 flex-col gap-3">
         <div className="flex shrink-0 flex-col gap-1">
           {backLink}
-          <h1 className="m-0 font-display text-xl text-yellow">Word Curation</h1>
+          <h1 className="m-0 font-display font-bold text-xl text-yellow">Word Curation</h1>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
           {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
