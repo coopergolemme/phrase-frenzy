@@ -36,3 +36,21 @@ export async function syncGameResults(
     // offline or sync failed — local data is unaffected, safe to ignore
   }
 }
+
+// Persists a single flag immediately (rather than waiting for match end) so
+// it shows up in the admin review queue as soon as a player flags it. Never
+// throws, for the same reason as syncGameResults above.
+export async function syncFlaggedWord(word: string): Promise<void> {
+  try {
+    const client = getSupabaseClient();
+    const { error } = await client.rpc("sync_game_results", {
+      p_match: null,
+      p_word_deltas: null,
+      p_flagged_words: [word],
+      p_team_members: null,
+    });
+    if (error) throw error;
+  } catch {
+    // offline or sync failed — local data is unaffected, safe to ignore
+  }
+}

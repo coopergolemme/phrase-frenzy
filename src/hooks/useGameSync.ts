@@ -20,7 +20,7 @@ export function useGameSync() {
   }, []);
 
   const finishMatch = useCallback(
-    (match: MatchRecord, teams: Team[], flaggedWords: string[]) => {
+    (match: MatchRecord, teams: Team[]) => {
       const deltas = new Map<string, WordStatDelta>();
       for (const entry of sessionLogRef.current) {
         const word = normalizeWord(entry.word);
@@ -44,7 +44,7 @@ export function useGameSync() {
         }));
       });
 
-      void syncGameResults(match, Array.from(deltas.values()), flaggedWords, teamMembers);
+      void syncGameResults(match, Array.from(deltas.values()), [], teamMembers);
       resetSession();
     },
     [resetSession]

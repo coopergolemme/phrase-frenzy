@@ -48,3 +48,32 @@ describe("syncGameResults", () => {
     vi.resetModules();
   });
 });
+
+describe("syncFlaggedWord", () => {
+  it("calls the sync_game_results RPC with just the flagged word", async () => {
+    const { client, rpc } = mockClient({ error: null });
+    vi.doMock("./supabaseClient", () => ({ getSupabaseClient: () => client }));
+
+    const { syncFlaggedWord } = await import("./gameSync");
+    await syncFlaggedWord("taco");
+
+    expect(rpc).toHaveBeenCalledWith("sync_game_results", {
+      p_match: null,
+      p_word_deltas: null,
+      p_flagged_words: ["taco"],
+      p_team_members: null,
+    });
+    vi.doUnmock("./supabaseClient");
+    vi.resetModules();
+  });
+
+  it("swallows RPC errors so a failed sync never throws", async () => {
+    const { client } = mockClient({ error: new Error("network down") });
+    vi.doMock("./supabaseClient", () => ({ getSupabaseClient: () => client }));
+
+    const { syncFlaggedWord } = await import("./gameSync");
+    await expect(syncFlaggedWord("taco")).resolves.toBeUndefined();
+    vi.doUnmock("./supabaseClient");
+    vi.resetModules();
+  });
+});

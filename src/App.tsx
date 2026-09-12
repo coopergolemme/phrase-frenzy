@@ -132,7 +132,7 @@ function App() {
     trackTurn(state.roundLog);
     if (isLastTurn) {
       const match = addMatch(state.teams, state.roundsPerTeam);
-      finishMatch(match, state.teams, flaggedWords);
+      finishMatch(match, state.teams);
     }
     nextTurn();
   }, [
@@ -142,7 +142,6 @@ function App() {
     isLastTurn,
     addMatch,
     finishMatch,
-    flaggedWords,
     state.teams,
     state.roundsPerTeam,
     nextTurn,

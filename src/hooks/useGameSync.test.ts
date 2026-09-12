@@ -43,7 +43,7 @@ describe("useGameSync", () => {
     });
 
     act(() => {
-      result.current.finishMatch(MATCH, TEAMS, ["bad-word"]);
+      result.current.finishMatch(MATCH, TEAMS);
     });
 
     expect(syncGameResultsMock).toHaveBeenCalledWith(
@@ -52,7 +52,7 @@ describe("useGameSync", () => {
         { word: "pizza", correct: 2, skipped: 0 },
         { word: "taco", correct: 0, skipped: 1 },
       ]),
-      ["bad-word"],
+      [],
       expect.arrayContaining([
         { name: "Cooper", teamName: "Red", teamScore: 12, isWinner: true },
         { name: "Alex", teamName: "Red", teamScore: 12, isWinner: true },
@@ -81,7 +81,7 @@ describe("useGameSync", () => {
     };
 
     act(() => {
-      result.current.finishMatch(soloMatch, soloTeams, []);
+      result.current.finishMatch(soloMatch, soloTeams);
     });
 
     expect(syncGameResultsMock).toHaveBeenCalledWith(
@@ -101,8 +101,8 @@ describe("useGameSync", () => {
 
     act(() => {
       result.current.trackTurn([{ word: "pizza", outcome: "correct" }]);
-      result.current.finishMatch(MATCH, TEAMS, []);
-      result.current.finishMatch(MATCH, TEAMS, []);
+      result.current.finishMatch(MATCH, TEAMS);
+      result.current.finishMatch(MATCH, TEAMS);
     });
 
     expect(syncGameResultsMock).toHaveBeenLastCalledWith(MATCH, [], [], expect.any(Array));
