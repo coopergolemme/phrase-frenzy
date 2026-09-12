@@ -5,6 +5,7 @@ interface AdminReviewQueueProps {
   pendingWords: PendingWord[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onRejectAll: () => void;
   onEditSave: (id: string, text: string) => void;
 }
 
@@ -12,6 +13,7 @@ export function AdminReviewQueue({
   pendingWords,
   onApprove,
   onReject,
+  onRejectAll,
   onEditSave,
 }: AdminReviewQueueProps) {
   if (pendingWords.length === 0) {
@@ -26,6 +28,13 @@ export function AdminReviewQueue({
 
   return (
     <div className="flex flex-col gap-4">
+      <button
+        type="button"
+        className="btn btn--small btn--outline self-end"
+        onClick={onRejectAll}
+      >
+        Reject All ({pendingWords.length})
+      </button>
       {[...byCategory.entries()].map(([label, words]) => (
         <section
           key={label}

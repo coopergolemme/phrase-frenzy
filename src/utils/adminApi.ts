@@ -8,6 +8,11 @@ export interface PendingWord {
   text: string;
 }
 
+export interface LocalWord {
+  categoryId: string;
+  text: string;
+}
+
 export interface FlaggedWordMatch {
   id: string;
   categoryId: string;
@@ -31,7 +36,7 @@ export class AdminApiError extends Error {
   }
 }
 
-type Action = "list-pending" | "generate" | "approve" | "reject" | "edit" | "list-flagged" | "deactivate";
+type Action = "generate" | "publish" | "list-flagged" | "deactivate";
 
 async function callAdminWords<T>(
   action: Action,
@@ -59,35 +64,24 @@ async function callAdminWords<T>(
   return data as T;
 }
 
-export async function listPendingWords(password: string): Promise<PendingWord[]> {
-  const { pending } = await callAdminWords<{ pending: PendingWord[] }>("list-pending", {}, password);
-  return pending;
-}
-
 export async function generateWords(
   password: string,
   categoryId: string | undefined,
   count: number,
-  instructions?: string
+  instructions?: string,
+  localWords?: LocalWord[]
 ): Promise<PendingWord[]> {
-  const { inserted } = await callAdminWords<{ inserted: PendingWord[] }>(
+  const { candidates } = await callAdminWords<{ candidates: PendingWord[] }>(
     "generate",
-    { categoryId, count, instructions },
+    { categoryId, count, instructions, localWords },
     password
   );
-  return inserted;
+  return candidates;
 }
 
-export async function approveWords(password: string, ids: string[]): Promise<void> {
-  await callAdminWords("approve", { ids }, password);
-}
-
-export async function rejectWords(password: string, ids: string[]): Promise<void> {
-  await callAdminWords("reject", { ids }, password);
-}
-
-export async function editWord(password: string, id: string, text: string): Promise<void> {
-  await callAdminWords("edit", { id, text }, password);
+export async function publishWords(password: string, words: LocalWord[]): Promise<number> {
+  const { published } = await callAdminWords<{ published: number }>("publish", { words }, password);
+  return published;
 }
 
 export async function listFlaggedWords(password: string): Promise<FlaggedWord[]> {

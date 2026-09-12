@@ -1,8 +1,11 @@
-// Password-gated admin endpoint for generating, reviewing, and
-// approving/rejecting candidate words before they go live in the game.
-// Deployed as a Supabase Edge Function; holds SUPABASE_SERVICE_ROLE_KEY
-// (auto-injected by the Edge Runtime), GEMINI_API_KEY, and ADMIN_PASSWORD
-// as function secrets — none of these ever reach the client bundle. See
+// Password-gated admin endpoint for generating and publishing candidate
+// words. Generated candidates are NOT persisted — the client reviews them
+// entirely client-side (approve/reject/edit are local state) and only
+// calls "publish" once, with the final approved set, when the admin
+// navigates away from the admin screen. Deployed as a Supabase Edge
+// Function; holds SUPABASE_SERVICE_ROLE_KEY (auto-injected by the Edge
+// Runtime), GEMINI_API_KEY, and ADMIN_PASSWORD as function secrets — none
+// of these ever reach the client bundle. See
 // docs/superpowers/specs/2026-09-12-admin-word-curation-design.md.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPrompt, dedupeAgainstExisting, type CategoryRow, type WordRow } from "./curation.ts";
@@ -17,6 +20,11 @@ interface PendingWordDto {
   id: string;
   categoryId: string;
   categoryLabel: string;
+  text: string;
+}
+
+interface LocalWordDto {
+  categoryId: string;
   text: string;
 }
 
@@ -64,8 +72,6 @@ Deno.serve(async (req: Request) => {
 
   try {
     switch (body.action) {
-      case "list-pending":
-        return json({ pending: await listPending(client) });
       case "list-flagged":
         return json({ flagged: await listFlagged(client) });
       case "deactivate": {
@@ -76,31 +82,17 @@ Deno.serve(async (req: Request) => {
       }
       case "generate":
         return json({
-          inserted: await generate(
+          candidates: await generate(
             client,
             body.categoryId as string | undefined,
             body.count as number,
-            body.instructions as string | undefined
+            body.instructions as string | undefined,
+            (body.localWords as LocalWordDto[] | undefined) ?? []
           ),
         });
-      case "approve": {
-        const ids = body.ids as string[];
-        const { error } = await client.from("words").update({ active: true }).in("id", ids);
-        if (error) throw error;
-        return json({ approved: ids });
-      }
-      case "reject": {
-        const ids = body.ids as string[];
-        const { error } = await client.from("words").delete().in("id", ids);
-        if (error) throw error;
-        return json({ rejected: ids });
-      }
-      case "edit": {
-        const id = body.id as string;
-        const text = body.text as string;
-        const { error } = await client.from("words").update({ text }).eq("id", id).eq("active", false);
-        if (error) throw error;
-        return json({ id, text });
+      case "publish": {
+        const words = (body.words as LocalWordDto[] | undefined) ?? [];
+        return json({ published: await publish(client, words) });
       }
       default:
         return json({ error: `Unknown action "${body.action}"` }, 400);
@@ -114,21 +106,6 @@ async function categoryLabelMap(client: SupabaseClient): Promise<Map<string, str
   const { data, error } = await client.from("categories").select("id, label");
   if (error) throw error;
   return new Map((data ?? []).map((c: { id: string; label: string }) => [c.id, c.label]));
-}
-
-async function listPending(client: SupabaseClient): Promise<PendingWordDto[]> {
-  const [wordsResult, labels] = await Promise.all([
-    client.from("words").select("id, category_id, text").eq("active", false).order("category_id"),
-    categoryLabelMap(client),
-  ]);
-  if (wordsResult.error) throw wordsResult.error;
-
-  return (wordsResult.data ?? []).map((row: { id: string; category_id: string; text: string }) => ({
-    id: row.id,
-    categoryId: row.category_id,
-    categoryLabel: labels.get(row.category_id) ?? row.category_id,
-    text: row.text,
-  }));
 }
 
 async function listFlagged(client: SupabaseClient): Promise<FlaggedWordDto[]> {
@@ -172,7 +149,8 @@ async function generate(
   client: SupabaseClient,
   categoryId: string | undefined,
   count: number,
-  instructions?: string
+  instructions: string | undefined,
+  localWords: LocalWordDto[]
 ): Promise<PendingWordDto[]> {
   if (!Number.isInteger(count) || count <= 0) {
     throw new Error("count must be a positive integer");
@@ -195,7 +173,7 @@ async function generate(
 
   const existingWordsByCategory = new Map<string, string[]>();
   const existingWordSetByCategory = new Map<string, Set<string>>();
-  for (const row of (wordRows ?? []) as WordRow[]) {
+  const addExisting = (row: { category_id: string; text: string }) => {
     const list = existingWordsByCategory.get(row.category_id) ?? [];
     list.push(row.text);
     existingWordsByCategory.set(row.category_id, list);
@@ -203,7 +181,11 @@ async function generate(
     const set = existingWordSetByCategory.get(row.category_id) ?? new Set();
     set.add(row.text.toLowerCase());
     existingWordSetByCategory.set(row.category_id, set);
-  }
+  };
+  for (const row of (wordRows ?? []) as WordRow[]) addExisting(row);
+  // Words already generated (and possibly approved) earlier in this admin
+  // session, not yet published to the db — avoid regenerating them.
+  for (const local of localWords) addExisting({ category_id: local.categoryId, text: local.text });
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
@@ -216,22 +198,24 @@ async function generate(
     existingWordSetByCategory
   );
 
-  const rows = [...accepted.entries()].flatMap(([catId, words]) =>
-    words.map((text) => ({ category_id: catId, text, active: false }))
-  );
-  if (rows.length === 0) return [];
-
-  const { data: inserted, error: insertError } = await client
-    .from("words")
-    .insert(rows)
-    .select("id, category_id, text");
-  if (insertError) throw insertError;
-
   const labels = await categoryLabelMap(client);
-  return (inserted ?? []).map((row: { id: string; category_id: string; text: string }) => ({
-    id: row.id,
-    categoryId: row.category_id,
-    categoryLabel: labels.get(row.category_id) ?? row.category_id,
-    text: row.text,
-  }));
+  return [...accepted.entries()].flatMap(([catId, words]) =>
+    words.map((text) => ({
+      id: crypto.randomUUID(),
+      categoryId: catId,
+      categoryLabel: labels.get(catId) ?? catId,
+      text,
+    }))
+  );
+}
+
+async function publish(client: SupabaseClient, words: LocalWordDto[]): Promise<number> {
+  const rows = words
+    .map((w) => ({ category_id: w.categoryId, text: w.text.trim(), active: true }))
+    .filter((w) => w.text.length > 0);
+  if (rows.length === 0) return 0;
+
+  const { error } = await client.from("words").insert(rows);
+  if (error) throw error;
+  return rows.length;
 }

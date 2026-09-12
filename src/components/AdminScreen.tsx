@@ -1,15 +1,13 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { fetchWordCategories } from "../data/wordDatabase";
 import {
-  approveWords,
   deactivateWords,
-  editWord,
   generateWords,
   listFlaggedWords,
-  listPendingWords,
-  rejectWords,
+  publishWords,
   type FlaggedWord,
+  type LocalWord,
   type PendingWord,
 } from "../utils/adminApi";
 import { AdminGenerateForm } from "./AdminGenerateForm";
@@ -21,11 +19,25 @@ export function AdminScreen() {
   const [password, setPassword] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [pendingWords, setPendingWords] = useState<PendingWord[]>([]);
+  const [approvedWords, setApprovedWords] = useState<PendingWord[]>([]);
   const [flaggedWords, setFlaggedWords] = useState<FlaggedWord[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isCheckingPassword, setIsCheckingPassword] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Approved words are only reviewed locally — nothing is written to the
+  // db until the admin navigates away from this screen. Refs (rather than
+  // state) so the unmount cleanup below reads the latest values without
+  // re-subscribing the effect on every approve/reject.
+  const approvedWordsRef = useRef<PendingWord[]>([]);
+  const passwordRef = useRef("");
+  useEffect(() => {
+    approvedWordsRef.current = approvedWords;
+  }, [approvedWords]);
+  useEffect(() => {
+    passwordRef.current = password;
+  }, [password]);
 
   useEffect(() => {
     fetchWordCategories()
@@ -33,16 +45,21 @@ export function AdminScreen() {
       .catch(() => setCategories([]));
   }, []);
 
+  useEffect(() => {
+    return () => {
+      const words = approvedWordsRef.current;
+      if (words.length === 0) return;
+      const toPublish: LocalWord[] = words.map((w) => ({ categoryId: w.categoryId, text: w.text }));
+      void publishWords(passwordRef.current, toPublish);
+    };
+  }, []);
+
   const handleUnlock = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsCheckingPassword(true);
     setError(null);
     try {
-      const [pending, flagged] = await Promise.all([
-        listPendingWords(passwordInput),
-        listFlaggedWords(passwordInput),
-      ]);
-      setPendingWords(pending);
+      const flagged = await listFlaggedWords(passwordInput);
       setFlaggedWords(flagged);
       setPassword(passwordInput);
       setIsUnlocked(true);
@@ -61,8 +78,12 @@ export function AdminScreen() {
     setIsGenerating(true);
     setError(null);
     try {
-      const inserted = await generateWords(password, categoryId, count, instructions);
-      setPendingWords((current) => [...current, ...inserted]);
+      const localWords: LocalWord[] = [...pendingWords, ...approvedWords].map((w) => ({
+        categoryId: w.categoryId,
+        text: w.text,
+      }));
+      const candidates = await generateWords(password, categoryId, count, instructions, localWords);
+      setPendingWords((current) => [...current, ...candidates]);
     } catch {
       setError("Couldn't generate words. Try again.");
     } finally {
@@ -70,36 +91,24 @@ export function AdminScreen() {
     }
   };
 
-  const handleApprove = async (id: string) => {
-    setError(null);
-    try {
-      await approveWords(password, [id]);
-      setPendingWords((current) => current.filter((word) => word.id !== id));
-    } catch {
-      setError("Couldn't approve that word. Try again.");
-    }
+  const handleApprove = (id: string) => {
+    setPendingWords((current) => {
+      const word = current.find((w) => w.id === id);
+      if (word) setApprovedWords((approved) => [...approved, word]);
+      return current.filter((w) => w.id !== id);
+    });
   };
 
-  const handleReject = async (id: string) => {
-    setError(null);
-    try {
-      await rejectWords(password, [id]);
-      setPendingWords((current) => current.filter((word) => word.id !== id));
-    } catch {
-      setError("Couldn't reject that word. Try again.");
-    }
+  const handleReject = (id: string) => {
+    setPendingWords((current) => current.filter((word) => word.id !== id));
   };
 
-  const handleEditSave = async (id: string, text: string) => {
-    setError(null);
-    try {
-      await editWord(password, id, text);
-      setPendingWords((current) =>
-        current.map((word) => (word.id === id ? { ...word, text } : word))
-      );
-    } catch {
-      setError("Couldn't save that edit. Try again.");
-    }
+  const handleRejectAll = () => {
+    setPendingWords([]);
+  };
+
+  const handleEditSave = (id: string, text: string) => {
+    setPendingWords((current) => current.map((word) => (word.id === id ? { ...word, text } : word)));
   };
 
   const handleDeactivate = async (ids: string[]) => {
@@ -196,10 +205,17 @@ export function AdminScreen() {
               onGenerate={handleGenerate}
             />
           </div>
+          {approvedWords.length > 0 && (
+            <p className="m-0 text-center text-[0.85rem] text-text-secondary">
+              {approvedWords.length} word{approvedWords.length === 1 ? "" : "s"} approved — saved when
+              you leave this screen.
+            </p>
+          )}
           <AdminReviewQueue
             pendingWords={pendingWords}
             onApprove={handleApprove}
             onReject={handleReject}
+            onRejectAll={handleRejectAll}
             onEditSave={handleEditSave}
           />
           <div>

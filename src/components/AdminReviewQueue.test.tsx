@@ -8,19 +8,28 @@ const WORDS: PendingWord[] = [
   { id: "2", categoryId: "animals", categoryLabel: "Animals", text: "Lion" },
 ];
 
+function renderQueue(overrides: Partial<Parameters<typeof AdminReviewQueue>[0]> = {}) {
+  return render(
+    <AdminReviewQueue
+      pendingWords={WORDS}
+      onApprove={vi.fn()}
+      onReject={vi.fn()}
+      onRejectAll={vi.fn()}
+      onEditSave={vi.fn()}
+      {...overrides}
+    />
+  );
+}
+
 describe("AdminReviewQueue", () => {
   it("shows an empty state when there are no pending words", () => {
-    render(
-      <AdminReviewQueue pendingWords={[]} onApprove={vi.fn()} onReject={vi.fn()} onEditSave={vi.fn()} />
-    );
+    renderQueue({ pendingWords: [] });
 
     expect(screen.getByText(/no pending words/i)).toBeInTheDocument();
   });
 
   it("groups words by category and renders each word's text", () => {
-    render(
-      <AdminReviewQueue pendingWords={WORDS} onApprove={vi.fn()} onReject={vi.fn()} onEditSave={vi.fn()} />
-    );
+    renderQueue();
 
     expect(screen.getByText("Food")).toBeInTheDocument();
     expect(screen.getByText("Animals")).toBeInTheDocument();
@@ -31,22 +40,27 @@ describe("AdminReviewQueue", () => {
   it("calls onApprove and onReject with the word's id", () => {
     const onApprove = vi.fn();
     const onReject = vi.fn();
-    render(
-      <AdminReviewQueue pendingWords={WORDS} onApprove={onApprove} onReject={onReject} onEditSave={vi.fn()} />
-    );
+    renderQueue({ onApprove, onReject });
 
-    fireEvent.click(screen.getAllByRole("button", { name: /approve/i })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: /reject/i })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Approve" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Reject" })[1]);
 
     expect(onApprove).toHaveBeenCalledWith("1");
     expect(onReject).toHaveBeenCalledWith("2");
   });
 
+  it("calls onRejectAll when the bulk reject button is clicked", () => {
+    const onRejectAll = vi.fn();
+    renderQueue({ onRejectAll });
+
+    fireEvent.click(screen.getByRole("button", { name: /reject all/i }));
+
+    expect(onRejectAll).toHaveBeenCalled();
+  });
+
   it("calls onEditSave with the trimmed new text when the input loses focus after a change", () => {
     const onEditSave = vi.fn();
-    render(
-      <AdminReviewQueue pendingWords={WORDS} onApprove={vi.fn()} onReject={vi.fn()} onEditSave={onEditSave} />
-    );
+    renderQueue({ onEditSave });
 
     const input = screen.getByDisplayValue("Taco");
     fireEvent.change(input, { target: { value: "  Burrito  " } });
@@ -57,9 +71,7 @@ describe("AdminReviewQueue", () => {
 
   it("does not call onEditSave when the text is blurred unchanged", () => {
     const onEditSave = vi.fn();
-    render(
-      <AdminReviewQueue pendingWords={WORDS} onApprove={vi.fn()} onReject={vi.fn()} onEditSave={onEditSave} />
-    );
+    renderQueue({ onEditSave });
 
     fireEvent.blur(screen.getByDisplayValue("Taco"));
 

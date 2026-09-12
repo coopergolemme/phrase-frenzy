@@ -1,11 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  approveWords,
-  deactivateWords,
-  generateWords,
-  listFlaggedWords,
-  listPendingWords,
-} from "./adminApi";
+import { deactivateWords, generateWords, listFlaggedWords, publishWords } from "./adminApi";
 
 const PENDING = [{ id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" }];
 
@@ -30,35 +24,26 @@ describe("adminApi", () => {
     vi.unstubAllGlobals();
   });
 
-  it("listPendingWords sends the password header and returns pending words", async () => {
-    const fetchMock = mockFetch(200, { pending: PENDING });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await listPendingWords("secret");
-
-    expect(result).toEqual(PENDING);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("/functions/v1/admin-words");
-    expect(init.headers["x-admin-password"]).toBe("secret");
-    expect(JSON.parse(init.body)).toEqual({ action: "list-pending" });
-  });
-
   it("generateWords sends categoryId and count in the body", async () => {
-    const fetchMock = mockFetch(200, { inserted: PENDING });
+    const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await generateWords("secret", "food", 20);
 
     expect(result).toEqual(PENDING);
-    const [, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain("/functions/v1/admin-words");
+    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "generate", categoryId: "food", count: 20 });
   });
 
-  it("generateWords includes instructions in the body when given", async () => {
-    const fetchMock = mockFetch(200, { inserted: PENDING });
+  it("generateWords includes instructions and localWords in the body when given", async () => {
+    const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
-    await generateWords("secret", "food", 20, "lean toward 90s references");
+    await generateWords("secret", "food", 20, "lean toward 90s references", [
+      { categoryId: "food", text: "Sushi" },
+    ]);
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({
@@ -66,13 +51,23 @@ describe("adminApi", () => {
       categoryId: "food",
       count: 20,
       instructions: "lean toward 90s references",
+      localWords: [{ categoryId: "food", text: "Sushi" }],
     });
   });
 
-  it("approveWords resolves with no value on success", async () => {
-    vi.stubGlobal("fetch", mockFetch(200, { approved: ["1"] }));
+  it("publishWords sends the approved words and returns the published count", async () => {
+    const fetchMock = mockFetch(200, { published: 2 });
+    vi.stubGlobal("fetch", fetchMock);
 
-    await expect(approveWords("secret", ["1"])).resolves.toBeUndefined();
+    const words = [
+      { categoryId: "food", text: "Taco" },
+      { categoryId: "food", text: "Pizza" },
+    ];
+    const result = await publishWords("secret", words);
+
+    expect(result).toBe(2);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ action: "publish", words });
   });
 
   it("listFlaggedWords sends the password header and returns flagged words with matches", async () => {
@@ -99,7 +94,7 @@ describe("adminApi", () => {
   it("throws AdminApiError with the response status and server message on failure", async () => {
     vi.stubGlobal("fetch", mockFetch(401, { error: "Unauthorized" }));
 
-    await expect(listPendingWords("wrong")).rejects.toMatchObject({
+    await expect(listFlaggedWords("wrong")).rejects.toMatchObject({
       name: "AdminApiError",
       status: 401,
       message: "Unauthorized",
