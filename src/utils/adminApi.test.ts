@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AdminApiError, approveWords, generateWords, listPendingWords } from "./adminApi";
+import { approveWords, generateWords, listPendingWords } from "./adminApi";
 
 const PENDING = [{ id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" }];
 
