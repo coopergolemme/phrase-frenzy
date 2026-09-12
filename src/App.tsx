@@ -185,6 +185,7 @@ function App() {
           <TeamSetupScreen
             categories={categories}
             onStart={handleStartTournament}
+            onBack={reset}
             knownPlayerNames={knownPlayerNames}
             knownTeamNames={knownTeamNames}
           />
