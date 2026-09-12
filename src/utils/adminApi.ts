@@ -13,17 +13,13 @@ export interface LocalWord {
   text: string;
 }
 
-export interface FlaggedWordMatch {
+export interface FlaggedWord {
   id: string;
   categoryId: string;
   categoryLabel: string;
+  text: string;
   active: boolean;
-}
-
-export interface FlaggedWord {
-  word: string;
-  flaggedAt: string;
-  matches: FlaggedWordMatch[];
+  flaggedCount: number;
 }
 
 export class AdminApiError extends Error {

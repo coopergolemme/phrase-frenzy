@@ -10,7 +10,8 @@ create table words (
   category_id text not null references categories(id) on delete cascade,
   text text not null,
   active boolean not null default true,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  flagged_count int not null default 0
 );
 
 alter table categories enable row level security;
@@ -22,10 +23,11 @@ create policy "public read categories" on categories
 create policy "public read active words" on words
   for select using (active = true);
 
--- Game telemetry: match results, per-word stats, and flagged words are
--- synced from the client at the end of each game via the sync_game_results
--- RPC below. RLS stays on with no policies on these tables, so anon clients
--- can only write through that SECURITY DEFINER function — never directly.
+-- Game telemetry: match results and per-word stats are synced from the
+-- client at the end of each game via the sync_game_results RPC below (as
+-- is words.flagged_count, incremented there). RLS stays on with no
+-- policies on match_history/word_stats, so anon clients can only write
+-- through that SECURITY DEFINER function — never directly.
 create table match_history (
   id uuid primary key default gen_random_uuid(),
   played_at timestamptz not null default now(),
@@ -34,7 +36,7 @@ create table match_history (
   winner_names text[] not null
 );
 
--- word_id links back to the live words row (nullable — a stat/flag row can
+-- word_id links back to the live words row (nullable — a stat row can
 -- outlive the words row it started as: word edited, category removed, or
 -- the text never matched a live word; set null on delete so history
 -- survives a word being deleted). word/word_id stay independent — text is
@@ -47,14 +49,7 @@ create table word_stats (
   word_id uuid references words(id) on delete set null
 );
 
-create table flagged_words (
-  word text primary key,
-  flagged_at timestamptz not null default now(),
-  word_id uuid references words(id) on delete set null
-);
-
 create index word_stats_word_id_idx on word_stats(word_id);
-create index flagged_words_word_id_idx on flagged_words(word_id);
 
 -- Roster of people who have ever been entered as a team member, deduped by
 -- a normalized (trimmed/lowercased) name — there's no login, so name is the
@@ -81,7 +76,6 @@ create table match_players (
 
 alter table match_history enable row level security;
 alter table word_stats enable row level security;
-alter table flagged_words enable row level security;
 alter table match_players enable row level security;
 alter table players enable row level security;
 
@@ -135,13 +129,10 @@ begin
   end if;
 
   if p_flagged_words is not null and array_length(p_flagged_words, 1) > 0 then
-    insert into flagged_words (word, word_id)
-    select distinct
-      w_text,
-      (select w.id from words w where lower(trim(w.text)) = w_text limit 1)
-    from unnest(p_flagged_words) as w_text
-    on conflict (word) do update
-      set word_id = coalesce(flagged_words.word_id, excluded.word_id);
+    update words w
+    set flagged_count = w.flagged_count + 1
+    from (select distinct w_text from unnest(p_flagged_words) as w_text) t
+    where lower(trim(w.text)) = t.w_text;
   end if;
 
   if v_match_id is not null and p_team_members is not null then

@@ -28,17 +28,13 @@ interface LocalWordDto {
   text: string;
 }
 
-interface FlaggedWordMatchDto {
+interface FlaggedWordDto {
   id: string;
   categoryId: string;
   categoryLabel: string;
+  text: string;
   active: boolean;
-}
-
-interface FlaggedWordDto {
-  word: string;
-  flaggedAt: string;
-  matches: FlaggedWordMatchDto[];
+  flaggedCount: number;
 }
 
 // Catches non-Error throws too (DOMException from a failed/aborted fetch,
@@ -121,40 +117,26 @@ async function categoryLabelMap(client: SupabaseClient): Promise<Map<string, str
 }
 
 async function listFlagged(client: SupabaseClient): Promise<FlaggedWordDto[]> {
-  const [flaggedResult, wordsResult, labels] = await Promise.all([
-    client.from("flagged_words").select("word, flagged_at").order("flagged_at", { ascending: false }),
-    client.from("words").select("id, category_id, text, active"),
+  const [wordsResult, labels] = await Promise.all([
+    client
+      .from("words")
+      .select("id, category_id, text, active, flagged_count")
+      .gt("flagged_count", 0)
+      .order("flagged_count", { ascending: false }),
     categoryLabelMap(client),
   ]);
-  if (flaggedResult.error) throw flaggedResult.error;
   if (wordsResult.error) throw wordsResult.error;
 
-  const wordsByLowerText = new Map<
-    string,
-    { id: string; category_id: string; text: string; active: boolean }[]
-  >();
-  for (const row of (wordsResult.data ?? []) as {
-    id: string;
-    category_id: string;
-    text: string;
-    active: boolean;
-  }[]) {
-    const key = row.text.toLowerCase();
-    const list = wordsByLowerText.get(key) ?? [];
-    list.push(row);
-    wordsByLowerText.set(key, list);
-  }
-
-  return (flaggedResult.data ?? []).map((row: { word: string; flagged_at: string }) => ({
-    word: row.word,
-    flaggedAt: row.flagged_at,
-    matches: (wordsByLowerText.get(row.word.toLowerCase()) ?? []).map((match) => ({
-      id: match.id,
-      categoryId: match.category_id,
-      categoryLabel: labels.get(match.category_id) ?? match.category_id,
-      active: match.active,
-    })),
-  }));
+  return (wordsResult.data ?? []).map(
+    (row: { id: string; category_id: string; text: string; active: boolean; flagged_count: number }) => ({
+      id: row.id,
+      categoryId: row.category_id,
+      categoryLabel: labels.get(row.category_id) ?? row.category_id,
+      text: row.text,
+      active: row.active,
+      flaggedCount: row.flagged_count,
+    })
+  );
 }
 
 async function generate(

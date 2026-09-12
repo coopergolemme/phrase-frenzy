@@ -5,9 +5,12 @@ const PENDING = [{ id: "1", categoryId: "food", categoryLabel: "Food", text: "Ta
 
 const FLAGGED = [
   {
-    word: "taco",
-    flaggedAt: "2026-01-01T00:00:00.000Z",
-    matches: [{ id: "1", categoryId: "food", categoryLabel: "Food", active: true }],
+    id: "1",
+    categoryId: "food",
+    categoryLabel: "Food",
+    text: "Taco",
+    active: true,
+    flaggedCount: 3,
   },
 ];
 

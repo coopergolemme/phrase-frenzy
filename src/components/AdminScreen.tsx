@@ -118,12 +118,7 @@ export function AdminScreen() {
       await deactivateWords(password, ids);
       const idSet = new Set(ids);
       setFlaggedWords((current) =>
-        current.map((flagged) => ({
-          ...flagged,
-          matches: flagged.matches.map((match) =>
-            idSet.has(match.id) ? { ...match, active: false } : match
-          ),
-        }))
+        current.map((flagged) => (idSet.has(flagged.id) ? { ...flagged, active: false } : flagged))
       );
     } catch {
       setError("Couldn't deactivate that word. Try again.");

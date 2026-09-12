@@ -4,16 +4,8 @@ import { AdminFlaggedWordsQueue } from "./AdminFlaggedWordsQueue";
 import type { FlaggedWord } from "../utils/adminApi";
 
 const FLAGGED: FlaggedWord[] = [
-  {
-    word: "taco",
-    flaggedAt: "2026-01-01T00:00:00.000Z",
-    matches: [{ id: "1", categoryId: "food", categoryLabel: "Food", active: true }],
-  },
-  {
-    word: "ghost word",
-    flaggedAt: "2026-01-02T00:00:00.000Z",
-    matches: [],
-  },
+  { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 3 },
+  { id: "2", categoryId: "food", categoryLabel: "Food", text: "Old One", active: false, flaggedCount: 1 },
 ];
 
 describe("AdminFlaggedWordsQueue", () => {
@@ -23,16 +15,16 @@ describe("AdminFlaggedWordsQueue", () => {
     expect(screen.getByText(/no flagged words/i)).toBeInTheDocument();
   });
 
-  it("renders each flagged word and its matching category", () => {
+  it("renders each flagged word with its category and flag count", () => {
     render(<AdminFlaggedWordsQueue flaggedWords={FLAGGED} onDeactivate={vi.fn()} />);
 
-    expect(screen.getByText("taco")).toBeInTheDocument();
-    expect(screen.getByText("Food")).toBeInTheDocument();
-    expect(screen.getByText("ghost word")).toBeInTheDocument();
-    expect(screen.getByText(/not in word bank/i)).toBeInTheDocument();
+    expect(screen.getByText("Taco")).toBeInTheDocument();
+    expect(screen.getByText(/flagged 3x/i)).toBeInTheDocument();
+    expect(screen.getByText("Old One")).toBeInTheDocument();
+    expect(screen.getByText(/already inactive/i)).toBeInTheDocument();
   });
 
-  it("calls onDeactivate with the matching active word ids", () => {
+  it("calls onDeactivate with the word's id", () => {
     const onDeactivate = vi.fn();
     render(<AdminFlaggedWordsQueue flaggedWords={FLAGGED} onDeactivate={onDeactivate} />);
 
@@ -41,7 +33,7 @@ describe("AdminFlaggedWordsQueue", () => {
     expect(onDeactivate).toHaveBeenCalledWith(["1"]);
   });
 
-  it("disables the button when a word has no active matches", () => {
+  it("disables the button for a word that's already inactive", () => {
     render(<AdminFlaggedWordsQueue flaggedWords={FLAGGED} onDeactivate={vi.fn()} />);
 
     const buttons = screen.getAllByRole("button", { name: /deactivate/i });
