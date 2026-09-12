@@ -418,7 +418,7 @@
 
 /* Landscape (phone, held sideways for the active round) */
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 2000px) {
   .screen--game {
     display: grid;
     grid-template-columns: minmax(56px, 84px) 1fr minmax(56px, 84px);
@@ -748,7 +748,7 @@
   color: var(--color-text-secondary);
 }
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 2000px) {
   .review-sheet {
     padding: max(env(safe-area-inset-top), var(--space-2))
       max(env(safe-area-inset-right), var(--space-3))
@@ -779,7 +779,7 @@
 /* Shared standings landscape layout: round summary, final standings,
    and match history all sit the standings list beside a hero block. */
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 2000px) {
   .standings {
     flex: 1;
     justify-content: center;

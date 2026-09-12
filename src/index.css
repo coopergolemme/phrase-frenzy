@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Matches the app's `(orientation: landscape) and (max-height: 600px)` breakpoint
+/* Matches the app's `(orientation: landscape) and (max-height: 2000px)` breakpoint
    used for the compact "phone held sideways" layouts. */
-@custom-variant landscape-compact (@media (orientation: landscape) and (max-height: 600px));
+@custom-variant landscape-compact (@media (orientation: landscape) and (max-height: 2000px));
 
 /* "Marquee ticket" theme: a dark, carnival-arcade look built for a phone
    getting passed hand to hand under party lights — chunky ticket-stub
@@ -125,7 +125,7 @@ button {
   min-height: 0;
 }
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 2000px) {
   .app-shell {
     padding: max(env(safe-area-inset-top), var(--space-2))
       max(env(safe-area-inset-right), var(--space-3))
