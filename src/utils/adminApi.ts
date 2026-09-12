@@ -67,11 +67,12 @@ export async function listPendingWords(password: string): Promise<PendingWord[]>
 export async function generateWords(
   password: string,
   categoryId: string | undefined,
-  count: number
+  count: number,
+  instructions?: string
 ): Promise<PendingWord[]> {
   const { inserted } = await callAdminWords<{ inserted: PendingWord[] }>(
     "generate",
-    { categoryId, count },
+    { categoryId, count, instructions },
     password
   );
   return inserted;

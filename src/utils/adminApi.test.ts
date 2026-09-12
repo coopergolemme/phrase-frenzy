@@ -54,6 +54,21 @@ describe("adminApi", () => {
     expect(JSON.parse(init.body)).toEqual({ action: "generate", categoryId: "food", count: 20 });
   });
 
+  it("generateWords includes instructions in the body when given", async () => {
+    const fetchMock = mockFetch(200, { inserted: PENDING });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await generateWords("secret", "food", 20, "lean toward 90s references");
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({
+      action: "generate",
+      categoryId: "food",
+      count: 20,
+      instructions: "lean toward 90s references",
+    });
+  });
+
   it("approveWords resolves with no value on success", async () => {
     vi.stubGlobal("fetch", mockFetch(200, { approved: ["1"] }));
 

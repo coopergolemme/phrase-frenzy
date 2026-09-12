@@ -53,11 +53,15 @@ export function AdminScreen() {
     }
   };
 
-  const handleGenerate = async (categoryId: string | undefined, count: number) => {
+  const handleGenerate = async (
+    categoryId: string | undefined,
+    count: number,
+    instructions?: string
+  ) => {
     setIsGenerating(true);
     setError(null);
     try {
-      const inserted = await generateWords(password, categoryId, count);
+      const inserted = await generateWords(password, categoryId, count, instructions);
       setPendingWords((current) => [...current, ...inserted]);
     } catch {
       setError("Couldn't generate words. Try again.");

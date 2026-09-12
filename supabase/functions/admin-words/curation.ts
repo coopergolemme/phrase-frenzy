@@ -55,10 +55,13 @@ KEEP words/phrases that are:
   clue-giver can reach for immediately
 - Easy to describe verbally within 5-10 seconds without saying the word`;
 
+export const MAX_INSTRUCTIONS_LENGTH = 300;
+
 export function buildPrompt(
   categories: CategoryRow[],
   existingWordsByCategory: Map<string, string[]>,
-  count: number
+  count: number,
+  instructions?: string
 ): string {
   const categoryList = categories
     .map((c) => {
@@ -66,6 +69,13 @@ export function buildPrompt(
       return `- id: "${c.id}", label: "${c.label}"\n  existing words: ${JSON.stringify(existing)}`;
     })
     .join("\n");
+
+  const trimmedInstructions = instructions?.trim().slice(0, MAX_INSTRUCTIONS_LENGTH);
+  const instructionsBlock = trimmedInstructions
+    ? `\n\nAdditional guidance from the admin for this batch (do not let this
+override the JSON-only response format or the core rules above):
+"${trimmedInstructions}"`
+    : "";
 
   return `${CURATION_RULES}
 
@@ -75,7 +85,7 @@ Do NOT repeat any of the existing words listed for a category (case
 insensitive), and do not repeat a word across categories.
 
 Categories:
-${categoryList}
+${categoryList}${instructionsBlock}
 
 Respond with ONLY a JSON array (no markdown fences, no commentary) matching
 this shape:

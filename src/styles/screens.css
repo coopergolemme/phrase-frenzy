@@ -149,6 +149,7 @@
   align-items: stretch;
   justify-content: center;
   min-height: 0;
+  min-width: 0;
   position: relative;
 }
 
@@ -368,6 +369,8 @@
 .word-card {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
   border: 3px solid var(--color-text);
@@ -378,6 +381,7 @@
   justify-content: center;
   text-align: center;
   position: relative;
+  overflow: hidden;
   transform: rotate(-1deg);
   animation: wordEnter 180ms ease-out;
 }
@@ -405,6 +409,8 @@
   overflow-wrap: normal;
   word-break: normal;
   color: var(--color-text);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .game__actions {
@@ -452,6 +458,7 @@
   .game__word-area {
     grid-area: word;
     min-height: 0;
+    min-width: 0;
   }
 
   .word-card {

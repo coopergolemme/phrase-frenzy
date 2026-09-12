@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildPrompt, dedupeAgainstExisting, type CategoryRow, type GeneratedBatch } from "./curation";
+import {
+  buildPrompt,
+  dedupeAgainstExisting,
+  MAX_INSTRUCTIONS_LENGTH,
+  type CategoryRow,
+  type GeneratedBatch,
+} from "./curation";
 
 describe("buildPrompt", () => {
   it("includes each category's id, label, and existing words as JSON", () => {
@@ -24,6 +30,50 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt(categories, new Map(), 5);
 
     expect(prompt).toContain("existing words: []");
+  });
+
+  it("omits the guidance block when no instructions are given", () => {
+    const categories: CategoryRow[] = [
+      { id: "food", label: "Food", emoji: "🍕", sort_order: 0 },
+    ];
+
+    const prompt = buildPrompt(categories, new Map(), 5);
+
+    expect(prompt).not.toContain("Additional guidance");
+  });
+
+  it("appends trimmed admin instructions as a subordinate guidance block", () => {
+    const categories: CategoryRow[] = [
+      { id: "food", label: "Food", emoji: "🍕", sort_order: 0 },
+    ];
+
+    const prompt = buildPrompt(categories, new Map(), 5, "  lean toward 90s references  ");
+
+    expect(prompt).toContain("Additional guidance from the admin");
+    expect(prompt).toContain('"lean toward 90s references"');
+    expect(prompt).not.toContain("  lean toward 90s references  ");
+  });
+
+  it("ignores blank instructions", () => {
+    const categories: CategoryRow[] = [
+      { id: "food", label: "Food", emoji: "🍕", sort_order: 0 },
+    ];
+
+    const prompt = buildPrompt(categories, new Map(), 5, "   ");
+
+    expect(prompt).not.toContain("Additional guidance");
+  });
+
+  it("clamps instructions to MAX_INSTRUCTIONS_LENGTH characters", () => {
+    const categories: CategoryRow[] = [
+      { id: "food", label: "Food", emoji: "🍕", sort_order: 0 },
+    ];
+    const long = "a".repeat(MAX_INSTRUCTIONS_LENGTH + 50);
+
+    const prompt = buildPrompt(categories, new Map(), 5, long);
+
+    expect(prompt).toContain("a".repeat(MAX_INSTRUCTIONS_LENGTH));
+    expect(prompt).not.toContain("a".repeat(MAX_INSTRUCTIONS_LENGTH + 1));
   });
 });
 
