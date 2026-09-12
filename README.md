@@ -34,7 +34,11 @@ npm run preview
 `/#admin` (not linked from the UI) opens a password-gated view for
 generating, reviewing, and approving/rejecting new words with Gemini,
 backed by the `admin-words` Supabase Edge Function
-(`supabase/functions/admin-words`).
+(`supabase/functions/admin-words`). Type or speak a prompt describing what
+you want (e.g. "80s action movies") and Gemini decides the category
+itself — reusing an existing one if it fits, or proposing a brand-new one
+(shown with a "New" badge) if it doesn't. Leave the prompt blank to add
+more words to existing categories instead.
 
 One-time setup, once linked to your Supabase project
 (`supabase link --project-ref <ref>`):
@@ -49,5 +53,7 @@ inside edge functions — do not set them as secrets yourself.
 
 After deploying, open the app and append `#admin` to the URL
 (e.g. `https://<your-pages-url>/phrase-frenzy/#admin`), enter the admin
-password, and use the form to generate and review words. Approved words
-go live immediately; rejected ones are deleted.
+password, and use the form to generate and review words. Nothing is
+written to the database until you approve words and leave the admin
+screen — approved words (and any new category they belong to) are
+published then; rejected ones are simply discarded.

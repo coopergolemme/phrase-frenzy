@@ -4,8 +4,22 @@ import { AdminReviewQueue } from "./AdminReviewQueue";
 import type { PendingWord } from "../utils/adminApi";
 
 const WORDS: PendingWord[] = [
-  { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" },
-  { id: "2", categoryId: "animals", categoryLabel: "Animals", text: "Lion" },
+  {
+    id: "1",
+    categoryId: "food",
+    categoryLabel: "Food",
+    categoryEmoji: "🍕",
+    isNewCategory: false,
+    text: "Taco",
+  },
+  {
+    id: "2",
+    categoryId: "animals",
+    categoryLabel: "Animals",
+    categoryEmoji: "🐘",
+    isNewCategory: false,
+    text: "Lion",
+  },
 ];
 
 function renderQueue(overrides: Partial<Parameters<typeof AdminReviewQueue>[0]> = {}) {
@@ -35,6 +49,30 @@ describe("AdminReviewQueue", () => {
     expect(screen.getByText("Animals")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Taco")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Lion")).toBeInTheDocument();
+  });
+
+  it("marks a brand-new (not-yet-created) category as New", () => {
+    renderQueue({
+      pendingWords: [
+        {
+          id: "3",
+          categoryId: "new:80s-action-movies",
+          categoryLabel: "80s Action Movies",
+          categoryEmoji: "🎬",
+          isNewCategory: true,
+          text: "Rambo",
+        },
+      ],
+    });
+
+    expect(screen.getByText("80s Action Movies")).toBeInTheDocument();
+    expect(screen.getByText(/new/i)).toBeInTheDocument();
+  });
+
+  it("does not mark an existing category as New", () => {
+    renderQueue();
+
+    expect(screen.queryByText(/^new$/i)).not.toBeInTheDocument();
   });
 
   it("calls onApprove and onReject with the word's id", () => {

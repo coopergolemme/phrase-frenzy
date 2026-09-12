@@ -5,11 +5,16 @@ export interface PendingWord {
   id: string;
   categoryId: string;
   categoryLabel: string;
+  categoryEmoji: string;
+  isNewCategory: boolean;
   text: string;
 }
 
 export interface LocalWord {
   categoryId: string;
+  categoryLabel: string;
+  categoryEmoji: string;
+  isNewCategory: boolean;
   text: string;
 }
 
@@ -62,14 +67,13 @@ async function callAdminWords<T>(
 
 export async function generateWords(
   password: string,
-  categoryId: string | undefined,
   count: number,
   instructions?: string,
   localWords?: LocalWord[]
 ): Promise<PendingWord[]> {
   const { candidates } = await callAdminWords<{ candidates: PendingWord[] }>(
     "generate",
-    { categoryId, count, instructions, localWords },
+    { count, instructions, localWords },
     password
   );
   return candidates;

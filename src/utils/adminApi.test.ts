@@ -1,7 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { deactivateWords, generateWords, listFlaggedWords, publishWords } from "./adminApi";
 
-const PENDING = [{ id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco" }];
+const PENDING = [
+  {
+    id: "1",
+    categoryId: "food",
+    categoryLabel: "Food",
+    categoryEmoji: "🍕",
+    isNewCategory: false,
+    text: "Taco",
+  },
+];
 
 const FLAGGED = [
   {
@@ -27,34 +36,47 @@ describe("adminApi", () => {
     vi.unstubAllGlobals();
   });
 
-  it("generateWords sends categoryId and count in the body", async () => {
+  it("generateWords sends the count in the body", async () => {
     const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await generateWords("secret", "food", 20);
+    const result = await generateWords("secret", 20);
 
     expect(result).toEqual(PENDING);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toContain("/functions/v1/admin-words");
     expect(init.headers["x-admin-password"]).toBe("secret");
-    expect(JSON.parse(init.body)).toEqual({ action: "generate", categoryId: "food", count: 20 });
+    expect(JSON.parse(init.body)).toEqual({ action: "generate", count: 20 });
   });
 
   it("generateWords includes instructions and localWords in the body when given", async () => {
     const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
-    await generateWords("secret", "food", 20, "lean toward 90s references", [
-      { categoryId: "food", text: "Sushi" },
+    await generateWords("secret", 20, "80s action movies", [
+      {
+        categoryId: "new:80s-action-movies",
+        categoryLabel: "80s Action Movies",
+        categoryEmoji: "🎬",
+        isNewCategory: true,
+        text: "Rambo",
+      },
     ]);
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({
       action: "generate",
-      categoryId: "food",
       count: 20,
-      instructions: "lean toward 90s references",
-      localWords: [{ categoryId: "food", text: "Sushi" }],
+      instructions: "80s action movies",
+      localWords: [
+        {
+          categoryId: "new:80s-action-movies",
+          categoryLabel: "80s Action Movies",
+          categoryEmoji: "🎬",
+          isNewCategory: true,
+          text: "Rambo",
+        },
+      ],
     });
   });
 
@@ -63,8 +85,8 @@ describe("adminApi", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const words = [
-      { categoryId: "food", text: "Taco" },
-      { categoryId: "food", text: "Pizza" },
+      { categoryId: "food", categoryLabel: "Food", categoryEmoji: "🍕", isNewCategory: false, text: "Taco" },
+      { categoryId: "food", categoryLabel: "Food", categoryEmoji: "🍕", isNewCategory: false, text: "Pizza" },
     ];
     const result = await publishWords("secret", words);
 

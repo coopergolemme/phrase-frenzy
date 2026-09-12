@@ -9,6 +9,14 @@ interface AdminReviewQueueProps {
   onEditSave: (id: string, text: string) => void;
 }
 
+interface CategoryGroup {
+  categoryId: string;
+  categoryLabel: string;
+  categoryEmoji: string;
+  isNewCategory: boolean;
+  words: PendingWord[];
+}
+
 export function AdminReviewQueue({
   pendingWords,
   onApprove,
@@ -20,10 +28,17 @@ export function AdminReviewQueue({
     return <p className="py-5 text-center text-text-secondary">No pending words.</p>;
   }
 
-  const byCategory = new Map<string, PendingWord[]>();
+  const byCategory = new Map<string, CategoryGroup>();
   for (const word of pendingWords) {
-    const list = byCategory.get(word.categoryLabel) ?? [];
-    byCategory.set(word.categoryLabel, [...list, word]);
+    const group = byCategory.get(word.categoryId) ?? {
+      categoryId: word.categoryId,
+      categoryLabel: word.categoryLabel,
+      categoryEmoji: word.categoryEmoji,
+      isNewCategory: word.isNewCategory,
+      words: [],
+    };
+    group.words.push(word);
+    byCategory.set(word.categoryId, group);
   }
 
   return (
@@ -35,18 +50,26 @@ export function AdminReviewQueue({
       >
         Reject All ({pendingWords.length})
       </button>
-      {[...byCategory.entries()].map(([label, words]) => (
+      {[...byCategory.values()].map((group) => (
         <section
-          key={label}
+          key={group.categoryId}
           className="overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px]"
         >
-          <div className="flex items-center justify-between border-b border-border-solid px-4 py-3">
-            <span className="font-bold">{label}</span>
-            <span className="inline-flex min-w-[1.6rem] items-center justify-center rounded-chip border border-outline bg-surface-solid px-2 text-[0.8rem] font-bold text-text-secondary">
-              {words.length}
+          <div className="flex items-center justify-between gap-2 border-b border-border-solid px-4 py-3">
+            <span className="flex min-w-0 items-center gap-2 font-bold">
+              <span aria-hidden="true">{group.categoryEmoji}</span>
+              <span className="truncate">{group.categoryLabel}</span>
+              {group.isNewCategory && (
+                <span className="inline-flex flex-none items-center rounded-chip border border-yellow px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-yellow">
+                  New
+                </span>
+              )}
+            </span>
+            <span className="inline-flex min-w-[1.6rem] flex-none items-center justify-center rounded-chip border border-outline bg-surface-solid px-2 text-[0.8rem] font-bold text-text-secondary">
+              {group.words.length}
             </span>
           </div>
-          {words.map((word) => (
+          {group.words.map((word) => (
             <AdminReviewRow
               key={word.id}
               word={word}

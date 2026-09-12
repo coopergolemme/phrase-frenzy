@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { WordCategory } from "../data/wordCategory";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 
 interface AdminGenerateFormProps {
-  categories: WordCategory[];
   isGenerating: boolean;
-  onGenerate: (categoryId: string | undefined, count: number, instructions?: string) => void;
+  onGenerate: (count: number, instructions?: string) => void;
 }
 
 const fieldLabelClass = "text-[0.8rem] font-semibold text-text-secondary";
@@ -14,8 +12,7 @@ const fieldControlClass =
 
 const AUTO_SUBMIT_SECONDS = 2;
 
-export function AdminGenerateForm({ categories, isGenerating, onGenerate }: AdminGenerateFormProps) {
-  const [categoryId, setCategoryId] = useState("");
+export function AdminGenerateForm({ isGenerating, onGenerate }: AdminGenerateFormProps) {
   const [count, setCount] = useState(20);
   const [instructions, setInstructions] = useState("");
   const [autoSubmitSecondsLeft, setAutoSubmitSecondsLeft] = useState<number | null>(null);
@@ -46,7 +43,7 @@ export function AdminGenerateForm({ categories, isGenerating, onGenerate }: Admi
         setAutoSubmitSecondsLeft((secondsLeft) => {
           if (secondsLeft === null || secondsLeft <= 1) {
             cancelAutoSubmit();
-            onGenerate(categoryId || undefined, count, spokenInstructions);
+            onGenerate(count, spokenInstructions);
             return null;
           }
           return secondsLeft - 1;
@@ -73,54 +70,20 @@ export function AdminGenerateForm({ categories, isGenerating, onGenerate }: Admi
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     cancelAutoSubmit();
-    onGenerate(categoryId || undefined, count, instructions.trim() || undefined);
+    onGenerate(count, instructions.trim() || undefined);
   };
 
   return (
     <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-      <div className="flex gap-3">
-        <div className="flex flex-1 flex-col gap-1">
-          <label className={fieldLabelClass} htmlFor="admin-generate-category">
-            Category
-          </label>
-          <select
-            id="admin-generate-category"
-            className={fieldControlClass}
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.emoji} {category.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-none basis-[5.5rem] flex-col gap-1">
-          <label className={fieldLabelClass} htmlFor="admin-generate-count">
-            Count
-          </label>
-          <input
-            id="admin-generate-count"
-            className={fieldControlClass}
-            type="number"
-            min={1}
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-          />
-        </div>
-      </div>
-
       <div className="flex flex-col gap-1">
         <label className={fieldLabelClass} htmlFor="admin-generate-instructions">
-          Instructions (optional)
+          What should these words be about? (optional)
         </label>
         <div className="flex gap-2">
           <textarea
             id="admin-generate-instructions"
             className={`${fieldControlClass} min-h-[3.5rem] resize-none`}
-            placeholder="e.g. lean toward 90s references"
+            placeholder="e.g. 80s action movies — leave blank to add to existing categories"
             value={instructions}
             onChange={(e) => {
               cancelAutoSubmit();
@@ -154,9 +117,24 @@ export function AdminGenerateForm({ categories, isGenerating, onGenerate }: Admi
         )}
       </div>
 
-      <button type="submit" className="btn btn--primary" disabled={isGenerating}>
-        {isGenerating ? "Generating…" : "Generate"}
-      </button>
+      <div className="flex items-end gap-3">
+        <div className="flex flex-none basis-[5.5rem] flex-col gap-1">
+          <label className={fieldLabelClass} htmlFor="admin-generate-count">
+            Count
+          </label>
+          <input
+            id="admin-generate-count"
+            className={fieldControlClass}
+            type="number"
+            min={1}
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+          />
+        </div>
+        <button type="submit" className="btn btn--primary flex-1" disabled={isGenerating}>
+          {isGenerating ? "Generating…" : "Generate"}
+        </button>
+      </div>
     </form>
   );
 }
