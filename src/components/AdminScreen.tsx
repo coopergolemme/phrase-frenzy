@@ -89,10 +89,17 @@ export function AdminScreen() {
     }
   };
 
+  const goToGame = () => {
+    window.location.hash = "";
+  };
+
   if (!isUnlocked) {
     return (
       <div className="app-shell">
         <div className="screen-container admin">
+          <a href="#" className="btn btn--text admin__back-link" onClick={(e) => { e.preventDefault(); goToGame(); }}>
+            ← Back to game
+          </a>
           <h1>Admin</h1>
           <form onSubmit={handleUnlock}>
             <input
@@ -114,6 +121,9 @@ export function AdminScreen() {
   return (
     <div className="app-shell">
       <div className="screen-container admin">
+        <a href="#" className="btn btn--text admin__back-link" onClick={(e) => { e.preventDefault(); goToGame(); }}>
+          ← Back to game
+        </a>
         <h1>Word Curation</h1>
         {error && <p className="home__error">{error}</p>}
         <AdminGenerateForm

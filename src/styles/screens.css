@@ -1430,3 +1430,8 @@
   color: var(--color-text-secondary);
   text-align: center;
 }
+
+.admin__back-link {
+  align-self: flex-start;
+  padding: var(--space-2) 0;
+}

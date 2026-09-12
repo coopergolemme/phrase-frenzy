@@ -59,6 +59,11 @@ export function HomeScreen({
     void onRefreshWords();
   };
 
+  const handleOpenAdmin = () => {
+    closeMenu();
+    window.location.hash = "admin";
+  };
+
   return (
     <div className="screen screen--home">
       <div className="home__content">
@@ -149,6 +154,17 @@ export function HomeScreen({
                         🔄
                       </span>
                       {isRefreshingWords ? "Refreshing words…" : "Refresh Word Bank"}
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-menu__item"
+                      role="menuitem"
+                      onClick={handleOpenAdmin}
+                    >
+                      <span className="icon-menu__icon" aria-hidden="true">
+                        🛠️
+                      </span>
+                      Admin
                     </button>
                   </div>
                 </>
