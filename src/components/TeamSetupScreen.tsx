@@ -20,6 +20,7 @@ interface TeamSetupScreenProps {
     categoryIds: string[],
     roundDurationSec: number
   ) => void;
+  onBack: () => void;
   knownPlayerNames?: string[];
   knownTeamNames?: string[];
 }
@@ -30,6 +31,7 @@ const KNOWN_TEAMS_DATALIST_ID = "known-team-names";
 export function TeamSetupScreen({
   categories,
   onStart,
+  onBack,
   knownPlayerNames = [],
   knownTeamNames = [],
 }: TeamSetupScreenProps) {
@@ -129,9 +131,18 @@ export function TeamSetupScreen({
   return (
     <div className="screen overflow-y-auto pt-4 landscape-compact:pt-2">
       <div className="flex flex-col gap-4 landscape-compact:grid landscape-compact:grid-cols-2 landscape-compact:items-start landscape-compact:gap-x-4 landscape-compact:gap-y-2">
-        <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow landscape-compact:col-span-2">
-          Set Up Teams
-        </h1>
+        <div className="relative landscape-compact:col-span-2">
+          <button
+            type="button"
+            className="btn btn--text absolute left-0 top-1/2 min-h-0 -translate-y-1/2 py-1"
+            onClick={onBack}
+          >
+            ← Back
+          </button>
+          <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
+            Set Up Teams
+          </h1>
+        </div>
 
         <div className="flex flex-col gap-3 landscape-compact:min-w-0 landscape-compact:flex-1">
           <div className="flex flex-col gap-3 landscape-compact:gap-2">
