@@ -8,6 +8,19 @@ export interface PendingWord {
   text: string;
 }
 
+export interface FlaggedWordMatch {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  active: boolean;
+}
+
+export interface FlaggedWord {
+  word: string;
+  flaggedAt: string;
+  matches: FlaggedWordMatch[];
+}
+
 export class AdminApiError extends Error {
   status: number;
 
@@ -18,7 +31,7 @@ export class AdminApiError extends Error {
   }
 }
 
-type Action = "list-pending" | "generate" | "approve" | "reject" | "edit";
+type Action = "list-pending" | "generate" | "approve" | "reject" | "edit" | "list-flagged" | "deactivate";
 
 async function callAdminWords<T>(
   action: Action,
@@ -74,4 +87,13 @@ export async function rejectWords(password: string, ids: string[]): Promise<void
 
 export async function editWord(password: string, id: string, text: string): Promise<void> {
   await callAdminWords("edit", { id, text }, password);
+}
+
+export async function listFlaggedWords(password: string): Promise<FlaggedWord[]> {
+  const { flagged } = await callAdminWords<{ flagged: FlaggedWord[] }>("list-flagged", {}, password);
+  return flagged;
+}
+
+export async function deactivateWords(password: string, ids: string[]): Promise<void> {
+  await callAdminWords("deactivate", { ids }, password);
 }

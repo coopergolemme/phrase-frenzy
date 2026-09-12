@@ -34,8 +34,10 @@ export function RoundSummaryScreen({
     <div className="screen justify-center items-center gap-5 text-center landscape-compact:gap-3 landscape-compact:overflow-y-auto">
       <div className="flex w-full flex-col items-center gap-2 landscape-compact:flex-row landscape-compact:items-stretch landscape-compact:gap-5 landscape-compact:text-left">
         <div className="hero-card landscape-compact:flex landscape-compact:flex-1 landscape-compact:flex-col landscape-compact:items-start landscape-compact:justify-center">
-          <p className="m-0 text-[1.1rem] font-bold">{teamName}'s round</p>
-          <p className="m-[4px_0_0] text-[3.5rem] font-extrabold text-primary landscape-compact:text-[clamp(2rem,10vh,3.5rem)]">
+          <p className="m-0 text-[1.1rem] font-bold uppercase tracking-wide text-text-secondary">
+            {teamName}'s round
+          </p>
+          <p className="m-[4px_0_0] font-display text-[3.25rem] text-primary landscape-compact:text-[clamp(1.8rem,9vh,3.25rem)]">
             {roundScore}
           </p>
           <p className="m-0 mb-4 text-text-secondary">words guessed</p>

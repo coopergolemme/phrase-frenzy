@@ -69,7 +69,7 @@ export function HomeScreen({
       <div className="flex flex-col gap-4 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-5">
         <div className="flex flex-col gap-4 landscape-compact:flex-1 landscape-compact:gap-2">
           <div className="relative">
-            <h1 className="m-0 text-center text-[clamp(2rem,8vmin,2.5rem)] font-extrabold landscape-compact:text-left">
+            <h1 className="m-0 -rotate-1 text-center font-display text-[clamp(1.75rem,7.5vmin,2.5rem)] leading-tight text-yellow [text-shadow:3px_3px_0_rgba(0,0,0,0.35)] landscape-compact:text-left">
               Phrase Frenzy
             </h1>
             <div className="absolute right-0 top-1">

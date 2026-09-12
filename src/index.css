@@ -4,29 +4,37 @@
    used for the compact "phone held sideways" layouts. */
 @custom-variant landscape-compact (@media (orientation: landscape) and (max-height: 600px));
 
+/* "Marquee ticket" theme: a dark, carnival-arcade look built for a phone
+   getting passed hand to hand under party lights — chunky ticket-stub
+   cards, a Bungee display face for the word/timer/headlines, and a
+   punchy three-accent palette (green = go, gold = pass, coral = urgent). */
 :root {
-  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+  --font-display: "Bungee", "Arial Black", sans-serif;
+  --font-system: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
 
-  --color-bg: #f2f2f7;
-  --color-surface: rgba(255, 255, 255, 0.55);
-  --color-surface-solid: #ffffff;
-  --color-border: rgba(255, 255, 255, 0.55);
-  --color-border-solid: rgba(0, 0, 0, 0.16);
-  --color-outline: rgba(28, 28, 30, 0.18);
-  --color-primary: #34c759;
-  --color-primary-pressed: #2ba149;
-  --color-pass: #ff9500;
-  --color-pass-pressed: #d97f00;
-  --color-danger: #ff3b30;
-  --color-disabled: #c7c7cc;
-  --color-text: #1c1c1e;
-  --color-text-secondary: #8e8e93;
+  --color-bg: #16121f;
+  --color-surface: rgba(246, 241, 231, 0.07);
+  --color-surface-solid: #221b30;
+  --color-border: rgba(246, 241, 231, 0.16);
+  --color-border-solid: rgba(246, 241, 231, 0.26);
+  --color-outline: rgba(246, 241, 231, 0.22);
+  --color-yellow: #ffd447;
+  --color-yellow-pressed: #e0ac1b;
+  --color-primary: #3ad97e;
+  --color-primary-pressed: #1fae60;
+  --color-pass: #ffb238;
+  --color-pass-pressed: #db8e15;
+  --color-danger: #ff4667;
+  --color-danger-pressed: #d92c4c;
+  --color-disabled: #443c56;
+  --color-text: #f6f1e7;
+  --color-text-secondary: #b6acc6;
 
   --blur-glass: blur(20px);
 
-  --radius-card: 16px;
-  --radius-button: 14px;
+  --radius-card: 20px;
+  --radius-button: 16px;
   --radius-chip: 999px;
 
   --space-1: 4px;
@@ -38,11 +46,12 @@
 
   --touch-target-min: 44px;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 /* Expose the existing design tokens to Tailwind utilities (bg-surface, rounded-card, etc). */
 @theme inline {
+  --font-family-display: var(--font-display);
   --font-family-system: var(--font-system);
 
   --color-bg: var(--color-bg);
@@ -51,11 +60,14 @@
   --color-border: var(--color-border);
   --color-border-solid: var(--color-border-solid);
   --color-outline: var(--color-outline);
+  --color-yellow: var(--color-yellow);
+  --color-yellow-pressed: var(--color-yellow-pressed);
   --color-primary: var(--color-primary);
   --color-primary-pressed: var(--color-primary-pressed);
   --color-pass: var(--color-pass);
   --color-pass-pressed: var(--color-pass-pressed);
   --color-danger: var(--color-danger);
+  --color-danger-pressed: var(--color-danger-pressed);
   --color-disabled: var(--color-disabled);
   --color-text: var(--color-text);
   --color-text-secondary: var(--color-text-secondary);
@@ -88,6 +100,10 @@ body {
   margin: 0;
   font-family: var(--font-system);
   background: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 12% -6%, rgba(255, 212, 71, 0.12), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(58, 217, 126, 0.1), transparent 40%);
+  background-attachment: fixed;
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;

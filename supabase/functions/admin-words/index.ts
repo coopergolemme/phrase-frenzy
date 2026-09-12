@@ -20,6 +20,19 @@ interface PendingWordDto {
   text: string;
 }
 
+interface FlaggedWordMatchDto {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  active: boolean;
+}
+
+interface FlaggedWordDto {
+  word: string;
+  flaggedAt: string;
+  matches: FlaggedWordMatchDto[];
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -53,6 +66,14 @@ Deno.serve(async (req: Request) => {
     switch (body.action) {
       case "list-pending":
         return json({ pending: await listPending(client) });
+      case "list-flagged":
+        return json({ flagged: await listFlagged(client) });
+      case "deactivate": {
+        const ids = body.ids as string[];
+        const { error } = await client.from("words").update({ active: false }).in("id", ids);
+        if (error) throw error;
+        return json({ deactivated: ids });
+      }
       case "generate":
         return json({
           inserted: await generate(client, body.categoryId as string | undefined, body.count as number),
@@ -102,6 +123,43 @@ async function listPending(client: SupabaseClient): Promise<PendingWordDto[]> {
     categoryId: row.category_id,
     categoryLabel: labels.get(row.category_id) ?? row.category_id,
     text: row.text,
+  }));
+}
+
+async function listFlagged(client: SupabaseClient): Promise<FlaggedWordDto[]> {
+  const [flaggedResult, wordsResult, labels] = await Promise.all([
+    client.from("flagged_words").select("word, flagged_at").order("flagged_at", { ascending: false }),
+    client.from("words").select("id, category_id, text, active"),
+    categoryLabelMap(client),
+  ]);
+  if (flaggedResult.error) throw flaggedResult.error;
+  if (wordsResult.error) throw wordsResult.error;
+
+  const wordsByLowerText = new Map<
+    string,
+    { id: string; category_id: string; text: string; active: boolean }[]
+  >();
+  for (const row of (wordsResult.data ?? []) as {
+    id: string;
+    category_id: string;
+    text: string;
+    active: boolean;
+  }[]) {
+    const key = row.text.toLowerCase();
+    const list = wordsByLowerText.get(key) ?? [];
+    list.push(row);
+    wordsByLowerText.set(key, list);
+  }
+
+  return (flaggedResult.data ?? []).map((row: { word: string; flagged_at: string }) => ({
+    word: row.word,
+    flaggedAt: row.flagged_at,
+    matches: (wordsByLowerText.get(row.word.toLowerCase()) ?? []).map((match) => ({
+      id: match.id,
+      categoryId: match.category_id,
+      categoryLabel: labels.get(match.category_id) ?? match.category_id,
+      active: match.active,
+    })),
   }));
 }
 

@@ -2,14 +2,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const listPendingWordsMock = vi.fn();
+const listFlaggedWordsMock = vi.fn();
 const fetchWordCategoriesMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listPendingWords: (...args: unknown[]) => listPendingWordsMock(...args),
+  listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
   generateWords: vi.fn(),
   approveWords: vi.fn(),
   rejectWords: vi.fn(),
   editWord: vi.fn(),
+  deactivateWords: vi.fn(),
 }));
 
 vi.mock("../data/wordDatabase", () => ({
@@ -19,6 +22,8 @@ vi.mock("../data/wordDatabase", () => ({
 describe("AdminScreen", () => {
   beforeEach(() => {
     listPendingWordsMock.mockReset();
+    listFlaggedWordsMock.mockReset();
+    listFlaggedWordsMock.mockResolvedValue([]);
     fetchWordCategoriesMock.mockReset();
     fetchWordCategoriesMock.mockResolvedValue([]);
   });

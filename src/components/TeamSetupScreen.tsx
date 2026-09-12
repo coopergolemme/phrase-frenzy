@@ -124,12 +124,12 @@ export function TeamSetupScreen({
   };
 
   const stepperBtnClass =
-    "flex h-touch w-touch flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary-pressed bg-primary text-[1.2rem] leading-none text-white transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled";
+    "flex h-touch w-touch flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary-pressed bg-primary text-[1.2rem] leading-none text-[#0e1f15] transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-text-secondary";
 
   return (
     <div className="screen overflow-y-auto pt-4 landscape-compact:pt-2">
       <div className="flex flex-col gap-4 landscape-compact:grid landscape-compact:grid-cols-2 landscape-compact:items-start landscape-compact:gap-x-4 landscape-compact:gap-y-2">
-        <h1 className="m-0 text-center text-[clamp(1.6rem,7vmin,2rem)] font-extrabold landscape-compact:col-span-2">
+        <h1 className="m-0 text-center font-display text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow landscape-compact:col-span-2">
           Set Up Teams
         </h1>
 
@@ -149,7 +149,7 @@ export function TeamSetupScreen({
                   />
                   <button
                     type="button"
-                    className="h-touch w-touch flex-shrink-0 rounded-full border-[1.5px] border-outline bg-disabled text-[1.1rem] leading-none text-white transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-touch w-touch flex-shrink-0 rounded-full border-[1.5px] border-outline bg-disabled text-[1.1rem] leading-none text-text transition-transform transition-[filter] duration-[80ms] active:scale-90 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => removeTeam(index)}
                     disabled={!canRemoveTeam}
                     aria-label={`Remove ${name || `Team ${index + 1}`}`}
