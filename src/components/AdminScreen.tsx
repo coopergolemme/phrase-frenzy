@@ -7,11 +7,14 @@ import {
   listFlaggedWords,
   publishWords,
   reactivateWords,
+  suggestSimilarWords,
   type CategoryHealth,
   type DeactivatedWord,
   type FlaggedWord,
   type LocalWord,
   type PendingWord,
+  type SimilarWord,
+  type SimilarWordSuggestions,
 } from "../utils/adminApi";
 import { AdminGenerateForm } from "./AdminGenerateForm";
 import { AdminReviewQueue } from "./AdminReviewQueue";
@@ -40,6 +43,12 @@ export function AdminScreen() {
   const [rejectedWords, setRejectedWords] = useState<PendingWord[]>([]);
   const [flaggedWords, setFlaggedWords] = useState<FlaggedWord[]>([]);
   const [deactivatedWords, setDeactivatedWords] = useState<DeactivatedWord[]>([]);
+  // Keyed by the id of the flagged word the admin just deactivated — surfaces
+  // still-active words in the same category that look similar enough to be
+  // worth reviewing too. Purely a UI suggestion; nothing here is persisted.
+  const [similarSuggestions, setSimilarSuggestions] = useState<Record<string, SimilarWordSuggestions>>(
+    {}
+  );
   const [categoryHealth, setCategoryHealth] = useState<CategoryHealth[] | null>(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -190,9 +199,67 @@ export function AdminScreen() {
           }));
         return [...current, ...newlyDeactivated];
       });
+      // Only offer similar-word suggestions off a direct, single-word
+      // deactivation from the flagged queue — not off a bulk action, and
+      // not recursively off a suggestion the admin just accepted (those are
+      // deactivated via handleDeactivateSuggestion instead).
+      if (ids.length === 1) {
+        const source = flaggedWords.find((flagged) => flagged.id === ids[0]);
+        if (source) void fetchSimilarSuggestions(source);
+      }
     } catch {
       setError("Couldn't deactivate that word. Try again.");
     }
+  };
+
+  const fetchSimilarSuggestions = async (source: FlaggedWord) => {
+    setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "loading", items: [] } }));
+    try {
+      const items = await suggestSimilarWords(password, source.id);
+      setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "done", items } }));
+    } catch {
+      setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "error", items: [] } }));
+    }
+  };
+
+  const handleDeactivateSuggestion = async (sourceId: string, suggestion: SimilarWord) => {
+    const source = flaggedWords.find((flagged) => flagged.id === sourceId);
+    if (!source) return;
+    setError(null);
+    try {
+      await deactivateWords(password, [suggestion.id]);
+      setDeactivatedWords((current) => [
+        ...current,
+        {
+          id: suggestion.id,
+          categoryId: source.categoryId,
+          categoryLabel: source.categoryLabel,
+          text: suggestion.text,
+          flaggedCount: 0,
+        },
+      ]);
+      setSimilarSuggestions((current) => {
+        const entry = current[sourceId];
+        if (!entry) return current;
+        return {
+          ...current,
+          [sourceId]: { ...entry, items: entry.items.filter((item) => item.id !== suggestion.id) },
+        };
+      });
+    } catch {
+      setError("Couldn't deactivate that word. Try again.");
+    }
+  };
+
+  const handleDismissSuggestion = (sourceId: string, suggestionId: string) => {
+    setSimilarSuggestions((current) => {
+      const entry = current[sourceId];
+      if (!entry) return current;
+      return {
+        ...current,
+        [sourceId]: { ...entry, items: entry.items.filter((item) => item.id !== suggestionId) },
+      };
+    });
   };
 
   const handleReactivate = async (ids: string[]) => {
@@ -317,7 +384,13 @@ export function AdminScreen() {
             </>
           )}
           {activeTab === "flagged" && (
-            <AdminFlaggedWordsQueue flaggedWords={flaggedWords} onDeactivate={handleDeactivate} />
+            <AdminFlaggedWordsQueue
+              flaggedWords={flaggedWords}
+              onDeactivate={handleDeactivate}
+              similarSuggestions={similarSuggestions}
+              onDeactivateSuggestion={handleDeactivateSuggestion}
+              onDismissSuggestion={handleDismissSuggestion}
+            />
           )}
           {activeTab === "deactivated" && (
             <AdminDeactivatedWordsQueue

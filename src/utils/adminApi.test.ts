@@ -7,6 +7,7 @@ import {
   listFlaggedWords,
   publishWords,
   reactivateWords,
+  suggestSimilarWords,
 } from "./adminApi";
 
 const PENDING = [
@@ -152,6 +153,19 @@ describe("adminApi", () => {
     await expect(reactivateWords("secret", ["1"])).resolves.toBeUndefined();
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "reactivate", ids: ["1"] });
+  });
+
+  it("suggestSimilarWords sends the wordId and returns matching suggestions", async () => {
+    const SUGGESTIONS = [{ id: "2", text: "Pizza Slice" }];
+    const fetchMock = mockFetch(200, { suggestions: SUGGESTIONS });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await suggestSimilarWords("secret", "1");
+
+    expect(result).toEqual(SUGGESTIONS);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["x-admin-password"]).toBe("secret");
+    expect(JSON.parse(init.body)).toEqual({ action: "suggest-similar", wordId: "1" });
   });
 
   it("getCategoryHealth sends the password header and returns per-category stats", async () => {

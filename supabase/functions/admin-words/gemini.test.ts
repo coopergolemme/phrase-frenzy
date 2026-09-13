@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { callGeminiForWords } from "./gemini";
+import { callGeminiForSimilarWords, callGeminiForWords } from "./gemini";
 
 function mockFetch(response: Partial<Response> & { jsonBody?: unknown }) {
   return vi.fn().mockResolvedValue({
@@ -47,5 +47,38 @@ describe("callGeminiForWords", () => {
     });
 
     await expect(callGeminiForWords("prompt", "key", fetchImpl)).rejects.toThrow(/JSON array/i);
+  });
+});
+
+describe("callGeminiForSimilarWords", () => {
+  it("parses a JSON array of strings out of candidates[0].content.parts[0].text", async () => {
+    const words = ["Pizza Slice", "Sushi"];
+    const fetchImpl = mockFetch({
+      jsonBody: { candidates: [{ content: { parts: [{ text: JSON.stringify(words) }] } }] },
+    });
+
+    const result = await callGeminiForSimilarWords("prompt text", "test-key", fetchImpl);
+
+    expect(result).toEqual(words);
+  });
+
+  it("drops non-string entries from the parsed array", async () => {
+    const fetchImpl = mockFetch({
+      jsonBody: {
+        candidates: [{ content: { parts: [{ text: JSON.stringify(["Sushi", 42, null]) }] } }],
+      },
+    });
+
+    const result = await callGeminiForSimilarWords("prompt", "key", fetchImpl);
+
+    expect(result).toEqual(["Sushi"]);
+  });
+
+  it("throws when the parsed text is not a JSON array", async () => {
+    const fetchImpl = mockFetch({
+      jsonBody: { candidates: [{ content: { parts: [{ text: JSON.stringify({ not: "an array" }) }] } }] },
+    });
+
+    await expect(callGeminiForSimilarWords("prompt", "key", fetchImpl)).rejects.toThrow(/JSON array/i);
   });
 });

@@ -3,11 +3,11 @@ import type { GeneratedBatch } from "./curation.ts";
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
 
-export async function callGeminiForWords(
+async function callGeminiRaw(
   prompt: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch
-): Promise<GeneratedBatch[]> {
+): Promise<unknown> {
   const response = await fetchImpl(GEMINI_URL, {
     method: "POST",
     headers: {
@@ -32,9 +32,29 @@ export async function callGeminiForWords(
     throw new Error("Gemini response had no text content");
   }
 
-  const parsed: unknown = JSON.parse(text);
+  return JSON.parse(text);
+}
+
+export async function callGeminiForWords(
+  prompt: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<GeneratedBatch[]> {
+  const parsed = await callGeminiRaw(prompt, apiKey, fetchImpl);
   if (!Array.isArray(parsed)) {
     throw new Error("Gemini response was not a JSON array");
   }
   return parsed as GeneratedBatch[];
+}
+
+export async function callGeminiForSimilarWords(
+  prompt: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<string[]> {
+  const parsed = await callGeminiRaw(prompt, apiKey, fetchImpl);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Gemini response was not a JSON array");
+  }
+  return parsed.filter((item): item is string => typeof item === "string");
 }

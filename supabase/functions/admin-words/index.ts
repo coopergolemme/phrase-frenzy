@@ -13,7 +13,8 @@
 // docs/superpowers/specs/2026-09-12-admin-word-curation-design.md.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPrompt, dedupeAgainstExisting, type KnownCategory, type WordRow } from "./curation.ts";
-import { callGeminiForWords } from "./gemini.ts";
+import { buildSimilarWordsPrompt, filterValidSuggestions, type CandidateWord } from "./similarity.ts";
+import { callGeminiForSimilarWords, callGeminiForWords } from "./gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +53,11 @@ interface DeactivatedWordDto {
   categoryLabel: string;
   text: string;
   flaggedCount: number;
+}
+
+interface SimilarWordDto {
+  id: string;
+  text: string;
 }
 
 interface CategoryHealthDto {
@@ -146,6 +152,8 @@ Deno.serve(async (req: Request) => {
         if (error) throw error;
         return json({ reactivated: ids });
       }
+      case "suggest-similar":
+        return json({ suggestions: await suggestSimilar(client, body.wordId as string) });
       case "generate":
         return json({
           candidates: await generate(
@@ -250,6 +258,47 @@ async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto
       skipped: Number(row.skipped),
     })
   );
+}
+
+// Bounds how many other active words in the category get sent to the model
+// as candidates — keeps the prompt (and cost) small for categories with a
+// large word bank. A few hundred is plenty to catch real near-duplicates,
+// which tend to be added close together anyway.
+const SIMILARITY_CANDIDATE_LIMIT = 200;
+
+async function suggestSimilar(client: SupabaseClient, wordId: string): Promise<SimilarWordDto[]> {
+  const { data: wordRow, error: wordError } = await client
+    .from("words")
+    .select("id, category_id, text")
+    .eq("id", wordId)
+    .maybeSingle();
+  if (wordError) throw wordError;
+  if (!wordRow) throw new Error("Word not found");
+
+  const { data: candidateRows, error: candidateError } = await client
+    .from("words")
+    .select("id, text")
+    .eq("category_id", wordRow.category_id)
+    .eq("active", true)
+    .neq("id", wordId)
+    .order("text")
+    .limit(SIMILARITY_CANDIDATE_LIMIT);
+  if (candidateError) throw candidateError;
+
+  const candidates: CandidateWord[] = (candidateRows ?? []).map(
+    (row: { id: string; text: string }) => ({ id: row.id, text: row.text })
+  );
+  if (candidates.length === 0) return [];
+
+  const labels = await categoryLabelMap(client);
+  const categoryLabel = labels.get(wordRow.category_id) ?? wordRow.category_id;
+
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+
+  const prompt = buildSimilarWordsPrompt(wordRow.text, categoryLabel, candidates);
+  const suggested = await callGeminiForSimilarWords(prompt, apiKey);
+  return filterValidSuggestions(suggested, candidates, wordRow.text);
 }
 
 async function generate(

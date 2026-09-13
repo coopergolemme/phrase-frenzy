@@ -35,6 +35,19 @@ export interface DeactivatedWord {
   flaggedCount: number;
 }
 
+export interface SimilarWord {
+  id: string;
+  text: string;
+}
+
+// UI-side wrapper around a suggest-similar request for one deactivated
+// word: not part of the wire format, but shared between AdminScreen (which
+// fetches it) and AdminFlaggedWordsQueue (which renders it).
+export interface SimilarWordSuggestions {
+  status: "loading" | "done" | "error";
+  items: SimilarWord[];
+}
+
 export interface CategoryHealth {
   categoryId: string;
   categoryLabel: string;
@@ -63,6 +76,7 @@ type Action =
   | "list-deactivated"
   | "deactivate"
   | "reactivate"
+  | "suggest-similar"
   | "category-health";
 
 async function callAdminWords<T>(
@@ -129,6 +143,15 @@ export async function listDeactivatedWords(password: string): Promise<Deactivate
 
 export async function reactivateWords(password: string, ids: string[]): Promise<void> {
   await callAdminWords("reactivate", { ids }, password);
+}
+
+export async function suggestSimilarWords(password: string, wordId: string): Promise<SimilarWord[]> {
+  const { suggestions } = await callAdminWords<{ suggestions: SimilarWord[] }>(
+    "suggest-similar",
+    { wordId },
+    password
+  );
+  return suggestions;
 }
 
 export async function getCategoryHealth(password: string): Promise<CategoryHealth[]> {
