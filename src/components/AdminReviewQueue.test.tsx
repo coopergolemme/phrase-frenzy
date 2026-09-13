@@ -115,4 +115,53 @@ describe("AdminReviewQueue", () => {
 
     expect(onEditSave).not.toHaveBeenCalled();
   });
+
+  describe("swipe gestures", () => {
+    function swipe(row: HTMLElement, distance: number) {
+      fireEvent.pointerDown(row, { pointerId: 1, clientX: 0 });
+      fireEvent.pointerMove(row, { pointerId: 1, clientX: distance });
+      fireEvent.pointerUp(row, { pointerId: 1, clientX: distance });
+    }
+
+    it("approves the word when swiped right past the threshold", () => {
+      const onApprove = vi.fn();
+      renderQueue({ onApprove });
+
+      swipe(screen.getByDisplayValue("Taco").closest("div")!, 120);
+
+      expect(onApprove).toHaveBeenCalledWith("1");
+    });
+
+    it("rejects the word when swiped left past the threshold", () => {
+      const onReject = vi.fn();
+      renderQueue({ onReject });
+
+      swipe(screen.getByDisplayValue("Lion").closest("div")!, -120);
+
+      expect(onReject).toHaveBeenCalledWith("2");
+    });
+
+    it("does not trigger an action for a short swipe below the threshold", () => {
+      const onApprove = vi.fn();
+      const onReject = vi.fn();
+      renderQueue({ onApprove, onReject });
+
+      swipe(screen.getByDisplayValue("Taco").closest("div")!, 30);
+
+      expect(onApprove).not.toHaveBeenCalled();
+      expect(onReject).not.toHaveBeenCalled();
+    });
+
+    it("ignores drags that start on the text input", () => {
+      const onApprove = vi.fn();
+      renderQueue({ onApprove });
+
+      const input = screen.getByDisplayValue("Taco");
+      fireEvent.pointerDown(input, { pointerId: 1, clientX: 0 });
+      fireEvent.pointerMove(input.closest("div")!, { pointerId: 1, clientX: 120 });
+      fireEvent.pointerUp(input.closest("div")!, { pointerId: 1, clientX: 120 });
+
+      expect(onApprove).not.toHaveBeenCalled();
+    });
+  });
 });
