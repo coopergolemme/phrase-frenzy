@@ -5,7 +5,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipProps,
+  type TooltipContentProps,
 } from "recharts";
 import type { CategoryHealth } from "../utils/adminApi";
 
@@ -33,7 +33,7 @@ function formatPercent(ratio: number | null): string {
   return `${Math.round(ratio * 100)}%`;
 }
 
-function CategoryTooltip({ active, payload }: TooltipProps<number, string>) {
+function CategoryTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload || payload.length === 0) return null;
   const datum = payload[0].payload as ChartDatum;
   return (
@@ -80,7 +80,10 @@ export function AdminCategoryHealth({ categories, isLoading }: AdminCategoryHeal
               axisLine={false}
               tick={{ fill: "var(--color-text-secondary)", fontSize: 12 }}
             />
-            <Tooltip content={<CategoryTooltip />} cursor={{ fill: "var(--color-surface)" }} />
+            <Tooltip
+              content={(props) => <CategoryTooltip {...props} />}
+              cursor={{ fill: "var(--color-surface)" }}
+            />
             <Bar dataKey="active" stackId="words" fill="var(--color-primary)" radius={[4, 0, 0, 4]} />
             <Bar dataKey="inactive" stackId="words" fill="var(--color-disabled)" radius={[0, 4, 4, 0]} />
           </BarChart>

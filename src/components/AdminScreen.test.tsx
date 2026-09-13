@@ -7,6 +7,7 @@ const generateWordsMock = vi.fn();
 const publishWordsMock = vi.fn();
 const deactivateWordsMock = vi.fn();
 const reactivateWordsMock = vi.fn();
+const getCategoryHealthMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
@@ -15,6 +16,7 @@ vi.mock("../utils/adminApi", () => ({
   publishWords: (...args: unknown[]) => publishWordsMock(...args),
   deactivateWords: (...args: unknown[]) => deactivateWordsMock(...args),
   reactivateWords: (...args: unknown[]) => reactivateWordsMock(...args),
+  getCategoryHealth: (...args: unknown[]) => getCategoryHealthMock(...args),
 }));
 
 async function unlock() {
@@ -54,6 +56,8 @@ describe("AdminScreen", () => {
     publishWordsMock.mockReset();
     deactivateWordsMock.mockReset();
     reactivateWordsMock.mockReset();
+    getCategoryHealthMock.mockReset();
+    getCategoryHealthMock.mockResolvedValue([]);
   });
 
   it("shows a password prompt and does not reveal the queue up front", async () => {
@@ -243,5 +247,36 @@ describe("AdminScreen", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
     expect(screen.getByText("Taco")).toBeInTheDocument();
+  });
+
+  it("lazily fetches category health only when that tab is opened", async () => {
+    await unlock();
+
+    expect(getCategoryHealthMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
+
+    await waitFor(() => expect(getCategoryHealthMock).toHaveBeenCalledWith("right"));
+  });
+
+  it("renders fetched category health data", async () => {
+    getCategoryHealthMock.mockResolvedValue([
+      {
+        categoryId: "food",
+        categoryLabel: "Food",
+        categoryEmoji: "🍕",
+        totalWords: 20,
+        activeWords: 18,
+        flaggedWords: 1,
+        correct: 30,
+        skipped: 10,
+      },
+    ]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
+
+    await waitFor(() => expect(screen.getByText(/food/i)).toBeInTheDocument());
+    expect(screen.getByText("75% correct rate")).toBeInTheDocument();
   });
 });

@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   deactivateWords,
   generateWords,
+  getCategoryHealth,
   listDeactivatedWords,
   listFlaggedWords,
   publishWords,
   reactivateWords,
+  type CategoryHealth,
   type DeactivatedWord,
   type FlaggedWord,
   type LocalWord,
@@ -15,13 +17,15 @@ import { AdminGenerateForm } from "./AdminGenerateForm";
 import { AdminReviewQueue } from "./AdminReviewQueue";
 import { AdminFlaggedWordsQueue } from "./AdminFlaggedWordsQueue";
 import { AdminDeactivatedWordsQueue } from "./AdminDeactivatedWordsQueue";
+import { AdminCategoryHealth } from "./AdminCategoryHealth";
 
-type AdminTab = "curation" | "flagged" | "deactivated";
+type AdminTab = "curation" | "flagged" | "deactivated" | "health";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "curation", label: "Word Curation" },
   { id: "flagged", label: "Flagged Words" },
   { id: "deactivated", label: "Deactivated Words" },
+  { id: "health", label: "Category Health" },
 ];
 
 export function AdminScreen() {
@@ -36,6 +40,8 @@ export function AdminScreen() {
   const [rejectedWords, setRejectedWords] = useState<PendingWord[]>([]);
   const [flaggedWords, setFlaggedWords] = useState<FlaggedWord[]>([]);
   const [deactivatedWords, setDeactivatedWords] = useState<DeactivatedWord[]>([]);
+  const [categoryHealth, setCategoryHealth] = useState<CategoryHealth[] | null>(null);
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isCheckingPassword, setIsCheckingPassword] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -68,6 +74,18 @@ export function AdminScreen() {
       void publishWords(passwordRef.current, toPublish);
     };
   }, []);
+
+  // Fetched lazily on first visit to the tab rather than alongside the
+  // other unlock-time lists — it aggregates every word and word_stats row,
+  // so it's the heaviest of the admin queries and most sessions never open it.
+  useEffect(() => {
+    if (activeTab !== "health" || categoryHealth !== null) return;
+    setIsLoadingHealth(true);
+    getCategoryHealth(password)
+      .then(setCategoryHealth)
+      .catch(() => setError("Couldn't load category health. Try again."))
+      .finally(() => setIsLoadingHealth(false));
+  }, [activeTab, categoryHealth, password]);
 
   const handleUnlock = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -306,6 +324,9 @@ export function AdminScreen() {
               deactivatedWords={deactivatedWords}
               onReactivate={handleReactivate}
             />
+          )}
+          {activeTab === "health" && (
+            <AdminCategoryHealth categories={categoryHealth ?? []} isLoading={isLoadingHealth} />
           )}
         </div>
       </div>
