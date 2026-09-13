@@ -76,6 +76,27 @@ function extractErrorMessage(error: unknown): string {
   return String(error);
 }
 
+// PostgREST caps an unpaginated `select` at its default 1000-row page size,
+// so any query expected to return more than that (the words table already
+// does) must page through with `.range()` or it silently truncates.
+const POSTGREST_PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await buildQuery(from, from + POSTGREST_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < POSTGREST_PAGE_SIZE) break;
+    from += POSTGREST_PAGE_SIZE;
+  }
+  return rows;
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -199,61 +220,36 @@ async function listDeactivated(client: SupabaseClient): Promise<DeactivatedWordD
 
 // Aggregates category size, activity, and gameplay signal (flagged and
 // correct/skipped counts) so the admin can spot categories that need more
-// words or a re-curation pass. Rows are fetched separately and joined in
-// JS rather than a SQL view, matching how `generate` already builds its
-// working set — the tables involved are small enough that this stays cheap.
+// words or a re-curation pass. Done via the category_health() SQL function
+// (supabase/migrations) rather than fetching every words/word_stats row
+// into JS — the words table alone is already past PostgREST's default
+// 1000-row page size, so an unpaginated `select` here would silently
+// truncate and drop whole categories from the result.
 async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto[]> {
-  const [categoriesResult, wordsResult, statsResult] = await Promise.all([
-    client.from("categories").select("id, label, emoji, sort_order").order("sort_order"),
-    client.from("words").select("id, category_id, active, flagged_count"),
-    client.from("word_stats").select("word_id, correct, skipped").not("word_id", "is", null),
-  ]);
-  if (categoriesResult.error) throw categoriesResult.error;
-  if (wordsResult.error) throw wordsResult.error;
-  if (statsResult.error) throw statsResult.error;
+  const { data, error } = await client.rpc("category_health");
+  if (error) throw error;
 
-  const statsByWordId = new Map<string, { correct: number; skipped: number }>();
-  for (const row of (statsResult.data ?? []) as { word_id: string; correct: number; skipped: number }[]) {
-    statsByWordId.set(row.word_id, { correct: row.correct, skipped: row.skipped });
-  }
-
-  const health = new Map<string, CategoryHealthDto>();
-  for (const category of (categoriesResult.data ?? []) as {
-    id: string;
-    label: string;
-    emoji: string;
-  }[]) {
-    health.set(category.id, {
-      categoryId: category.id,
-      categoryLabel: category.label,
-      categoryEmoji: category.emoji,
-      totalWords: 0,
-      activeWords: 0,
-      flaggedWords: 0,
-      correct: 0,
-      skipped: 0,
-    });
-  }
-
-  for (const word of (wordsResult.data ?? []) as {
-    id: string;
-    category_id: string;
-    active: boolean;
-    flagged_count: number;
-  }[]) {
-    const entry = health.get(word.category_id);
-    if (!entry) continue; // orphaned row from a deleted category; skip
-    entry.totalWords += 1;
-    if (word.active) entry.activeWords += 1;
-    if (word.flagged_count > 0) entry.flaggedWords += 1;
-    const stats = statsByWordId.get(word.id);
-    if (stats) {
-      entry.correct += stats.correct;
-      entry.skipped += stats.skipped;
-    }
-  }
-
-  return Array.from(health.values());
+  return (data ?? []).map(
+    (row: {
+      category_id: string;
+      category_label: string;
+      category_emoji: string;
+      total_words: number;
+      active_words: number;
+      flagged_words: number;
+      correct: number;
+      skipped: number;
+    }) => ({
+      categoryId: row.category_id,
+      categoryLabel: row.category_label,
+      categoryEmoji: row.category_emoji,
+      totalWords: Number(row.total_words),
+      activeWords: Number(row.active_words),
+      flaggedWords: Number(row.flagged_words),
+      correct: Number(row.correct),
+      skipped: Number(row.skipped),
+    })
+  );
 }
 
 async function generate(
@@ -267,8 +263,9 @@ async function generate(
     .order("sort_order");
   if (categoryError) throw categoryError;
 
-  const { data: wordRows, error: wordError } = await client.from("words").select("category_id, text");
-  if (wordError) throw wordError;
+  const wordRows = await fetchAllRows<{ category_id: string; text: string }>((from, to) =>
+    client.from("words").select("category_id, text").range(from, to)
+  );
 
   const knownCategories: KnownCategory[] = (categoryRows ?? []).map(
     (c: { id: string; label: string; emoji: string }) => ({
@@ -302,7 +299,7 @@ async function generate(
     set.add(text.toLowerCase());
     existingWordSetByCategory.set(categoryId, set);
   };
-  for (const row of (wordRows ?? []) as WordRow[]) addExisting(row.category_id, row.text);
+  for (const row of wordRows as WordRow[]) addExisting(row.category_id, row.text);
   // Words already generated (and possibly approved) earlier in this admin
   // session, not yet published to the db — avoid regenerating them.
   for (const local of localWords) addExisting(local.categoryId, local.text);
