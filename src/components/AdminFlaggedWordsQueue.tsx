@@ -1,8 +1,9 @@
+import { useState } from "react";
 import type { FlaggedWord, SimilarWord, SimilarWordSuggestions } from "../utils/adminApi";
 
 interface AdminFlaggedWordsQueueProps {
   flaggedWords: FlaggedWord[];
-  onDeactivate: (ids: string[]) => void;
+  onDeactivate: (ids: string[], reason?: string) => void;
   similarSuggestions: Record<string, SimilarWordSuggestions>;
   onDeactivateSuggestion: (sourceId: string, suggestion: SimilarWord) => void;
   onDismissSuggestion: (sourceId: string, suggestionId: string) => void;
@@ -15,14 +16,37 @@ export function AdminFlaggedWordsQueue({
   onDeactivateSuggestion,
   onDismissSuggestion,
 }: AdminFlaggedWordsQueueProps) {
+  // Id of the word whose "why is this bad?" prompt is currently open —
+  // only one at a time, keyed by flagged word id rather than a boolean so
+  // it can't leak across rows.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [reasonDraft, setReasonDraft] = useState("");
+
   if (flaggedWords.length === 0) {
     return <p className="py-5 text-center text-text-secondary">No flagged words.</p>;
   }
+
+  const startConfirm = (id: string) => {
+    setConfirmingId(id);
+    setReasonDraft("");
+  };
+
+  const cancelConfirm = () => {
+    setConfirmingId(null);
+    setReasonDraft("");
+  };
+
+  const confirmDeactivate = (id: string) => {
+    onDeactivate([id], reasonDraft.trim() || undefined);
+    setConfirmingId(null);
+    setReasonDraft("");
+  };
 
   return (
     <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface backdrop-blur-[20px] [-webkit-overflow-scrolling:touch]">
       {flaggedWords.map((flagged) => {
         const suggestions = similarSuggestions[flagged.id];
+        const isConfirming = confirmingId === flagged.id;
         return (
           <div key={flagged.id} className="border-b border-border-solid last:border-b-0">
             <div className="flex items-center gap-2 px-4 py-2">
@@ -35,15 +59,49 @@ export function AdminFlaggedWordsQueue({
                   <span className="ml-2 text-[0.8rem] text-text-secondary">already inactive</span>
                 )}
               </div>
-              <button
-                type="button"
-                className="btn btn--small btn--outline"
-                disabled={!flagged.active}
-                onClick={() => onDeactivate([flagged.id])}
-              >
-                Deactivate
-              </button>
+              {!isConfirming && (
+                <button
+                  type="button"
+                  className="btn btn--small btn--outline"
+                  disabled={!flagged.active}
+                  onClick={() => startConfirm(flagged.id)}
+                >
+                  Deactivate
+                </button>
+              )}
             </div>
+
+            {isConfirming && (
+              <div className="flex flex-col gap-2 px-4 pb-3">
+                <label
+                  className="text-[0.8rem] text-text-secondary"
+                  htmlFor={`deactivate-reason-${flagged.id}`}
+                >
+                  Why was this word bad? (optional — helps find similar ones)
+                </label>
+                <input
+                  id={`deactivate-reason-${flagged.id}`}
+                  className="min-h-touch w-full rounded-button border-[1.5px] border-border-solid bg-surface-solid px-3 py-2 font-[inherit] text-base text-text focus:outline-2 focus:outline-primary focus:outline-offset-1"
+                  type="text"
+                  placeholder="e.g. too obscure, ambiguous, offensive…"
+                  value={reasonDraft}
+                  onChange={(e) => setReasonDraft(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <button type="button" className="btn btn--small btn--outline" onClick={cancelConfirm}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--small btn--primary"
+                    onClick={() => confirmDeactivate(flagged.id)}
+                  >
+                    Confirm Deactivation
+                  </button>
+                </div>
+              </div>
+            )}
 
             {suggestions?.status === "loading" && (
               <p className="m-0 px-4 pb-2 text-[0.8rem] text-text-secondary">

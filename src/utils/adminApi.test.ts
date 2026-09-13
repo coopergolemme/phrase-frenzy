@@ -168,6 +168,20 @@ describe("adminApi", () => {
     expect(JSON.parse(init.body)).toEqual({ action: "suggest-similar", wordId: "1" });
   });
 
+  it("suggestSimilarWords includes the reason in the body when given", async () => {
+    const fetchMock = mockFetch(200, { suggestions: [] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await suggestSimilarWords("secret", "1", "too obscure");
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({
+      action: "suggest-similar",
+      wordId: "1",
+      reason: "too obscure",
+    });
+  });
+
   it("getCategoryHealth sends the password header and returns per-category stats", async () => {
     const CATEGORIES = [
       {

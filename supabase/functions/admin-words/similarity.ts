@@ -13,16 +13,24 @@ export interface CandidateWord {
 export function buildSimilarWordsPrompt(
   deactivatedWord: string,
   categoryLabel: string,
-  candidates: CandidateWord[]
+  candidates: CandidateWord[],
+  reason?: string
 ): string {
   const candidateList = candidates.map((c) => c.text);
+  const trimmedReason = reason?.trim();
+
+  const reasonBlock = trimmedReason
+    ? `The admin told you exactly why: "${trimmedReason}". Treat this as the
+specific problem to search for — a word only counts as similar if it shares
+THIS reason, not just any generic flaw.`
+    : `The admin didn't give a specific reason, so use your best judgment about
+why a word like this typically gets flagged: too obscure, ambiguous, hard
+to describe out loud, offensive, or a near-duplicate of another word
+already in the bank.`;
 
   return `An admin just deactivated the word/phrase "${deactivatedWord}" from the
 "${categoryLabel}" category of a word-guessing party game's word bank
-(Phrase Frenzy — similar to Catchphrase/Heads Up). They deactivated it
-because it was flagged as a bad entry: too obscure, ambiguous, hard to
-describe out loud, offensive, or a near-duplicate of another word already
-in the bank.
+(Phrase Frenzy — similar to Catchphrase/Heads Up). ${reasonBlock}
 
 Here is the full list of other words still active in that same category:
 ${JSON.stringify(candidateList)}

@@ -37,13 +37,41 @@ describe("AdminFlaggedWordsQueue", () => {
     expect(screen.getByText(/already inactive/i)).toBeInTheDocument();
   });
 
-  it("calls onDeactivate with the word's id", () => {
+  it("shows a reason prompt before deactivating, and calls onDeactivate without a reason if left blank", () => {
     const onDeactivate = vi.fn();
     renderQueue({ onDeactivate });
 
     fireEvent.click(screen.getAllByRole("button", { name: /deactivate/i })[0]);
+    expect(onDeactivate).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/why was this word bad/i)).toBeInTheDocument();
 
-    expect(onDeactivate).toHaveBeenCalledWith(["1"]);
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
+
+    expect(onDeactivate).toHaveBeenCalledWith(["1"], undefined);
+  });
+
+  it("passes the typed reason along when confirming deactivation", () => {
+    const onDeactivate = vi.fn();
+    renderQueue({ onDeactivate });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /deactivate/i })[0]);
+    fireEvent.change(screen.getByLabelText(/why was this word bad/i), {
+      target: { value: "too obscure" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
+
+    expect(onDeactivate).toHaveBeenCalledWith(["1"], "too obscure");
+  });
+
+  it("cancels the reason prompt without deactivating", () => {
+    const onDeactivate = vi.fn();
+    renderQueue({ onDeactivate });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /deactivate/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(onDeactivate).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/why was this word bad/i)).not.toBeInTheDocument();
   });
 
   it("disables the button for a word that's already inactive", () => {

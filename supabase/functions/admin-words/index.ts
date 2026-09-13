@@ -153,7 +153,13 @@ Deno.serve(async (req: Request) => {
         return json({ reactivated: ids });
       }
       case "suggest-similar":
-        return json({ suggestions: await suggestSimilar(client, body.wordId as string) });
+        return json({
+          suggestions: await suggestSimilar(
+            client,
+            body.wordId as string,
+            body.reason as string | undefined
+          ),
+        });
       case "generate":
         return json({
           candidates: await generate(
@@ -266,7 +272,11 @@ async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto
 // which tend to be added close together anyway.
 const SIMILARITY_CANDIDATE_LIMIT = 200;
 
-async function suggestSimilar(client: SupabaseClient, wordId: string): Promise<SimilarWordDto[]> {
+async function suggestSimilar(
+  client: SupabaseClient,
+  wordId: string,
+  reason: string | undefined
+): Promise<SimilarWordDto[]> {
   const { data: wordRow, error: wordError } = await client
     .from("words")
     .select("id, category_id, text")
@@ -296,7 +306,7 @@ async function suggestSimilar(client: SupabaseClient, wordId: string): Promise<S
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
-  const prompt = buildSimilarWordsPrompt(wordRow.text, categoryLabel, candidates);
+  const prompt = buildSimilarWordsPrompt(wordRow.text, categoryLabel, candidates, reason);
   const suggested = await callGeminiForSimilarWords(prompt, apiKey);
   return filterValidSuggestions(suggested, candidates, wordRow.text);
 }

@@ -178,7 +178,7 @@ export function AdminScreen() {
     setPendingWords((current) => current.map((word) => (word.id === id ? { ...word, text } : word)));
   };
 
-  const handleDeactivate = async (ids: string[]) => {
+  const handleDeactivate = async (ids: string[], reason?: string) => {
     if (ids.length === 0) return;
     setError(null);
     try {
@@ -205,17 +205,17 @@ export function AdminScreen() {
       // deactivated via handleDeactivateSuggestion instead).
       if (ids.length === 1) {
         const source = flaggedWords.find((flagged) => flagged.id === ids[0]);
-        if (source) void fetchSimilarSuggestions(source);
+        if (source) void fetchSimilarSuggestions(source, reason);
       }
     } catch {
       setError("Couldn't deactivate that word. Try again.");
     }
   };
 
-  const fetchSimilarSuggestions = async (source: FlaggedWord) => {
+  const fetchSimilarSuggestions = async (source: FlaggedWord, reason?: string) => {
     setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "loading", items: [] } }));
     try {
-      const items = await suggestSimilarWords(password, source.id);
+      const items = await suggestSimilarWords(password, source.id, reason);
       setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "done", items } }));
     } catch {
       setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "error", items: [] } }));

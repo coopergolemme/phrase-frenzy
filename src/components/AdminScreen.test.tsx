@@ -247,6 +247,7 @@ describe("AdminScreen", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
     await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith("right", ["1"]));
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
@@ -262,9 +263,29 @@ describe("AdminScreen", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
 
-    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1"));
+    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1", undefined));
     await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
+  });
+
+  it("passes the admin's typed reason along to the similar-words request", async () => {
+    listFlaggedWordsMock.mockResolvedValue([
+      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
+    ]);
+    suggestSimilarWordsMock.mockResolvedValue([]);
+    await unlock();
+    fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    fireEvent.change(screen.getByLabelText(/why was this word bad/i), {
+      target: { value: "too obscure" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
+
+    await waitFor(() =>
+      expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1", "too obscure")
+    );
   });
 
   it("deactivates an accepted similar-word suggestion and moves it into the Deactivated tab", async () => {
@@ -275,6 +296,7 @@ describe("AdminScreen", () => {
     await unlock();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
     await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
 
     const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });

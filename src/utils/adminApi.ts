@@ -145,10 +145,14 @@ export async function reactivateWords(password: string, ids: string[]): Promise<
   await callAdminWords("reactivate", { ids }, password);
 }
 
-export async function suggestSimilarWords(password: string, wordId: string): Promise<SimilarWord[]> {
+export async function suggestSimilarWords(
+  password: string,
+  wordId: string,
+  reason?: string
+): Promise<SimilarWord[]> {
   const { suggestions } = await callAdminWords<{ suggestions: SimilarWord[] }>(
     "suggest-similar",
-    { wordId },
+    { wordId, reason },
     password
   );
   return suggestions;

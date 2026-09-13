@@ -21,6 +21,33 @@ describe("buildSimilarWordsPrompt", () => {
     expect(prompt).toContain("Be\nconservative");
     expect(prompt).toContain("empty list is a perfectly good answer");
   });
+
+  it("falls back to generic reasons when no admin reason is given", () => {
+    const prompt = buildSimilarWordsPrompt("Pizza", "Food", []);
+
+    expect(prompt).toContain("didn't give a specific reason");
+    expect(prompt).toContain("too obscure, ambiguous");
+  });
+
+  it("weights the admin's stated reason when one is given", () => {
+    const prompt = buildSimilarWordsPrompt("Pizza", "Food", [], "too easy to confuse with Calzone");
+
+    expect(prompt).toContain('"too easy to confuse with Calzone"');
+    expect(prompt).toContain("shares\nTHIS reason");
+    expect(prompt).not.toContain("didn't give a specific reason");
+  });
+
+  it("trims whitespace from the admin reason", () => {
+    const prompt = buildSimilarWordsPrompt("Pizza", "Food", [], "  too niche  ");
+
+    expect(prompt).toContain('"too niche"');
+  });
+
+  it("falls back to generic reasons when the admin reason is blank", () => {
+    const prompt = buildSimilarWordsPrompt("Pizza", "Food", [], "   ");
+
+    expect(prompt).toContain("didn't give a specific reason");
+  });
 });
 
 describe("filterValidSuggestions", () => {
