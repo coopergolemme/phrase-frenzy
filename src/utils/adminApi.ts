@@ -27,6 +27,14 @@ export interface FlaggedWord {
   flaggedCount: number;
 }
 
+export interface DeactivatedWord {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  text: string;
+  flaggedCount: number;
+}
+
 export class AdminApiError extends Error {
   status: number;
 
@@ -37,7 +45,7 @@ export class AdminApiError extends Error {
   }
 }
 
-type Action = "generate" | "publish" | "list-flagged" | "deactivate";
+type Action = "generate" | "publish" | "list-flagged" | "list-deactivated" | "deactivate" | "reactivate";
 
 async function callAdminWords<T>(
   action: Action,
@@ -90,4 +98,17 @@ export async function listFlaggedWords(password: string): Promise<FlaggedWord[]>
 
 export async function deactivateWords(password: string, ids: string[]): Promise<void> {
   await callAdminWords("deactivate", { ids }, password);
+}
+
+export async function listDeactivatedWords(password: string): Promise<DeactivatedWord[]> {
+  const { deactivated } = await callAdminWords<{ deactivated: DeactivatedWord[] }>(
+    "list-deactivated",
+    {},
+    password
+  );
+  return deactivated;
+}
+
+export async function reactivateWords(password: string, ids: string[]): Promise<void> {
+  await callAdminWords("reactivate", { ids }, password);
 }

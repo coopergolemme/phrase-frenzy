@@ -2,14 +2,19 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const listFlaggedWordsMock = vi.fn();
+const listDeactivatedWordsMock = vi.fn();
 const generateWordsMock = vi.fn();
 const publishWordsMock = vi.fn();
+const deactivateWordsMock = vi.fn();
+const reactivateWordsMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
+  listDeactivatedWords: (...args: unknown[]) => listDeactivatedWordsMock(...args),
   generateWords: (...args: unknown[]) => generateWordsMock(...args),
   publishWords: (...args: unknown[]) => publishWordsMock(...args),
-  deactivateWords: vi.fn(),
+  deactivateWords: (...args: unknown[]) => deactivateWordsMock(...args),
+  reactivateWords: (...args: unknown[]) => reactivateWordsMock(...args),
 }));
 
 async function unlock() {
@@ -43,8 +48,12 @@ describe("AdminScreen", () => {
   beforeEach(() => {
     listFlaggedWordsMock.mockReset();
     listFlaggedWordsMock.mockResolvedValue([]);
+    listDeactivatedWordsMock.mockReset();
+    listDeactivatedWordsMock.mockResolvedValue([]);
     generateWordsMock.mockReset();
     publishWordsMock.mockReset();
+    deactivateWordsMock.mockReset();
+    reactivateWordsMock.mockReset();
   });
 
   it("shows a password prompt and does not reveal the queue up front", async () => {
@@ -186,5 +195,53 @@ describe("AdminScreen", () => {
     unmount();
 
     expect(publishWordsMock).not.toHaveBeenCalled();
+  });
+
+  it("defaults to the Word Curation tab after unlocking", async () => {
+    await unlock();
+
+    expect(screen.getByRole("tab", { name: "Word Curation" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: /generate/i })).toBeInTheDocument();
+  });
+
+  it("switches to the Flagged Words tab and shows flagged words fetched on unlock", async () => {
+    listFlaggedWordsMock.mockResolvedValue([
+      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
+    ]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
+
+    expect(screen.getByText("Taco")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /generate/i })).not.toBeInTheDocument();
+  });
+
+  it("switches to the Deactivated Words tab and reactivates a word", async () => {
+    listDeactivatedWordsMock.mockResolvedValue([
+      { id: "9", categoryId: "food", categoryLabel: "Food", text: "Pretzel", flaggedCount: 1 },
+    ]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
+    expect(screen.getByText("Pretzel")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /reactivate/i }));
+
+    await waitFor(() => expect(reactivateWordsMock).toHaveBeenCalledWith("right", ["9"]));
+    expect(screen.getByText(/no deactivated words/i)).toBeInTheDocument();
+  });
+
+  it("moves a word deactivated from the Flagged tab into the Deactivated tab", async () => {
+    listFlaggedWordsMock.mockResolvedValue([
+      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
+    ]);
+    await unlock();
+    fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith("right", ["1"]));
+
+    fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
+    expect(screen.getByText("Taco")).toBeInTheDocument();
   });
 });

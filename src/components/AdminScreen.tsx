@@ -2,8 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   deactivateWords,
   generateWords,
+  listDeactivatedWords,
   listFlaggedWords,
   publishWords,
+  reactivateWords,
+  type DeactivatedWord,
   type FlaggedWord,
   type LocalWord,
   type PendingWord,
@@ -11,10 +14,20 @@ import {
 import { AdminGenerateForm } from "./AdminGenerateForm";
 import { AdminReviewQueue } from "./AdminReviewQueue";
 import { AdminFlaggedWordsQueue } from "./AdminFlaggedWordsQueue";
+import { AdminDeactivatedWordsQueue } from "./AdminDeactivatedWordsQueue";
+
+type AdminTab = "curation" | "flagged" | "deactivated";
+
+const TABS: { id: AdminTab; label: string }[] = [
+  { id: "curation", label: "Word Curation" },
+  { id: "flagged", label: "Flagged Words" },
+  { id: "deactivated", label: "Deactivated Words" },
+];
 
 export function AdminScreen() {
   const [password, setPassword] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [activeTab, setActiveTab] = useState<AdminTab>("curation");
   const [pendingWords, setPendingWords] = useState<PendingWord[]>([]);
   const [approvedWords, setApprovedWords] = useState<PendingWord[]>([]);
   // Rejected candidates aren't published, but the model still needs to know
@@ -22,6 +35,7 @@ export function AdminScreen() {
   // Generate click.
   const [rejectedWords, setRejectedWords] = useState<PendingWord[]>([]);
   const [flaggedWords, setFlaggedWords] = useState<FlaggedWord[]>([]);
+  const [deactivatedWords, setDeactivatedWords] = useState<DeactivatedWord[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isCheckingPassword, setIsCheckingPassword] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,8 +74,12 @@ export function AdminScreen() {
     setIsCheckingPassword(true);
     setError(null);
     try {
-      const flagged = await listFlaggedWords(passwordInput);
+      const [flagged, deactivated] = await Promise.all([
+        listFlaggedWords(passwordInput),
+        listDeactivatedWords(passwordInput),
+      ]);
       setFlaggedWords(flagged);
+      setDeactivatedWords(deactivated);
       setPassword(passwordInput);
       setIsUnlocked(true);
     } catch {
@@ -142,8 +160,35 @@ export function AdminScreen() {
       setFlaggedWords((current) =>
         current.map((flagged) => (idSet.has(flagged.id) ? { ...flagged, active: false } : flagged))
       );
+      setDeactivatedWords((current) => {
+        const newlyDeactivated = flaggedWords
+          .filter((flagged) => idSet.has(flagged.id))
+          .map((flagged) => ({
+            id: flagged.id,
+            categoryId: flagged.categoryId,
+            categoryLabel: flagged.categoryLabel,
+            text: flagged.text,
+            flaggedCount: flagged.flaggedCount,
+          }));
+        return [...current, ...newlyDeactivated];
+      });
     } catch {
       setError("Couldn't deactivate that word. Try again.");
+    }
+  };
+
+  const handleReactivate = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setError(null);
+    try {
+      await reactivateWords(password, ids);
+      const idSet = new Set(ids);
+      setDeactivatedWords((current) => current.filter((word) => !idSet.has(word.id)));
+      setFlaggedWords((current) =>
+        current.map((flagged) => (idSet.has(flagged.id) ? { ...flagged, active: true } : flagged))
+      );
+    } catch {
+      setError("Couldn't reactivate that word. Try again.");
     }
   };
 
@@ -208,33 +253,60 @@ export function AdminScreen() {
   return (
     <div className="app-shell">
       <div className="screen-container flex min-h-0 flex-col gap-3">
-        <div className="flex shrink-0 flex-col gap-1">
+        <div className="flex shrink-0 flex-col gap-3">
           {backLink}
-          <h1 className="m-0 font-display font-bold text-xl text-yellow">Word Curation</h1>
+          <h1 className="m-0 font-display font-bold text-xl text-yellow">Admin</h1>
+          <div className="flex gap-1 border-b border-border-solid" role="tablist">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`min-h-touch flex-1 rounded-t-button px-2 py-2 text-[0.85rem] font-bold ${
+                  activeTab === tab.id
+                    ? "border-b-2 border-yellow text-yellow"
+                    : "border-b-2 border-transparent text-text-secondary"
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
           {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
-          <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
-            <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
-            <AdminGenerateForm isGenerating={isGenerating} onGenerate={handleGenerate} />
-          </div>
-          {approvedWords.length > 0 && (
-            <p className="m-0 text-center text-[0.85rem] text-text-secondary">
-              {approvedWords.length} word{approvedWords.length === 1 ? "" : "s"} approved — saved when
-              you leave this screen.
-            </p>
+          {activeTab === "curation" && (
+            <>
+              <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
+                <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
+                <AdminGenerateForm isGenerating={isGenerating} onGenerate={handleGenerate} />
+              </div>
+              {approvedWords.length > 0 && (
+                <p className="m-0 text-center text-[0.85rem] text-text-secondary">
+                  {approvedWords.length} word{approvedWords.length === 1 ? "" : "s"} approved — saved
+                  when you leave this screen.
+                </p>
+              )}
+              <AdminReviewQueue
+                pendingWords={pendingWords}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onRejectAll={handleRejectAll}
+                onEditSave={handleEditSave}
+              />
+            </>
           )}
-          <AdminReviewQueue
-            pendingWords={pendingWords}
-            onApprove={handleApprove}
-            onReject={handleReject}
-            onRejectAll={handleRejectAll}
-            onEditSave={handleEditSave}
-          />
-          <div>
-            <h2 className="m-0 mb-3 text-base font-bold">Flagged Words</h2>
+          {activeTab === "flagged" && (
             <AdminFlaggedWordsQueue flaggedWords={flaggedWords} onDeactivate={handleDeactivate} />
-          </div>
+          )}
+          {activeTab === "deactivated" && (
+            <AdminDeactivatedWordsQueue
+              deactivatedWords={deactivatedWords}
+              onReactivate={handleReactivate}
+            />
+          )}
         </div>
       </div>
     </div>

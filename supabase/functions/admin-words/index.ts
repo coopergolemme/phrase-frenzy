@@ -46,6 +46,14 @@ interface FlaggedWordDto {
   flaggedCount: number;
 }
 
+interface DeactivatedWordDto {
+  id: string;
+  categoryId: string;
+  categoryLabel: string;
+  text: string;
+  flaggedCount: number;
+}
+
 // Catches non-Error throws too (DOMException from a failed/aborted fetch,
 // for example, doesn't pass `instanceof Error` in every runtime) so the
 // client always gets the real failure reason instead of a generic message.
@@ -90,11 +98,19 @@ Deno.serve(async (req: Request) => {
     switch (body.action) {
       case "list-flagged":
         return json({ flagged: await listFlagged(client) });
+      case "list-deactivated":
+        return json({ deactivated: await listDeactivated(client) });
       case "deactivate": {
         const ids = body.ids as string[];
         const { error } = await client.from("words").update({ active: false }).in("id", ids);
         if (error) throw error;
         return json({ deactivated: ids });
+      }
+      case "reactivate": {
+        const ids = body.ids as string[];
+        const { error } = await client.from("words").update({ active: true }).in("id", ids);
+        if (error) throw error;
+        return json({ reactivated: ids });
       }
       case "generate":
         return json({
@@ -141,6 +157,28 @@ async function listFlagged(client: SupabaseClient): Promise<FlaggedWordDto[]> {
       categoryLabel: labels.get(row.category_id) ?? row.category_id,
       text: row.text,
       active: row.active,
+      flaggedCount: row.flagged_count,
+    })
+  );
+}
+
+async function listDeactivated(client: SupabaseClient): Promise<DeactivatedWordDto[]> {
+  const [wordsResult, labels] = await Promise.all([
+    client
+      .from("words")
+      .select("id, category_id, text, flagged_count")
+      .eq("active", false)
+      .order("text"),
+    categoryLabelMap(client),
+  ]);
+  if (wordsResult.error) throw wordsResult.error;
+
+  return (wordsResult.data ?? []).map(
+    (row: { id: string; category_id: string; text: string; flagged_count: number }) => ({
+      id: row.id,
+      categoryId: row.category_id,
+      categoryLabel: labels.get(row.category_id) ?? row.category_id,
+      text: row.text,
       flaggedCount: row.flagged_count,
     })
   );

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deactivateWords, generateWords, listFlaggedWords, publishWords } from "./adminApi";
+import {
+  deactivateWords,
+  generateWords,
+  listDeactivatedWords,
+  listFlaggedWords,
+  publishWords,
+  reactivateWords,
+} from "./adminApi";
 
 const PENDING = [
   {
@@ -19,6 +26,16 @@ const FLAGGED = [
     categoryLabel: "Food",
     text: "Taco",
     active: true,
+    flaggedCount: 3,
+  },
+];
+
+const DEACTIVATED = [
+  {
+    id: "1",
+    categoryId: "food",
+    categoryLabel: "Food",
+    text: "Taco",
     flaggedCount: 3,
   },
 ];
@@ -113,6 +130,27 @@ describe("adminApi", () => {
     await expect(deactivateWords("secret", ["1"])).resolves.toBeUndefined();
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "deactivate", ids: ["1"] });
+  });
+
+  it("listDeactivatedWords sends the password header and returns deactivated words", async () => {
+    const fetchMock = mockFetch(200, { deactivated: DEACTIVATED });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await listDeactivatedWords("secret");
+
+    expect(result).toEqual(DEACTIVATED);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["x-admin-password"]).toBe("secret");
+    expect(JSON.parse(init.body)).toEqual({ action: "list-deactivated" });
+  });
+
+  it("reactivateWords sends the ids to reactivate", async () => {
+    const fetchMock = mockFetch(200, { reactivated: ["1"] });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(reactivateWords("secret", ["1"])).resolves.toBeUndefined();
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ action: "reactivate", ids: ["1"] });
   });
 
   it("throws AdminApiError with the response status and server message on failure", async () => {
