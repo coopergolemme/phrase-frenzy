@@ -60,6 +60,12 @@ interface SimilarWordDto {
   text: string;
 }
 
+interface CategoryWordDto {
+  id: string;
+  text: string;
+  active: boolean;
+}
+
 interface CategoryHealthDto {
   categoryId: string;
   categoryLabel: string;
@@ -140,6 +146,8 @@ Deno.serve(async (req: Request) => {
         return json({ deactivated: await listDeactivated(client) });
       case "category-health":
         return json({ categories: await categoryHealth(client) });
+      case "list-category-words":
+        return json({ words: await listCategoryWords(client, body.categoryId as string) });
       case "deactivate": {
         const ids = body.ids as string[];
         const { error } = await client.from("words").update({ active: false }).in("id", ids);
@@ -230,6 +238,19 @@ async function listDeactivated(client: SupabaseClient): Promise<DeactivatedWordD
       flaggedCount: row.flagged_count,
     })
   );
+}
+
+async function listCategoryWords(client: SupabaseClient, categoryId: string): Promise<CategoryWordDto[]> {
+  const rows = await fetchAllRows<{ id: string; text: string; active: boolean }>((from, to) =>
+    client
+      .from("words")
+      .select("id, text, active")
+      .eq("category_id", categoryId)
+      .order("text")
+      .range(from, to)
+  );
+
+  return rows.map((row) => ({ id: row.id, text: row.text, active: row.active }));
 }
 
 // Aggregates category size, activity, and gameplay signal (flagged and

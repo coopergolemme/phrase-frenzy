@@ -28,12 +28,5 @@ export function useMatchHistory() {
     return record;
   }, []);
 
-  const clearHistory = useCallback(() => {
-    setHistory(() => {
-      saveMatchHistory([]);
-      return [];
-    });
-  }, []);
-
-  return { history, addMatch, clearHistory };
+  return { history, addMatch };
 }

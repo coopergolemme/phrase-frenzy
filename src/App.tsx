@@ -42,7 +42,7 @@ function App() {
     refreshError: wordCategoriesRefreshError,
   } = useWordCategories();
   const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
-  const { history: matchHistory, addMatch, clearHistory } = useMatchHistory();
+  const { history: matchHistory, addMatch } = useMatchHistory();
   const { stats: wordStats, recordRoundLog } = useWordStats();
   const { trackTurn, resetSession, finishMatch } = useGameSync();
   const knownPlayerNames = useKnownPlayerNames();
@@ -172,7 +172,6 @@ function App() {
             onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
             wordStats={wordStats}
             matchHistory={matchHistory}
-            onClearMatchHistory={clearHistory}
             canInstall={canInstall}
             onInstall={promptInstall}
             onRefreshWords={refreshWordCategories}

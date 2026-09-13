@@ -7,11 +7,14 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import type { CategoryHealth } from "../utils/adminApi";
+import type { CategoryHealth, CategoryWordsState } from "../utils/adminApi";
 
 interface AdminCategoryHealthProps {
   categories: CategoryHealth[];
   isLoading: boolean;
+  expandedCategoryId: string | null;
+  categoryWordsById: Record<string, CategoryWordsState>;
+  onToggleCategory: (categoryId: string) => void;
 }
 
 // Categories below this active-word count risk repeating too often in a
@@ -45,9 +48,23 @@ function CategoryTooltip({ active, payload }: TooltipContentProps) {
   );
 }
 
-export function AdminCategoryHealth({ categories, isLoading }: AdminCategoryHealthProps) {
+export function AdminCategoryHealth({
+  categories,
+  isLoading,
+  expandedCategoryId,
+  categoryWordsById,
+  onToggleCategory,
+}: AdminCategoryHealthProps) {
   if (isLoading) {
-    return <p className="py-5 text-center text-text-secondary">Loading category health…</p>;
+    return (
+      <div className="flex justify-center py-10">
+        <div
+          role="status"
+          aria-label="Loading category health"
+          className="h-10 w-10 animate-spin rounded-full border-4 border-border-solid border-t-primary"
+        />
+      </div>
+    );
   }
 
   if (categories.length === 0) {
@@ -98,33 +115,73 @@ export function AdminCategoryHealth({ categories, isLoading }: AdminCategoryHeal
           const needsMoreWords = category.activeWords < LOW_WORD_COUNT_THRESHOLD;
           const needsRecuration = flagRate > HIGH_FLAG_RATE_THRESHOLD;
 
+          const isExpanded = expandedCategoryId === category.categoryId;
+          const words = categoryWordsById[category.categoryId];
+
           return (
-            <div
-              key={category.categoryId}
-              className="flex items-center gap-3 border-b border-border-solid px-4 py-3 last:border-b-0"
-            >
-              <div className="min-w-0 flex-1">
-                <span className="font-semibold text-text">
-                  <span aria-hidden="true">{category.categoryEmoji}</span> {category.categoryLabel}
-                </span>
-                <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.8rem] text-text-secondary">
-                  <span>{category.activeWords} active</span>
-                  <span>{formatPercent(correctRate)} correct rate</span>
-                  <span>{formatPercent(flagRate)} flagged</span>
+            <div key={category.categoryId} className="border-b border-border-solid last:border-b-0">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                aria-expanded={isExpanded}
+                onClick={() => onToggleCategory(category.categoryId)}
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-text">
+                    <span aria-hidden="true">{category.categoryEmoji}</span> {category.categoryLabel}
+                  </span>
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.8rem] text-text-secondary">
+                    <span>{category.activeWords} active</span>
+                    <span>{formatPercent(correctRate)} correct rate</span>
+                    <span>{formatPercent(flagRate)} flagged</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-none flex-col items-end gap-1">
-                {needsMoreWords && (
-                  <span className="inline-flex items-center rounded-chip border border-yellow px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-yellow">
-                    Needs words
-                  </span>
-                )}
-                {needsRecuration && (
-                  <span className="inline-flex items-center rounded-chip border border-danger px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-danger">
-                    Needs re-curation
-                  </span>
-                )}
-              </div>
+                <div className="flex flex-none flex-col items-end gap-1">
+                  {needsMoreWords && (
+                    <span className="inline-flex items-center rounded-chip border border-yellow px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-yellow">
+                      Needs words
+                    </span>
+                  )}
+                  {needsRecuration && (
+                    <span className="inline-flex items-center rounded-chip border border-danger px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-danger">
+                      Needs re-curation
+                    </span>
+                  )}
+                </div>
+                <span aria-hidden="true" className="flex-none text-text-secondary">
+                  {isExpanded ? "▲" : "▼"}
+                </span>
+              </button>
+
+              {isExpanded && (
+                <div className="border-t border-border-solid bg-surface-solid px-4 py-3">
+                  {words?.status === "loading" && (
+                    <p className="m-0 text-[0.85rem] text-text-secondary">Loading words…</p>
+                  )}
+                  {words?.status === "error" && (
+                    <p className="m-0 text-[0.85rem] text-danger">Couldn't load words.</p>
+                  )}
+                  {words?.status === "done" && words.items.length === 0 && (
+                    <p className="m-0 text-[0.85rem] text-text-secondary">No words in this category.</p>
+                  )}
+                  {words?.status === "done" && words.items.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {words.items.map((word) => (
+                        <span
+                          key={word.id}
+                          className={`inline-flex items-center rounded-chip border px-2 py-1 text-[0.8rem] ${
+                            word.active
+                              ? "border-border-solid text-text"
+                              : "border-border-solid text-text-secondary line-through"
+                          }`}
+                        >
+                          {word.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

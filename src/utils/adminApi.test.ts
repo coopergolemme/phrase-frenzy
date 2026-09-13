@@ -4,6 +4,7 @@ import {
   generateWords,
   getCategoryHealth,
   listDeactivatedWords,
+  listCategoryWords,
   listFlaggedWords,
   publishWords,
   reactivateWords,
@@ -204,6 +205,22 @@ describe("adminApi", () => {
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "category-health" });
+  });
+
+  it("listCategoryWords sends the categoryId and returns the words in that category", async () => {
+    const WORDS = [
+      { id: "1", text: "Pizza", active: true },
+      { id: "2", text: "Old Pizza Joke", active: false },
+    ];
+    const fetchMock = mockFetch(200, { words: WORDS });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await listCategoryWords("secret", "food");
+
+    expect(result).toEqual(WORDS);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["x-admin-password"]).toBe("secret");
+    expect(JSON.parse(init.body)).toEqual({ action: "list-category-words", categoryId: "food" });
   });
 
   it("throws AdminApiError with the response status and server message on failure", async () => {

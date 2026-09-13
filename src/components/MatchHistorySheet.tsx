@@ -2,11 +2,10 @@ import type { MatchRecord } from "../utils/matchHistory";
 
 interface MatchHistorySheetProps {
   history: MatchRecord[];
-  onClearHistory: () => void;
   onClose: () => void;
 }
 
-export function MatchHistorySheet({ history, onClearHistory, onClose }: MatchHistorySheetProps) {
+export function MatchHistorySheet({ history, onClose }: MatchHistorySheetProps) {
   return (
     <div className="review-sheet">
       <div className="review-sheet__header">
@@ -52,12 +51,6 @@ export function MatchHistorySheet({ history, onClearHistory, onClose }: MatchHis
           </div>
         ))}
       </div>
-
-      {history.length > 0 && (
-        <button type="button" className="btn btn--outline" onClick={onClearHistory}>
-          Clear history
-        </button>
-      )}
 
       <button type="button" className="btn btn--primary btn--large" onClick={onClose}>
         Done

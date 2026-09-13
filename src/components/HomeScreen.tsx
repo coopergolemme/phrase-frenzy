@@ -14,7 +14,6 @@ interface HomeScreenProps {
   onToggleFlag: (word: string) => void;
   wordStats: WordStats;
   matchHistory: MatchRecord[];
-  onClearMatchHistory: () => void;
   canInstall: boolean;
   onInstall: () => void;
   onRefreshWords: () => void | Promise<void>;
@@ -33,7 +32,6 @@ export function HomeScreen({
   onToggleFlag,
   wordStats,
   matchHistory,
-  onClearMatchHistory,
   canInstall,
   onInstall,
   onRefreshWords,
@@ -169,11 +167,7 @@ export function HomeScreen({
       )}
 
       {activeSheet === "history" && (
-        <MatchHistorySheet
-          history={matchHistory}
-          onClearHistory={onClearMatchHistory}
-          onClose={() => setActiveSheet(null)}
-        />
+        <MatchHistorySheet history={matchHistory} onClose={() => setActiveSheet(null)} />
       )}
     </div>
   );

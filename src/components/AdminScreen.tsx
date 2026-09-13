@@ -3,12 +3,14 @@ import {
   deactivateWords,
   generateWords,
   getCategoryHealth,
+  listCategoryWords,
   listDeactivatedWords,
   listFlaggedWords,
   publishWords,
   reactivateWords,
   suggestSimilarWords,
   type CategoryHealth,
+  type CategoryWordsState,
   type DeactivatedWord,
   type FlaggedWord,
   type LocalWord,
@@ -51,6 +53,9 @@ export function AdminScreen() {
   );
   const [categoryHealth, setCategoryHealth] = useState<CategoryHealth[] | null>(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  // Accordion: only one category's word list is expanded/fetched at a time.
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [categoryWordsById, setCategoryWordsById] = useState<Record<string, CategoryWordsState>>({});
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isCheckingPassword, setIsCheckingPassword] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -277,6 +282,23 @@ export function AdminScreen() {
     }
   };
 
+  const handleToggleCategory = (categoryId: string) => {
+    setExpandedCategoryId((current) => (current === categoryId ? null : categoryId));
+    if (!categoryWordsById[categoryId]) {
+      void fetchCategoryWords(categoryId);
+    }
+  };
+
+  const fetchCategoryWords = async (categoryId: string) => {
+    setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "loading", items: [] } }));
+    try {
+      const items = await listCategoryWords(password, categoryId);
+      setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "done", items } }));
+    } catch {
+      setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "error", items: [] } }));
+    }
+  };
+
   const goToGame = () => {
     window.location.hash = "";
   };
@@ -399,7 +421,13 @@ export function AdminScreen() {
             />
           )}
           {activeTab === "health" && (
-            <AdminCategoryHealth categories={categoryHealth ?? []} isLoading={isLoadingHealth} />
+            <AdminCategoryHealth
+              categories={categoryHealth ?? []}
+              isLoading={isLoadingHealth}
+              expandedCategoryId={expandedCategoryId}
+              categoryWordsById={categoryWordsById}
+              onToggleCategory={handleToggleCategory}
+            />
           )}
         </div>
       </div>

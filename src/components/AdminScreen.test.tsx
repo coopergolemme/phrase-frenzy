@@ -9,6 +9,7 @@ const deactivateWordsMock = vi.fn();
 const reactivateWordsMock = vi.fn();
 const getCategoryHealthMock = vi.fn();
 const suggestSimilarWordsMock = vi.fn();
+const listCategoryWordsMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
@@ -19,6 +20,7 @@ vi.mock("../utils/adminApi", () => ({
   reactivateWords: (...args: unknown[]) => reactivateWordsMock(...args),
   getCategoryHealth: (...args: unknown[]) => getCategoryHealthMock(...args),
   suggestSimilarWords: (...args: unknown[]) => suggestSimilarWordsMock(...args),
+  listCategoryWords: (...args: unknown[]) => listCategoryWordsMock(...args),
 }));
 
 async function unlock() {
@@ -60,6 +62,8 @@ describe("AdminScreen", () => {
     reactivateWordsMock.mockReset();
     getCategoryHealthMock.mockReset();
     getCategoryHealthMock.mockResolvedValue([]);
+    listCategoryWordsMock.mockReset();
+    listCategoryWordsMock.mockResolvedValue([]);
     suggestSimilarWordsMock.mockReset();
     suggestSimilarWordsMock.mockResolvedValue([]);
   });
@@ -338,5 +342,33 @@ describe("AdminScreen", () => {
 
     await waitFor(() => expect(screen.getByText(/food/i)).toBeInTheDocument());
     expect(screen.getByText("75% correct rate")).toBeInTheDocument();
+  });
+
+  it("fetches and shows a category's word list when it's clicked", async () => {
+    getCategoryHealthMock.mockResolvedValue([
+      {
+        categoryId: "food",
+        categoryLabel: "Food",
+        categoryEmoji: "🍕",
+        totalWords: 20,
+        activeWords: 18,
+        flaggedWords: 1,
+        correct: 30,
+        skipped: 10,
+      },
+    ]);
+    listCategoryWordsMock.mockResolvedValue([
+      { id: "1", text: "Pizza", active: true },
+      { id: "2", text: "Old Joke", active: false },
+    ]);
+    await unlock();
+    fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
+    await waitFor(() => expect(screen.getByText(/food/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /food/i }));
+
+    await waitFor(() => expect(listCategoryWordsMock).toHaveBeenCalledWith("right", "food"));
+    await waitFor(() => expect(screen.getByText("Pizza")).toBeInTheDocument());
+    expect(screen.getByText("Old Joke")).toBeInTheDocument();
   });
 });

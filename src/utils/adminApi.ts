@@ -59,6 +59,20 @@ export interface CategoryHealth {
   skipped: number;
 }
 
+export interface CategoryWord {
+  id: string;
+  text: string;
+  active: boolean;
+}
+
+// UI-side wrapper around a list-category-words request for one category —
+// not part of the wire format, shared between AdminScreen (which fetches
+// it) and AdminCategoryHealth (which renders it).
+export interface CategoryWordsState {
+  status: "loading" | "done" | "error";
+  items: CategoryWord[];
+}
+
 export class AdminApiError extends Error {
   status: number;
 
@@ -77,7 +91,8 @@ type Action =
   | "deactivate"
   | "reactivate"
   | "suggest-similar"
-  | "category-health";
+  | "category-health"
+  | "list-category-words";
 
 async function callAdminWords<T>(
   action: Action,
@@ -165,4 +180,13 @@ export async function getCategoryHealth(password: string): Promise<CategoryHealt
     password
   );
   return categories;
+}
+
+export async function listCategoryWords(password: string, categoryId: string): Promise<CategoryWord[]> {
+  const { words } = await callAdminWords<{ words: CategoryWord[] }>(
+    "list-category-words",
+    { categoryId },
+    password
+  );
+  return words;
 }
