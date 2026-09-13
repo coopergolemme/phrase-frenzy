@@ -54,6 +54,17 @@ interface DeactivatedWordDto {
   flaggedCount: number;
 }
 
+interface CategoryHealthDto {
+  categoryId: string;
+  categoryLabel: string;
+  categoryEmoji: string;
+  totalWords: number;
+  activeWords: number;
+  flaggedWords: number;
+  correct: number;
+  skipped: number;
+}
+
 // Catches non-Error throws too (DOMException from a failed/aborted fetch,
 // for example, doesn't pass `instanceof Error` in every runtime) so the
 // client always gets the real failure reason instead of a generic message.
@@ -100,6 +111,8 @@ Deno.serve(async (req: Request) => {
         return json({ flagged: await listFlagged(client) });
       case "list-deactivated":
         return json({ deactivated: await listDeactivated(client) });
+      case "category-health":
+        return json({ categories: await categoryHealth(client) });
       case "deactivate": {
         const ids = body.ids as string[];
         const { error } = await client.from("words").update({ active: false }).in("id", ids);
@@ -182,6 +195,65 @@ async function listDeactivated(client: SupabaseClient): Promise<DeactivatedWordD
       flaggedCount: row.flagged_count,
     })
   );
+}
+
+// Aggregates category size, activity, and gameplay signal (flagged and
+// correct/skipped counts) so the admin can spot categories that need more
+// words or a re-curation pass. Rows are fetched separately and joined in
+// JS rather than a SQL view, matching how `generate` already builds its
+// working set — the tables involved are small enough that this stays cheap.
+async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto[]> {
+  const [categoriesResult, wordsResult, statsResult] = await Promise.all([
+    client.from("categories").select("id, label, emoji, sort_order").order("sort_order"),
+    client.from("words").select("id, category_id, active, flagged_count"),
+    client.from("word_stats").select("word_id, correct, skipped").not("word_id", "is", null),
+  ]);
+  if (categoriesResult.error) throw categoriesResult.error;
+  if (wordsResult.error) throw wordsResult.error;
+  if (statsResult.error) throw statsResult.error;
+
+  const statsByWordId = new Map<string, { correct: number; skipped: number }>();
+  for (const row of (statsResult.data ?? []) as { word_id: string; correct: number; skipped: number }[]) {
+    statsByWordId.set(row.word_id, { correct: row.correct, skipped: row.skipped });
+  }
+
+  const health = new Map<string, CategoryHealthDto>();
+  for (const category of (categoriesResult.data ?? []) as {
+    id: string;
+    label: string;
+    emoji: string;
+  }[]) {
+    health.set(category.id, {
+      categoryId: category.id,
+      categoryLabel: category.label,
+      categoryEmoji: category.emoji,
+      totalWords: 0,
+      activeWords: 0,
+      flaggedWords: 0,
+      correct: 0,
+      skipped: 0,
+    });
+  }
+
+  for (const word of (wordsResult.data ?? []) as {
+    id: string;
+    category_id: string;
+    active: boolean;
+    flagged_count: number;
+  }[]) {
+    const entry = health.get(word.category_id);
+    if (!entry) continue; // orphaned row from a deleted category; skip
+    entry.totalWords += 1;
+    if (word.active) entry.activeWords += 1;
+    if (word.flagged_count > 0) entry.flaggedWords += 1;
+    const stats = statsByWordId.get(word.id);
+    if (stats) {
+      entry.correct += stats.correct;
+      entry.skipped += stats.skipped;
+    }
+  }
+
+  return Array.from(health.values());
 }
 
 async function generate(

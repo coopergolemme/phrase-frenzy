@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   deactivateWords,
   generateWords,
+  getCategoryHealth,
   listDeactivatedWords,
   listFlaggedWords,
   publishWords,
@@ -151,6 +152,30 @@ describe("adminApi", () => {
     await expect(reactivateWords("secret", ["1"])).resolves.toBeUndefined();
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "reactivate", ids: ["1"] });
+  });
+
+  it("getCategoryHealth sends the password header and returns per-category stats", async () => {
+    const CATEGORIES = [
+      {
+        categoryId: "food",
+        categoryLabel: "Food",
+        categoryEmoji: "🍕",
+        totalWords: 10,
+        activeWords: 9,
+        flaggedWords: 1,
+        correct: 20,
+        skipped: 5,
+      },
+    ];
+    const fetchMock = mockFetch(200, { categories: CATEGORIES });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getCategoryHealth("secret");
+
+    expect(result).toEqual(CATEGORIES);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["x-admin-password"]).toBe("secret");
+    expect(JSON.parse(init.body)).toEqual({ action: "category-health" });
   });
 
   it("throws AdminApiError with the response status and server message on failure", async () => {

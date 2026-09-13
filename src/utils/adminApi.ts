@@ -35,6 +35,17 @@ export interface DeactivatedWord {
   flaggedCount: number;
 }
 
+export interface CategoryHealth {
+  categoryId: string;
+  categoryLabel: string;
+  categoryEmoji: string;
+  totalWords: number;
+  activeWords: number;
+  flaggedWords: number;
+  correct: number;
+  skipped: number;
+}
+
 export class AdminApiError extends Error {
   status: number;
 
@@ -45,7 +56,14 @@ export class AdminApiError extends Error {
   }
 }
 
-type Action = "generate" | "publish" | "list-flagged" | "list-deactivated" | "deactivate" | "reactivate";
+type Action =
+  | "generate"
+  | "publish"
+  | "list-flagged"
+  | "list-deactivated"
+  | "deactivate"
+  | "reactivate"
+  | "category-health";
 
 async function callAdminWords<T>(
   action: Action,
@@ -111,4 +129,13 @@ export async function listDeactivatedWords(password: string): Promise<Deactivate
 
 export async function reactivateWords(password: string, ids: string[]): Promise<void> {
   await callAdminWords("reactivate", { ids }, password);
+}
+
+export async function getCategoryHealth(password: string): Promise<CategoryHealth[]> {
+  const { categories } = await callAdminWords<{ categories: CategoryHealth[] }>(
+    "category-health",
+    {},
+    password
+  );
+  return categories;
 }
