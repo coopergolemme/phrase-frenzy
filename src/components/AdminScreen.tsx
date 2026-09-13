@@ -17,6 +17,10 @@ export function AdminScreen() {
   const [passwordInput, setPasswordInput] = useState("");
   const [pendingWords, setPendingWords] = useState<PendingWord[]>([]);
   const [approvedWords, setApprovedWords] = useState<PendingWord[]>([]);
+  // Rejected candidates aren't published, but the model still needs to know
+  // about them so it doesn't just suggest the same word back on the next
+  // Generate click.
+  const [rejectedWords, setRejectedWords] = useState<PendingWord[]>([]);
   const [flaggedWords, setFlaggedWords] = useState<FlaggedWord[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isCheckingPassword, setIsCheckingPassword] = useState(false);
@@ -71,7 +75,7 @@ export function AdminScreen() {
     setIsGenerating(true);
     setError(null);
     try {
-      const localWords: LocalWord[] = [...pendingWords, ...approvedWords].map((w) => ({
+      const localWords: LocalWord[] = [...pendingWords, ...approvedWords, ...rejectedWords].map((w) => ({
         categoryId: w.categoryId,
         categoryLabel: w.categoryLabel,
         categoryEmoji: w.categoryEmoji,
@@ -87,19 +91,41 @@ export function AdminScreen() {
     }
   };
 
+  const isSameWord = (a: PendingWord, b: PendingWord) =>
+    a.categoryId === b.categoryId && a.text.trim().toLowerCase() === b.text.trim().toLowerCase();
+
   const handleApprove = (id: string) => {
     setPendingWords((current) => {
       const word = current.find((w) => w.id === id);
-      if (word) setApprovedWords((approved) => [...approved, word]);
+      if (word) {
+        setApprovedWords((approved) => [...approved, word]);
+        // Clear any earlier rejection of the same text/category — it's
+        // approved now, so it shouldn't still count as "previously
+        // rejected" if this word is ever regenerated in a later session.
+        setRejectedWords((rejected) => rejected.filter((r) => !isSameWord(r, word)));
+      }
       return current.filter((w) => w.id !== id);
     });
   };
 
   const handleReject = (id: string) => {
-    setPendingWords((current) => current.filter((word) => word.id !== id));
+    setPendingWords((current) => {
+      const word = current.find((w) => w.id === id);
+      if (word) {
+        setRejectedWords((rejected) => [...rejected, word]);
+        // Mirror of the above: an earlier approval of the same text/category
+        // shouldn't survive a later, explicit rejection of it.
+        setApprovedWords((approved) => approved.filter((a) => !isSameWord(a, word)));
+      }
+      return current.filter((w) => w.id !== id);
+    });
   };
 
   const handleRejectAll = () => {
+    setRejectedWords((rejected) => [...rejected, ...pendingWords]);
+    setApprovedWords((approved) =>
+      approved.filter((a) => !pendingWords.some((word) => isSameWord(a, word)))
+    );
     setPendingWords([]);
   };
 

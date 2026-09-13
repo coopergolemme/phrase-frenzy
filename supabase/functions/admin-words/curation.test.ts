@@ -45,7 +45,7 @@ describe("buildPrompt", () => {
   it("includes trimmed admin instructions as the driving request", () => {
     const prompt = buildPrompt([FOOD], new Map(), 5, "  80s action movies  ");
 
-    expect(prompt).toContain("admin's request");
+    expect(prompt.toLowerCase()).toContain("admin's request");
     expect(prompt).toContain('"80s action movies"');
     expect(prompt).not.toContain("  80s action movies  ");
   });
@@ -54,6 +54,29 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt([FOOD], new Map(), 5, "   ");
 
     expect(prompt).not.toContain("admin's request");
+  });
+
+  it("tells the model not to drift onto a related-but-different topic", () => {
+    const prompt = buildPrompt([FOOD], new Map(), 5, "famous places");
+
+    expect(prompt).toContain("Do NOT drift onto a related-but-different topic");
+    expect(prompt).toContain("famous people");
+    expect(prompt).toContain("not merely adjacent or a superset");
+  });
+
+  it("makes the admin's request an override, not just filing context", () => {
+    const prompt = buildPrompt([FOOD], new Map(), 5, "famous places");
+
+    expect(prompt).toContain("THIS IS YOUR ASSIGNMENT, NOT A SUGGESTION");
+    expect(prompt).toContain("not a menu of\ntopics to pick from or a source of inspiration");
+    expect(prompt).toContain("re-read the request above and check every word against\nit one more time");
+  });
+
+  it("tells the model to pick from existing categories when no request is given", () => {
+    const prompt = buildPrompt([FOOD], new Map(), 5);
+
+    expect(prompt).toContain("No specific topic was requested");
+    expect(prompt).not.toContain("YOUR ASSIGNMENT");
   });
 
   it("clamps instructions to MAX_INSTRUCTIONS_LENGTH characters", () => {

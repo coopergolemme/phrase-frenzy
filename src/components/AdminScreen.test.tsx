@@ -126,6 +126,59 @@ describe("AdminScreen", () => {
     ]);
   });
 
+  it("sends previously rejected words back to generate so they aren't re-suggested", async () => {
+    generateWordsMock.mockResolvedValue([TACO]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    expect(screen.getByText(/no pending words/i)).toBeInTheDocument();
+
+    generateWordsMock.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+
+    await waitFor(() =>
+      expect(generateWordsMock).toHaveBeenLastCalledWith(
+        "right",
+        20,
+        undefined,
+        expect.arrayContaining([
+          expect.objectContaining({ text: "Taco", categoryId: "food" }),
+        ])
+      )
+    );
+  });
+
+  it("clears a word's earlier rejection once it's approved on a later generate", async () => {
+    generateWordsMock.mockResolvedValue([TACO]);
+    await unlock();
+
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+
+    generateWordsMock.mockResolvedValue([{ ...TACO, id: "4" }]);
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    generateWordsMock.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+
+    await waitFor(() =>
+      expect(generateWordsMock).toHaveBeenLastCalledWith(
+        "right",
+        20,
+        undefined,
+        expect.arrayContaining([expect.objectContaining({ text: "Taco", categoryId: "food" })])
+      )
+    );
+    const lastCallLocalWords = generateWordsMock.mock.calls.at(-1)?.[3] as { text: string }[];
+    expect(lastCallLocalWords.filter((w) => w.text === "Taco")).toHaveLength(1);
+  });
+
   it("does not publish anything when nothing was approved on unmount", async () => {
     generateWordsMock.mockResolvedValue([TACO]);
     const { unmount } = await unlock();
