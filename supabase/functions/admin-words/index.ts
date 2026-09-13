@@ -1,15 +1,16 @@
-// Password-gated admin endpoint for generating and publishing candidate
-// words. Generated candidates are NOT persisted — the client reviews them
-// entirely client-side (approve/reject/edit are local state) and only
-// calls "publish" once, with the final approved set, when the admin
-// navigates away from the admin screen. A candidate's category is decided
-// by the model itself from the admin's prompt: it either reuses an
-// existing category or proposes a brand-new one, which only gets inserted
-// into the db at publish time (and only if at least one of its words was
+// Admin endpoint for generating and publishing candidate words. Generated
+// candidates are NOT persisted — the client reviews them entirely
+// client-side (approve/reject/edit are local state) and only calls
+// "publish" once, with the final approved set, when the admin navigates
+// away from the admin screen. A candidate's category is decided by the
+// model itself from the admin's prompt: it either reuses an existing
+// category or proposes a brand-new one, which only gets inserted into the
+// db at publish time (and only if at least one of its words was
 // approved). Deployed as a Supabase Edge Function; holds
-// SUPABASE_SERVICE_ROLE_KEY (auto-injected by the Edge Runtime),
-// GEMINI_API_KEY, and ADMIN_PASSWORD as function secrets — none of these
-// ever reach the client bundle. See
+// SUPABASE_SERVICE_ROLE_KEY (auto-injected by the Edge Runtime) and
+// GEMINI_API_KEY as function secrets — neither ever reaches the client
+// bundle. There is no admin auth here — the endpoint is reachable by
+// anyone who finds #admin. See
 // docs/superpowers/specs/2026-09-12-admin-word-curation-design.md.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPrompt, dedupeAgainstExisting, type KnownCategory, type WordRow } from "./curation.ts";
@@ -18,7 +19,7 @@ import { callGeminiForSimilarWords, callGeminiForWords } from "./gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-admin-password",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
 };
 
 interface PendingWordDto {
@@ -119,11 +120,6 @@ function json(body: unknown, status = 200): Response {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
-  }
-
-  const adminPassword = Deno.env.get("ADMIN_PASSWORD");
-  if (!adminPassword || req.headers.get("x-admin-password") !== adminPassword) {
-    return json({ error: "Unauthorized" }, 401);
   }
 
   let body: { action?: string; [key: string]: unknown };

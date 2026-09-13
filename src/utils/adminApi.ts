@@ -1,6 +1,7 @@
-// Client for the admin-words Supabase Edge Function. Sends the shared
-// admin password as a header on every call; the function itself is the
-// only place that holds the real secrets (Gemini key, service-role key).
+// Client for the admin-words Supabase Edge Function. The function itself
+// is the only place that holds the real secrets (Gemini key, service-role
+// key); it has no auth of its own, so anything reachable from #admin is
+// reachable by anyone who finds that route.
 export interface PendingWord {
   id: string;
   categoryId: string;
@@ -94,11 +95,7 @@ type Action =
   | "category-health"
   | "list-category-words";
 
-async function callAdminWords<T>(
-  action: Action,
-  payload: Record<string, unknown>,
-  password: string
-): Promise<T> {
+async function callAdminWords<T>(action: Action, payload: Record<string, unknown>): Promise<T> {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -108,7 +105,6 @@ async function callAdminWords<T>(
       "Content-Type": "application/json",
       Authorization: `Bearer ${anonKey}`,
       apikey: anonKey,
-      "x-admin-password": password,
     },
     body: JSON.stringify({ action, ...payload }),
   });
@@ -121,72 +117,58 @@ async function callAdminWords<T>(
 }
 
 export async function generateWords(
-  password: string,
   instructions?: string,
   localWords?: LocalWord[]
 ): Promise<PendingWord[]> {
-  const { candidates } = await callAdminWords<{ candidates: PendingWord[] }>(
-    "generate",
-    { instructions, localWords },
-    password
-  );
+  const { candidates } = await callAdminWords<{ candidates: PendingWord[] }>("generate", {
+    instructions,
+    localWords,
+  });
   return candidates;
 }
 
-export async function publishWords(password: string, words: LocalWord[]): Promise<number> {
-  const { published } = await callAdminWords<{ published: number }>("publish", { words }, password);
+export async function publishWords(words: LocalWord[]): Promise<number> {
+  const { published } = await callAdminWords<{ published: number }>("publish", { words });
   return published;
 }
 
-export async function listFlaggedWords(password: string): Promise<FlaggedWord[]> {
-  const { flagged } = await callAdminWords<{ flagged: FlaggedWord[] }>("list-flagged", {}, password);
+export async function listFlaggedWords(): Promise<FlaggedWord[]> {
+  const { flagged } = await callAdminWords<{ flagged: FlaggedWord[] }>("list-flagged", {});
   return flagged;
 }
 
-export async function deactivateWords(password: string, ids: string[]): Promise<void> {
-  await callAdminWords("deactivate", { ids }, password);
+export async function deactivateWords(ids: string[]): Promise<void> {
+  await callAdminWords("deactivate", { ids });
 }
 
-export async function listDeactivatedWords(password: string): Promise<DeactivatedWord[]> {
+export async function listDeactivatedWords(): Promise<DeactivatedWord[]> {
   const { deactivated } = await callAdminWords<{ deactivated: DeactivatedWord[] }>(
     "list-deactivated",
-    {},
-    password
+    {}
   );
   return deactivated;
 }
 
-export async function reactivateWords(password: string, ids: string[]): Promise<void> {
-  await callAdminWords("reactivate", { ids }, password);
+export async function reactivateWords(ids: string[]): Promise<void> {
+  await callAdminWords("reactivate", { ids });
 }
 
-export async function suggestSimilarWords(
-  password: string,
-  wordId: string,
-  reason?: string
-): Promise<SimilarWord[]> {
-  const { suggestions } = await callAdminWords<{ suggestions: SimilarWord[] }>(
-    "suggest-similar",
-    { wordId, reason },
-    password
-  );
+export async function suggestSimilarWords(wordId: string, reason?: string): Promise<SimilarWord[]> {
+  const { suggestions } = await callAdminWords<{ suggestions: SimilarWord[] }>("suggest-similar", {
+    wordId,
+    reason,
+  });
   return suggestions;
 }
 
-export async function getCategoryHealth(password: string): Promise<CategoryHealth[]> {
-  const { categories } = await callAdminWords<{ categories: CategoryHealth[] }>(
-    "category-health",
-    {},
-    password
-  );
+export async function getCategoryHealth(): Promise<CategoryHealth[]> {
+  const { categories } = await callAdminWords<{ categories: CategoryHealth[] }>("category-health", {});
   return categories;
 }
 
-export async function listCategoryWords(password: string, categoryId: string): Promise<CategoryWord[]> {
-  const { words } = await callAdminWords<{ words: CategoryWord[] }>(
-    "list-category-words",
-    { categoryId },
-    password
-  );
+export async function listCategoryWords(categoryId: string): Promise<CategoryWord[]> {
+  const { words } = await callAdminWords<{ words: CategoryWord[] }>("list-category-words", {
+    categoryId,
+  });
   return words;
 }

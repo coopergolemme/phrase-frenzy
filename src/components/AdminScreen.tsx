@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   deactivateWords,
   generateWords,
@@ -34,8 +34,6 @@ const TABS: { id: AdminTab; label: string }[] = [
 ];
 
 export function AdminScreen() {
-  const [password, setPassword] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
   const [activeTab, setActiveTab] = useState<AdminTab>("curation");
   const [pendingWords, setPendingWords] = useState<PendingWord[]>([]);
   const [approvedWords, setApprovedWords] = useState<PendingWord[]>([]);
@@ -56,23 +54,18 @@ export function AdminScreen() {
   // Accordion: only one category's word list is expanded/fetched at a time.
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
   const [categoryWordsById, setCategoryWordsById] = useState<Record<string, CategoryWordsState>>({});
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isCheckingPassword, setIsCheckingPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Approved words are only reviewed locally — nothing is written to the
-  // db until the admin navigates away from this screen. Refs (rather than
-  // state) so the unmount cleanup below reads the latest values without
+  // db until the admin navigates away from this screen. A ref (rather than
+  // state) so the unmount cleanup below reads the latest value without
   // re-subscribing the effect on every approve/reject.
   const approvedWordsRef = useRef<PendingWord[]>([]);
-  const passwordRef = useRef("");
   useEffect(() => {
     approvedWordsRef.current = approvedWords;
   }, [approvedWords]);
-  useEffect(() => {
-    passwordRef.current = password;
-  }, [password]);
 
   useEffect(() => {
     return () => {
@@ -85,41 +78,31 @@ export function AdminScreen() {
         isNewCategory: w.isNewCategory,
         text: w.text,
       }));
-      void publishWords(passwordRef.current, toPublish);
+      void publishWords(toPublish);
     };
   }, []);
 
+  useEffect(() => {
+    Promise.all([listFlaggedWords(), listDeactivatedWords()])
+      .then(([flagged, deactivated]) => {
+        setFlaggedWords(flagged);
+        setDeactivatedWords(deactivated);
+      })
+      .catch(() => setError("Couldn't load admin data. Try again."))
+      .finally(() => setIsLoading(false));
+  }, []);
+
   // Fetched lazily on first visit to the tab rather than alongside the
-  // other unlock-time lists — it aggregates every word and word_stats row,
-  // so it's the heaviest of the admin queries and most sessions never open it.
+  // other startup lists — it aggregates every word and word_stats row, so
+  // it's the heaviest of the admin queries and most sessions never open it.
   useEffect(() => {
     if (activeTab !== "health" || categoryHealth !== null) return;
     setIsLoadingHealth(true);
-    getCategoryHealth(password)
+    getCategoryHealth()
       .then(setCategoryHealth)
       .catch(() => setError("Couldn't load category health. Try again."))
       .finally(() => setIsLoadingHealth(false));
-  }, [activeTab, categoryHealth, password]);
-
-  const handleUnlock = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsCheckingPassword(true);
-    setError(null);
-    try {
-      const [flagged, deactivated] = await Promise.all([
-        listFlaggedWords(passwordInput),
-        listDeactivatedWords(passwordInput),
-      ]);
-      setFlaggedWords(flagged);
-      setDeactivatedWords(deactivated);
-      setPassword(passwordInput);
-      setIsUnlocked(true);
-    } catch {
-      setError("Incorrect password.");
-    } finally {
-      setIsCheckingPassword(false);
-    }
-  };
+  }, [activeTab, categoryHealth]);
 
   const handleGenerate = async (instructions?: string) => {
     setIsGenerating(true);
@@ -132,7 +115,7 @@ export function AdminScreen() {
         isNewCategory: w.isNewCategory,
         text: w.text,
       }));
-      const candidates = await generateWords(password, instructions, localWords);
+      const candidates = await generateWords(instructions, localWords);
       setPendingWords((current) => [...current, ...candidates]);
     } catch {
       setError("Couldn't generate words. Try again.");
@@ -187,7 +170,7 @@ export function AdminScreen() {
     if (ids.length === 0) return;
     setError(null);
     try {
-      await deactivateWords(password, ids);
+      await deactivateWords(ids);
       const idSet = new Set(ids);
       setFlaggedWords((current) =>
         current.map((flagged) => (idSet.has(flagged.id) ? { ...flagged, active: false } : flagged))
@@ -220,7 +203,7 @@ export function AdminScreen() {
   const fetchSimilarSuggestions = async (source: FlaggedWord, reason?: string) => {
     setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "loading", items: [] } }));
     try {
-      const items = await suggestSimilarWords(password, source.id, reason);
+      const items = await suggestSimilarWords(source.id, reason);
       setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "done", items } }));
     } catch {
       setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "error", items: [] } }));
@@ -232,7 +215,7 @@ export function AdminScreen() {
     if (!source) return;
     setError(null);
     try {
-      await deactivateWords(password, [suggestion.id]);
+      await deactivateWords([suggestion.id]);
       setDeactivatedWords((current) => [
         ...current,
         {
@@ -271,7 +254,7 @@ export function AdminScreen() {
     if (ids.length === 0) return;
     setError(null);
     try {
-      await reactivateWords(password, ids);
+      await reactivateWords(ids);
       const idSet = new Set(ids);
       setDeactivatedWords((current) => current.filter((word) => !idSet.has(word.id)));
       setFlaggedWords((current) =>
@@ -292,7 +275,7 @@ export function AdminScreen() {
   const fetchCategoryWords = async (categoryId: string) => {
     setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "loading", items: [] } }));
     try {
-      const items = await listCategoryWords(password, categoryId);
+      const items = await listCategoryWords(categoryId);
       setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "done", items } }));
     } catch {
       setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "error", items: [] } }));
@@ -316,7 +299,7 @@ export function AdminScreen() {
     </a>
   );
 
-  if (!isUnlocked) {
+  if (isLoading) {
     return (
       <div className="app-shell">
         <div className="screen-container flex min-h-0 flex-col gap-3">
@@ -324,33 +307,12 @@ export function AdminScreen() {
             {backLink}
             <h1 className="m-0 font-display font-bold text-xl text-yellow">Admin</h1>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4 [-webkit-overflow-scrolling:touch]">
-            <form
-              className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3 rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]"
-              onSubmit={handleUnlock}
-            >
-              <div className="flex flex-col gap-1">
-                <label
-                  className="text-[0.8rem] font-semibold text-text-secondary"
-                  htmlFor="admin-password"
-                >
-                  Password
-                </label>
-                <input
-                  id="admin-password"
-                  className="min-h-touch w-full rounded-button border-[1.5px] border-border-solid bg-surface-solid px-3 py-2 font-[inherit] text-base text-text focus:outline-2 focus:outline-primary focus:outline-offset-1"
-                  type="password"
-                  aria-label="Admin password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <button type="submit" className="btn btn--primary" disabled={isCheckingPassword}>
-                {isCheckingPassword ? "Checking…" : "Unlock"}
-              </button>
-              {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
-            </form>
+          <div className="flex justify-center py-10">
+            <div
+              role="status"
+              aria-label="Loading admin data"
+              className="h-10 w-10 animate-spin rounded-full border-4 border-border-solid border-t-primary"
+            />
           </div>
         </div>
       </div>
