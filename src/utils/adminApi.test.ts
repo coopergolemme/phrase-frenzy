@@ -8,6 +8,8 @@ import {
   listFlaggedWords,
   publishWords,
   reactivateWords,
+  recordCurationDecision,
+  refineCategoryGuidance,
   suggestSimilarWords,
 } from "./adminApi";
 
@@ -215,6 +217,48 @@ describe("adminApi", () => {
     expect(result).toEqual(WORDS);
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "list-category-words", categoryId: "food" });
+  });
+
+  it("recordCurationDecision sends the category, text, decision, and reason", async () => {
+    const fetchMock = mockFetch(200, {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    await recordCurationDecision("food", "Pizza", "approved");
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({
+      action: "record-decision",
+      categoryId: "food",
+      text: "Pizza",
+      decision: "approved",
+    });
+  });
+
+  it("recordCurationDecision includes the reason when given", async () => {
+    const fetchMock = mockFetch(200, {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    await recordCurationDecision("food", "Sofa", "deactivated", "too easy to confuse with Couch");
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({
+      action: "record-decision",
+      categoryId: "food",
+      text: "Sofa",
+      decision: "deactivated",
+      reason: "too easy to confuse with Couch",
+    });
+  });
+
+  it("refineCategoryGuidance sends the categoryId and returns the updated guidance", async () => {
+    const fetchMock = mockFetch(200, { guidance: "Prefer concrete foods." });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await refineCategoryGuidance("food");
+
+    expect(result).toBe("Prefer concrete foods.");
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ action: "refine-guidance", categoryId: "food" });
   });
 
   it("throws AdminApiError with the response status and server message on failure", async () => {

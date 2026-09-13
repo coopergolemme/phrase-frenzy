@@ -8,6 +8,8 @@ import {
   listFlaggedWords,
   publishWords,
   reactivateWords,
+  recordCurationDecision,
+  refineCategoryGuidance,
   suggestSimilarWords,
   type CategoryHealth,
   type CategoryWordsState,
@@ -54,6 +56,7 @@ export function AdminScreen() {
   // Accordion: only one category's word list is expanded/fetched at a time.
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
   const [categoryWordsById, setCategoryWordsById] = useState<Record<string, CategoryWordsState>>({});
+  const [refiningCategoryId, setRefiningCategoryId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +130,15 @@ export function AdminScreen() {
   const isSameWord = (a: PendingWord, b: PendingWord) =>
     a.categoryId === b.categoryId && a.text.trim().toLowerCase() === b.text.trim().toLowerCase();
 
+  // Approve/reject only becomes durable curation-taste signal for a
+  // category that already exists — a brand-new proposed category has no
+  // guidance to refine yet, and logging against its not-yet-real id would
+  // need resolving at publish time for no real benefit.
+  const recordDecisionIfKnownCategory = (word: PendingWord, decision: "approved" | "rejected") => {
+    if (word.isNewCategory) return;
+    void recordCurationDecision(word.categoryId, word.text, decision).catch(() => {});
+  };
+
   const handleApprove = (id: string) => {
     setPendingWords((current) => {
       const word = current.find((w) => w.id === id);
@@ -136,6 +148,7 @@ export function AdminScreen() {
         // approved now, so it shouldn't still count as "previously
         // rejected" if this word is ever regenerated in a later session.
         setRejectedWords((rejected) => rejected.filter((r) => !isSameWord(r, word)));
+        recordDecisionIfKnownCategory(word, "approved");
       }
       return current.filter((w) => w.id !== id);
     });
@@ -149,6 +162,7 @@ export function AdminScreen() {
         // Mirror of the above: an earlier approval of the same text/category
         // shouldn't survive a later, explicit rejection of it.
         setApprovedWords((approved) => approved.filter((a) => !isSameWord(a, word)));
+        recordDecisionIfKnownCategory(word, "rejected");
       }
       return current.filter((w) => w.id !== id);
     });
@@ -159,6 +173,7 @@ export function AdminScreen() {
     setApprovedWords((approved) =>
       approved.filter((a) => !pendingWords.some((word) => isSameWord(a, word)))
     );
+    for (const word of pendingWords) recordDecisionIfKnownCategory(word, "rejected");
     setPendingWords([]);
   };
 
@@ -193,7 +208,12 @@ export function AdminScreen() {
       // deactivated via handleDeactivateSuggestion instead).
       if (ids.length === 1) {
         const source = flaggedWords.find((flagged) => flagged.id === ids[0]);
-        if (source) void fetchSimilarSuggestions(source, reason);
+        if (source) {
+          void fetchSimilarSuggestions(source, reason);
+          void recordCurationDecision(source.categoryId, source.text, "deactivated", reason).catch(
+            () => {}
+          );
+        }
       }
     } catch {
       setError("Couldn't deactivate that word. Try again.");
@@ -201,12 +221,21 @@ export function AdminScreen() {
   };
 
   const fetchSimilarSuggestions = async (source: FlaggedWord, reason?: string) => {
-    setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "loading", items: [] } }));
+    setSimilarSuggestions((current) => ({
+      ...current,
+      [source.id]: { status: "loading", items: [], reason },
+    }));
     try {
       const items = await suggestSimilarWords(source.id, reason);
-      setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "done", items } }));
+      setSimilarSuggestions((current) => ({
+        ...current,
+        [source.id]: { status: "done", items, reason },
+      }));
     } catch {
-      setSimilarSuggestions((current) => ({ ...current, [source.id]: { status: "error", items: [] } }));
+      setSimilarSuggestions((current) => ({
+        ...current,
+        [source.id]: { status: "error", items: [], reason },
+      }));
     }
   };
 
@@ -226,6 +255,15 @@ export function AdminScreen() {
           flaggedCount: 0,
         },
       ]);
+      // Inherits the reason typed for the word this was suggested from —
+      // it was surfaced precisely because it shares that same problem.
+      const inheritedReason = similarSuggestions[sourceId]?.reason;
+      void recordCurationDecision(
+        source.categoryId,
+        suggestion.text,
+        "deactivated",
+        inheritedReason
+      ).catch(() => {});
       setSimilarSuggestions((current) => {
         const entry = current[sourceId];
         if (!entry) return current;
@@ -279,6 +317,25 @@ export function AdminScreen() {
       setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "done", items } }));
     } catch {
       setCategoryWordsById((current) => ({ ...current, [categoryId]: { status: "error", items: [] } }));
+    }
+  };
+
+  const handleRefineGuidance = async (categoryId: string) => {
+    setRefiningCategoryId(categoryId);
+    setError(null);
+    try {
+      const guidance = await refineCategoryGuidance(categoryId);
+      setCategoryHealth((current) =>
+        (current ?? []).map((category) =>
+          category.categoryId === categoryId
+            ? { ...category, guidance, decisionsSinceGuidance: 0 }
+            : category
+        )
+      );
+    } catch {
+      setError("Couldn't refine guidance for that category. Try again.");
+    } finally {
+      setRefiningCategoryId(null);
     }
   };
 
@@ -389,6 +446,8 @@ export function AdminScreen() {
               expandedCategoryId={expandedCategoryId}
               categoryWordsById={categoryWordsById}
               onToggleCategory={handleToggleCategory}
+              refiningCategoryId={refiningCategoryId}
+              onRefineGuidance={handleRefineGuidance}
             />
           )}
         </div>

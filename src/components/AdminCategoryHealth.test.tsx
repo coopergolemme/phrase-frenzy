@@ -13,6 +13,8 @@ const CATEGORIES: CategoryHealth[] = [
     flaggedWords: 1,
     correct: 30,
     skipped: 10,
+    guidance: null,
+    decisionsSinceGuidance: 0,
   },
   {
     categoryId: "obscure",
@@ -23,6 +25,8 @@ const CATEGORIES: CategoryHealth[] = [
     flaggedWords: 3,
     correct: 0,
     skipped: 0,
+    guidance: null,
+    decisionsSinceGuidance: 0,
   },
 ];
 
@@ -34,6 +38,8 @@ function renderHealth(overrides: Partial<Parameters<typeof AdminCategoryHealth>[
       expandedCategoryId={null}
       categoryWordsById={{}}
       onToggleCategory={vi.fn()}
+      refiningCategoryId={null}
+      onRefineGuidance={vi.fn()}
       {...overrides}
     />
   );
@@ -130,5 +136,38 @@ describe("AdminCategoryHealth", () => {
     expect(screen.getByText("Pizza")).toBeInTheDocument();
     expect(screen.getByText("Old Joke")).toBeInTheDocument();
     expect(screen.getByText("Old Joke")).toHaveClass("line-through");
+  });
+
+  it("shows a placeholder and zero-decision hint when a category has no guidance yet", () => {
+    renderHealth({ expandedCategoryId: "food" });
+
+    expect(screen.getByText(/no guidance yet/i)).toBeInTheDocument();
+    expect(screen.getByText("0 decisions since last refine")).toBeInTheDocument();
+  });
+
+  it("shows existing guidance text and the decision count since it was last refined", () => {
+    const categories: CategoryHealth[] = [
+      { ...CATEGORIES[0], guidance: "Prefer concrete, single-item foods.", decisionsSinceGuidance: 4 },
+      CATEGORIES[1],
+    ];
+    renderHealth({ categories, expandedCategoryId: "food" });
+
+    expect(screen.getByText("Prefer concrete, single-item foods.")).toBeInTheDocument();
+    expect(screen.getByText("4 decisions since last refine")).toBeInTheDocument();
+  });
+
+  it("calls onRefineGuidance with the category id when Refine Guidance is clicked", () => {
+    const onRefineGuidance = vi.fn();
+    renderHealth({ expandedCategoryId: "food", onRefineGuidance });
+
+    fireEvent.click(screen.getByRole("button", { name: /refine guidance/i }));
+
+    expect(onRefineGuidance).toHaveBeenCalledWith("food");
+  });
+
+  it("disables and relabels the Refine Guidance button while refining that category", () => {
+    renderHealth({ expandedCategoryId: "food", refiningCategoryId: "food" });
+
+    expect(screen.getByRole("button", { name: /refining/i })).toBeDisabled();
   });
 });

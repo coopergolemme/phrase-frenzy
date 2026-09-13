@@ -15,6 +15,8 @@ interface AdminCategoryHealthProps {
   expandedCategoryId: string | null;
   categoryWordsById: Record<string, CategoryWordsState>;
   onToggleCategory: (categoryId: string) => void;
+  refiningCategoryId: string | null;
+  onRefineGuidance: (categoryId: string) => void;
 }
 
 // Categories below this active-word count risk repeating too often in a
@@ -54,6 +56,8 @@ export function AdminCategoryHealth({
   expandedCategoryId,
   categoryWordsById,
   onToggleCategory,
+  refiningCategoryId,
+  onRefineGuidance,
 }: AdminCategoryHealthProps) {
   if (isLoading) {
     return (
@@ -155,6 +159,31 @@ export function AdminCategoryHealth({
 
               {isExpanded && (
                 <div className="border-t border-border-solid bg-surface-solid px-4 py-3">
+                  <div className="mb-3 flex flex-col gap-1.5 border-b border-border-solid pb-3">
+                    <span className="text-[0.8rem] font-semibold text-text-secondary">
+                      Curation guidance
+                    </span>
+                    <p className="m-0 whitespace-pre-line text-[0.85rem] text-text">
+                      {category.guidance ?? "No guidance yet — refine to learn from past decisions."}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn btn--small btn--outline"
+                        disabled={refiningCategoryId === category.categoryId}
+                        onClick={() => onRefineGuidance(category.categoryId)}
+                      >
+                        {refiningCategoryId === category.categoryId
+                          ? "Refining…"
+                          : "Refine Guidance"}
+                      </button>
+                      <span className="text-[0.75rem] text-text-secondary">
+                        {category.decisionsSinceGuidance} decision
+                        {category.decisionsSinceGuidance === 1 ? "" : "s"} since last refine
+                      </span>
+                    </div>
+                  </div>
+
                   {words?.status === "loading" && (
                     <p className="m-0 text-[0.85rem] text-text-secondary">Loading words…</p>
                   )}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { callGeminiForSimilarWords, callGeminiForWords } from "./gemini";
+import { callGeminiForGuidance, callGeminiForSimilarWords, callGeminiForWords } from "./gemini";
 
 function mockFetch(response: Partial<Response> & { jsonBody?: unknown }) {
   return vi.fn().mockResolvedValue({
@@ -80,5 +80,35 @@ describe("callGeminiForSimilarWords", () => {
     });
 
     await expect(callGeminiForSimilarWords("prompt", "key", fetchImpl)).rejects.toThrow(/JSON array/i);
+  });
+});
+
+describe("callGeminiForGuidance", () => {
+  it("parses the guidance string out of candidates[0].content.parts[0].text", async () => {
+    const fetchImpl = mockFetch({
+      jsonBody: {
+        candidates: [{ content: { parts: [{ text: JSON.stringify({ guidance: "Prefer concrete nouns." }) }] } }],
+      },
+    });
+
+    const result = await callGeminiForGuidance("prompt text", "test-key", fetchImpl);
+
+    expect(result).toBe("Prefer concrete nouns.");
+  });
+
+  it("throws when the parsed object has no guidance string", async () => {
+    const fetchImpl = mockFetch({
+      jsonBody: { candidates: [{ content: { parts: [{ text: JSON.stringify({ notGuidance: "x" }) }] } }] },
+    });
+
+    await expect(callGeminiForGuidance("prompt", "key", fetchImpl)).rejects.toThrow(/guidance/i);
+  });
+
+  it("throws when the parsed text is an array instead of an object", async () => {
+    const fetchImpl = mockFetch({
+      jsonBody: { candidates: [{ content: { parts: [{ text: JSON.stringify(["not", "an", "object"]) }] } }] },
+    });
+
+    await expect(callGeminiForGuidance("prompt", "key", fetchImpl)).rejects.toThrow(/guidance/i);
   });
 });

@@ -58,3 +58,20 @@ export async function callGeminiForSimilarWords(
   }
   return parsed.filter((item): item is string => typeof item === "string");
 }
+
+export async function callGeminiForGuidance(
+  prompt: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<string> {
+  const parsed = await callGeminiRaw(prompt, apiKey, fetchImpl);
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("guidance" in parsed) ||
+    typeof (parsed as { guidance: unknown }).guidance !== "string"
+  ) {
+    throw new Error('Gemini response did not include a "guidance" string');
+  }
+  return (parsed as { guidance: string }).guidance;
+}

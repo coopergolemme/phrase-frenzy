@@ -76,12 +76,15 @@ export const DEFAULT_WORD_COUNT = 10;
 export function buildPrompt(
   categories: KnownCategory[],
   existingWordsByCategory: Map<string, string[]>,
-  instructions?: string
+  instructions?: string,
+  guidanceByCategory?: Map<string, string>
 ): string {
   const categoryList = categories
     .map((c) => {
       const existing = existingWordsByCategory.get(c.id) ?? [];
-      return `- id: "${c.id}", label: "${c.label}"\n  existing words: ${JSON.stringify(existing)}`;
+      const guidance = guidanceByCategory?.get(c.id)?.trim();
+      const guidanceLine = guidance ? `\n  curation guidance: "${guidance}"` : "";
+      return `- id: "${c.id}", label: "${c.label}"\n  existing words: ${JSON.stringify(existing)}${guidanceLine}`;
     })
     .join("\n");
 
@@ -144,7 +147,11 @@ insensitive), and do not repeat a word across categories. If, and only if,
 the request clearly spans more than one theme, you may return multiple
 entries — otherwise return exactly one.
 
-Existing categories (for dedup/filing only — see above):
+Existing categories (for dedup/filing only — see above). Some also carry a
+"curation guidance" line: house-style notes an admin has written from past
+approve/reject/deactivate decisions for that specific category. If you end
+up filing words under one of these categories, follow its guidance in
+addition to (never instead of) the guessability rules above:
 ${categoryList}
 
 Before answering, re-read the request above and check every word against

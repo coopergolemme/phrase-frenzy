@@ -47,6 +47,10 @@ export interface SimilarWord {
 export interface SimilarWordSuggestions {
   status: "loading" | "done" | "error";
   items: SimilarWord[];
+  // The reason the admin gave for deactivating the word these were
+  // suggested from, if any — inherited when logging a decision for an
+  // accepted suggestion, since it shares the same underlying problem.
+  reason?: string;
 }
 
 export interface CategoryHealth {
@@ -58,7 +62,11 @@ export interface CategoryHealth {
   flaggedWords: number;
   correct: number;
   skipped: number;
+  guidance: string | null;
+  decisionsSinceGuidance: number;
 }
+
+export type CurationDecision = "approved" | "rejected" | "deactivated";
 
 export interface CategoryWord {
   id: string;
@@ -93,7 +101,9 @@ type Action =
   | "reactivate"
   | "suggest-similar"
   | "category-health"
-  | "list-category-words";
+  | "list-category-words"
+  | "record-decision"
+  | "refine-guidance";
 
 async function callAdminWords<T>(action: Action, payload: Record<string, unknown>): Promise<T> {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -171,4 +181,18 @@ export async function listCategoryWords(categoryId: string): Promise<CategoryWor
     categoryId,
   });
   return words;
+}
+
+export async function recordCurationDecision(
+  categoryId: string,
+  text: string,
+  decision: CurationDecision,
+  reason?: string
+): Promise<void> {
+  await callAdminWords("record-decision", { categoryId, text, decision, reason });
+}
+
+export async function refineCategoryGuidance(categoryId: string): Promise<string> {
+  const { guidance } = await callAdminWords<{ guidance: string }>("refine-guidance", { categoryId });
+  return guidance;
 }

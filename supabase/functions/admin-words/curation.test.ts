@@ -33,6 +33,27 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("generate exactly that many");
   });
 
+  it("includes a category's curation guidance when given", () => {
+    const guidanceByCategory = new Map([["food", "Prefer concrete, single-item foods."]]);
+
+    const prompt = buildPrompt([FOOD], new Map(), undefined, guidanceByCategory);
+
+    expect(prompt).toContain('curation guidance: "Prefer concrete, single-item foods."');
+    expect(prompt).toContain("follow its guidance");
+  });
+
+  it("omits the curation guidance line for a category with none", () => {
+    const prompt = buildPrompt([FOOD], new Map(), undefined, new Map());
+
+    expect(prompt).not.toContain("curation guidance:");
+  });
+
+  it("omits the curation guidance line when no guidance map is given at all", () => {
+    const prompt = buildPrompt([FOOD], new Map());
+
+    expect(prompt).not.toContain("curation guidance:");
+  });
+
   it("uses an empty existing-words array for categories with no words yet", () => {
     const prompt = buildPrompt([ANIMALS], new Map());
 

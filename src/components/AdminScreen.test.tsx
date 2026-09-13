@@ -10,6 +10,8 @@ const reactivateWordsMock = vi.fn();
 const getCategoryHealthMock = vi.fn();
 const suggestSimilarWordsMock = vi.fn();
 const listCategoryWordsMock = vi.fn();
+const recordCurationDecisionMock = vi.fn();
+const refineCategoryGuidanceMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
@@ -21,6 +23,8 @@ vi.mock("../utils/adminApi", () => ({
   getCategoryHealth: (...args: unknown[]) => getCategoryHealthMock(...args),
   suggestSimilarWords: (...args: unknown[]) => suggestSimilarWordsMock(...args),
   listCategoryWords: (...args: unknown[]) => listCategoryWordsMock(...args),
+  recordCurationDecision: (...args: unknown[]) => recordCurationDecisionMock(...args),
+  refineCategoryGuidance: (...args: unknown[]) => refineCategoryGuidanceMock(...args),
 }));
 
 async function renderAdmin() {
@@ -64,6 +68,10 @@ describe("AdminScreen", () => {
     listCategoryWordsMock.mockResolvedValue([]);
     suggestSimilarWordsMock.mockReset();
     suggestSimilarWordsMock.mockResolvedValue([]);
+    recordCurationDecisionMock.mockReset();
+    recordCurationDecisionMock.mockResolvedValue(undefined);
+    refineCategoryGuidanceMock.mockReset();
+    refineCategoryGuidanceMock.mockResolvedValue("Prefer concrete foods.");
   });
 
   it("shows a loading state and does not reveal the queue up front", async () => {
@@ -193,6 +201,56 @@ describe("AdminScreen", () => {
     expect(publishWordsMock).not.toHaveBeenCalled();
   });
 
+  it("records an approved decision for an existing-category word", async () => {
+    generateWordsMock.mockResolvedValue([TACO]);
+    await renderAdmin();
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith("food", "Taco", "approved");
+  });
+
+  it("records a rejected decision for an existing-category word", async () => {
+    generateWordsMock.mockResolvedValue([TACO]);
+    await renderAdmin();
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith("food", "Taco", "rejected");
+  });
+
+  it("does not record a decision for a word in a brand-new, unpublished category", async () => {
+    generateWordsMock.mockResolvedValue([RAMBO]);
+    await renderAdmin();
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Rambo")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(recordCurationDecisionMock).not.toHaveBeenCalled();
+  });
+
+  it("records a rejected decision for every existing-category word on Reject All", async () => {
+    generateWordsMock.mockResolvedValue([TACO, { ...TACO, id: "3", text: "Pizza" }, RAMBO]);
+    await renderAdmin();
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /reject all/i }));
+
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith("food", "Taco", "rejected");
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith("food", "Pizza", "rejected");
+    expect(recordCurationDecisionMock).not.toHaveBeenCalledWith(
+      "new:80s-action-movies",
+      "Rambo",
+      "rejected"
+    );
+  });
+
   it("defaults to the Word Curation tab", async () => {
     await renderAdmin();
 
@@ -272,9 +330,10 @@ describe("AdminScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
 
     await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("1", "too obscure"));
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith("food", "Taco", "deactivated", "too obscure");
   });
 
-  it("deactivates an accepted similar-word suggestion and moves it into the Deactivated tab", async () => {
+  it("deactivates an accepted similar-word suggestion, moves it into the Deactivated tab, and records a decision inheriting the reason", async () => {
     listFlaggedWordsMock.mockResolvedValue([
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
@@ -282,14 +341,24 @@ describe("AdminScreen", () => {
     await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    fireEvent.change(screen.getByLabelText(/why was this word bad/i), {
+      target: { value: "too obscure" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
     await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
+    recordCurationDecisionMock.mockClear();
 
     const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });
     fireEvent.click(deactivateButtons[deactivateButtons.length - 1]);
 
     await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith(["5"]));
     expect(screen.queryByText("Burrito")).not.toBeInTheDocument();
+    expect(recordCurationDecisionMock).toHaveBeenCalledWith(
+      "food",
+      "Burrito",
+      "deactivated",
+      "too obscure"
+    );
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
     expect(screen.getByText("Burrito")).toBeInTheDocument();
@@ -352,5 +421,36 @@ describe("AdminScreen", () => {
     await waitFor(() => expect(listCategoryWordsMock).toHaveBeenCalledWith("food"));
     await waitFor(() => expect(screen.getByText("Pizza")).toBeInTheDocument());
     expect(screen.getByText("Old Joke")).toBeInTheDocument();
+  });
+
+  it("refines a category's guidance and shows the updated rubric with the decision count reset", async () => {
+    getCategoryHealthMock.mockResolvedValue([
+      {
+        categoryId: "food",
+        categoryLabel: "Food",
+        categoryEmoji: "🍕",
+        totalWords: 20,
+        activeWords: 18,
+        flaggedWords: 1,
+        correct: 30,
+        skipped: 10,
+        guidance: null,
+        decisionsSinceGuidance: 4,
+      },
+    ]);
+    refineCategoryGuidanceMock.mockResolvedValue("Prefer concrete, single-item foods.");
+    await renderAdmin();
+    fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
+    await waitFor(() => expect(screen.getByText(/food/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /food/i }));
+    expect(screen.getByText("4 decisions since last refine")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /refine guidance/i }));
+
+    await waitFor(() => expect(refineCategoryGuidanceMock).toHaveBeenCalledWith("food"));
+    await waitFor(() =>
+      expect(screen.getByText("Prefer concrete, single-item foods.")).toBeInTheDocument()
+    );
+    expect(screen.getByText("0 decisions since last refine")).toBeInTheDocument();
   });
 });

@@ -15,7 +15,8 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPrompt, dedupeAgainstExisting, type KnownCategory, type WordRow } from "./curation.ts";
 import { buildSimilarWordsPrompt, filterValidSuggestions, type CandidateWord } from "./similarity.ts";
-import { callGeminiForSimilarWords, callGeminiForWords } from "./gemini.ts";
+import { buildGuidancePrompt, type Decision } from "./guidance.ts";
+import { callGeminiForGuidance, callGeminiForSimilarWords, callGeminiForWords } from "./gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,6 +77,8 @@ interface CategoryHealthDto {
   flaggedWords: number;
   correct: number;
   skipped: number;
+  guidance: string | null;
+  decisionsSinceGuidance: number;
 }
 
 // Catches non-Error throws too (DOMException from a failed/aborted fetch,
@@ -164,6 +167,18 @@ Deno.serve(async (req: Request) => {
             body.reason as string | undefined
           ),
         });
+      case "record-decision": {
+        await recordDecision(
+          client,
+          body.categoryId as string,
+          body.text as string,
+          body.decision as string,
+          body.reason as string | undefined
+        );
+        return json({});
+      }
+      case "refine-guidance":
+        return json({ guidance: await refineGuidance(client, body.categoryId as string) });
       case "generate":
         return json({
           candidates: await generate(
@@ -270,6 +285,8 @@ async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto
       flagged_words: number;
       correct: number;
       skipped: number;
+      guidance: string | null;
+      decisions_since_guidance: number;
     }) => ({
       categoryId: row.category_id,
       categoryLabel: row.category_label,
@@ -279,8 +296,78 @@ async function categoryHealth(client: SupabaseClient): Promise<CategoryHealthDto
       flaggedWords: Number(row.flagged_words),
       correct: Number(row.correct),
       skipped: Number(row.skipped),
+      guidance: row.guidance,
+      decisionsSinceGuidance: Number(row.decisions_since_guidance),
     })
   );
+}
+
+const VALID_DECISIONS = new Set(["approved", "rejected", "deactivated"]);
+
+async function recordDecision(
+  client: SupabaseClient,
+  categoryId: string,
+  text: string,
+  decision: string,
+  reason: string | undefined
+): Promise<void> {
+  if (!VALID_DECISIONS.has(decision)) {
+    throw new Error(`Invalid decision "${decision}"`);
+  }
+  const { error } = await client
+    .from("curation_decisions")
+    .insert({ category_id: categoryId, word_text: text, decision, reason: reason?.trim() || null });
+  if (error) throw error;
+}
+
+// Bounds how many past decisions get fed back into a single refine —
+// mirrors SIMILARITY_CANDIDATE_LIMIT's rationale: keeps the prompt (and
+// cost) bounded regardless of how much history a long-lived category
+// accumulates. Most recent decisions matter most for an evolving rubric.
+const GUIDANCE_DECISION_LIMIT = 300;
+
+async function refineGuidance(client: SupabaseClient, categoryId: string): Promise<string> {
+  const [categoryResult, guidanceResult, decisionsResult] = await Promise.all([
+    client.from("categories").select("label").eq("id", categoryId).maybeSingle(),
+    client.from("category_guidance").select("guidance").eq("category_id", categoryId).maybeSingle(),
+    client
+      .from("curation_decisions")
+      .select("word_text, decision, reason")
+      .eq("category_id", categoryId)
+      .order("created_at", { ascending: false })
+      .limit(GUIDANCE_DECISION_LIMIT),
+  ]);
+  if (categoryResult.error) throw categoryResult.error;
+  if (!categoryResult.data) throw new Error("Category not found");
+  if (guidanceResult.error) throw guidanceResult.error;
+  if (decisionsResult.error) throw decisionsResult.error;
+
+  const categoryLabel = (categoryResult.data as { label: string }).label;
+  const existingGuidance = (guidanceResult.data as { guidance: string } | null)?.guidance ?? null;
+  const decisions: Decision[] = (
+    (decisionsResult.data ?? []) as Array<{
+      word_text: string;
+      decision: "approved" | "rejected" | "deactivated";
+      reason: string | null;
+    }>
+  ).map((row) => ({
+    text: row.word_text,
+    decision: row.decision,
+    reason: row.reason ?? undefined,
+  }));
+
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+
+  const prompt = buildGuidancePrompt(categoryLabel, existingGuidance, decisions);
+  const guidance = await callGeminiForGuidance(prompt, apiKey);
+
+  const { error: upsertError } = await client
+    .from("category_guidance")
+    .upsert({ category_id: categoryId, guidance, updated_at: new Date().toISOString() });
+  if (upsertError) throw upsertError;
+
+  return guidance;
 }
 
 // Bounds how many other active words in the category get sent to the model
@@ -343,6 +430,17 @@ async function generate(
     client.from("words").select("category_id, text").range(from, to)
   );
 
+  const { data: guidanceRows, error: guidanceError } = await client
+    .from("category_guidance")
+    .select("category_id, guidance");
+  if (guidanceError) throw guidanceError;
+  const guidanceByCategory = new Map(
+    (guidanceRows ?? []).map((row: { category_id: string; guidance: string }) => [
+      row.category_id,
+      row.guidance,
+    ])
+  );
+
   const knownCategories: KnownCategory[] = (categoryRows ?? []).map(
     (c: { id: string; label: string; emoji: string }) => ({
       id: c.id,
@@ -383,7 +481,7 @@ async function generate(
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
-  const prompt = buildPrompt(knownCategories, existingWordsByCategory, instructions);
+  const prompt = buildPrompt(knownCategories, existingWordsByCategory, instructions, guidanceByCategory);
   const rawBatches = await callGeminiForWords(prompt, apiKey);
   const accepted = dedupeAgainstExisting(rawBatches, knownCategories, existingWordSetByCategory);
 
