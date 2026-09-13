@@ -23,11 +23,9 @@ vi.mock("../utils/adminApi", () => ({
   listCategoryWords: (...args: unknown[]) => listCategoryWordsMock(...args),
 }));
 
-async function unlock() {
+async function renderAdmin() {
   const { AdminScreen } = await import("./AdminScreen");
   const view = render(<AdminScreen />);
-  fireEvent.change(screen.getByLabelText(/admin password/i), { target: { value: "right" } });
-  fireEvent.click(screen.getByRole("button", { name: /unlock/i }));
   await waitFor(() => expect(screen.getByRole("heading", { name: /generate/i })).toBeInTheDocument());
   return view;
 }
@@ -68,28 +66,16 @@ describe("AdminScreen", () => {
     suggestSimilarWordsMock.mockResolvedValue([]);
   });
 
-  it("shows a password prompt and does not reveal the queue up front", async () => {
+  it("shows a loading state and does not reveal the queue up front", async () => {
     const { AdminScreen } = await import("./AdminScreen");
     render(<AdminScreen />);
 
-    expect(screen.getByLabelText(/admin password/i)).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: /loading admin data/i })).toBeInTheDocument();
     expect(screen.queryByText(/no pending words/i)).not.toBeInTheDocument();
   });
 
-  it("shows an error and stays locked when the password is wrong", async () => {
-    listFlaggedWordsMock.mockRejectedValue(new Error("Unauthorized"));
-    const { AdminScreen } = await import("./AdminScreen");
-    render(<AdminScreen />);
-
-    fireEvent.change(screen.getByLabelText(/admin password/i), { target: { value: "wrong" } });
-    fireEvent.click(screen.getByRole("button", { name: /unlock/i }));
-
-    await waitFor(() => expect(screen.getByText(/incorrect password/i)).toBeInTheDocument());
-    expect(screen.getByLabelText(/admin password/i)).toBeInTheDocument();
-  });
-
-  it("unlocks without persisting any words up front", async () => {
-    await unlock();
+  it("loads straight into the admin screen with no password gate", async () => {
+    await renderAdmin();
 
     expect(screen.getByText(/no pending words/i)).toBeInTheDocument();
     expect(publishWordsMock).not.toHaveBeenCalled();
@@ -97,7 +83,7 @@ describe("AdminScreen", () => {
 
   it("adds generated candidates to the local review queue without persisting them", async () => {
     generateWordsMock.mockResolvedValue([TACO]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
 
@@ -107,7 +93,7 @@ describe("AdminScreen", () => {
 
   it("shows a proposed brand-new category alongside its words", async () => {
     generateWordsMock.mockResolvedValue([RAMBO]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
 
@@ -117,7 +103,7 @@ describe("AdminScreen", () => {
 
   it("clears the queue when Reject All is clicked", async () => {
     generateWordsMock.mockResolvedValue([TACO, { ...TACO, id: "3", text: "Pizza" }]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
 
@@ -128,7 +114,7 @@ describe("AdminScreen", () => {
 
   it("publishes only approved words (including their category info) when the screen unmounts", async () => {
     generateWordsMock.mockResolvedValue([RAMBO]);
-    const { unmount } = await unlock();
+    const { unmount } = await renderAdmin();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Rambo")).toBeInTheDocument());
 
@@ -136,7 +122,7 @@ describe("AdminScreen", () => {
 
     unmount();
 
-    expect(publishWordsMock).toHaveBeenCalledWith("right", [
+    expect(publishWordsMock).toHaveBeenCalledWith([
       {
         categoryId: "new:80s-action-movies",
         categoryLabel: "80s Action Movies",
@@ -149,7 +135,7 @@ describe("AdminScreen", () => {
 
   it("sends previously rejected words back to generate so they aren't re-suggested", async () => {
     generateWordsMock.mockResolvedValue([TACO]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
@@ -162,7 +148,6 @@ describe("AdminScreen", () => {
 
     await waitFor(() =>
       expect(generateWordsMock).toHaveBeenLastCalledWith(
-        "right",
         undefined,
         expect.arrayContaining([
           expect.objectContaining({ text: "Taco", categoryId: "food" }),
@@ -173,7 +158,7 @@ describe("AdminScreen", () => {
 
   it("clears a word's earlier rejection once it's approved on a later generate", async () => {
     generateWordsMock.mockResolvedValue([TACO]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
@@ -189,18 +174,17 @@ describe("AdminScreen", () => {
 
     await waitFor(() =>
       expect(generateWordsMock).toHaveBeenLastCalledWith(
-        "right",
         undefined,
         expect.arrayContaining([expect.objectContaining({ text: "Taco", categoryId: "food" })])
       )
     );
-    const lastCallLocalWords = generateWordsMock.mock.calls.at(-1)?.[2] as { text: string }[];
+    const lastCallLocalWords = generateWordsMock.mock.calls.at(-1)?.[1] as { text: string }[];
     expect(lastCallLocalWords.filter((w) => w.text === "Taco")).toHaveLength(1);
   });
 
   it("does not publish anything when nothing was approved on unmount", async () => {
     generateWordsMock.mockResolvedValue([TACO]);
-    const { unmount } = await unlock();
+    const { unmount } = await renderAdmin();
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
     await waitFor(() => expect(screen.getByDisplayValue("Taco")).toBeInTheDocument());
 
@@ -209,18 +193,18 @@ describe("AdminScreen", () => {
     expect(publishWordsMock).not.toHaveBeenCalled();
   });
 
-  it("defaults to the Word Curation tab after unlocking", async () => {
-    await unlock();
+  it("defaults to the Word Curation tab", async () => {
+    await renderAdmin();
 
     expect(screen.getByRole("tab", { name: "Word Curation" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: /generate/i })).toBeInTheDocument();
   });
 
-  it("switches to the Flagged Words tab and shows flagged words fetched on unlock", async () => {
+  it("switches to the Flagged Words tab and shows flagged words fetched on load", async () => {
     listFlaggedWordsMock.mockResolvedValue([
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
@@ -232,14 +216,14 @@ describe("AdminScreen", () => {
     listDeactivatedWordsMock.mockResolvedValue([
       { id: "9", categoryId: "food", categoryLabel: "Food", text: "Pretzel", flaggedCount: 1 },
     ]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
     expect(screen.getByText("Pretzel")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /reactivate/i }));
 
-    await waitFor(() => expect(reactivateWordsMock).toHaveBeenCalledWith("right", ["9"]));
+    await waitFor(() => expect(reactivateWordsMock).toHaveBeenCalledWith(["9"]));
     expect(screen.getByText(/no deactivated words/i)).toBeInTheDocument();
   });
 
@@ -247,12 +231,12 @@ describe("AdminScreen", () => {
     listFlaggedWordsMock.mockResolvedValue([
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
-    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith("right", ["1"]));
+    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith(["1"]));
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
     expect(screen.getByText("Taco")).toBeInTheDocument();
@@ -263,13 +247,13 @@ describe("AdminScreen", () => {
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
     suggestSimilarWordsMock.mockResolvedValue([{ id: "5", text: "Burrito" }]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
 
-    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1", undefined));
+    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("1", undefined));
     await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
   });
 
@@ -278,7 +262,7 @@ describe("AdminScreen", () => {
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
     suggestSimilarWordsMock.mockResolvedValue([]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
 
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
@@ -287,9 +271,7 @@ describe("AdminScreen", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
 
-    await waitFor(() =>
-      expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1", "too obscure")
-    );
+    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("1", "too obscure"));
   });
 
   it("deactivates an accepted similar-word suggestion and moves it into the Deactivated tab", async () => {
@@ -297,7 +279,7 @@ describe("AdminScreen", () => {
       { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
     ]);
     suggestSimilarWordsMock.mockResolvedValue([{ id: "5", text: "Burrito" }]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
     fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirm deactivation/i }));
@@ -306,7 +288,7 @@ describe("AdminScreen", () => {
     const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });
     fireEvent.click(deactivateButtons[deactivateButtons.length - 1]);
 
-    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith("right", ["5"]));
+    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith(["5"]));
     expect(screen.queryByText("Burrito")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
@@ -314,13 +296,13 @@ describe("AdminScreen", () => {
   });
 
   it("lazily fetches category health only when that tab is opened", async () => {
-    await unlock();
+    await renderAdmin();
 
     expect(getCategoryHealthMock).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
 
-    await waitFor(() => expect(getCategoryHealthMock).toHaveBeenCalledWith("right"));
+    await waitFor(() => expect(getCategoryHealthMock).toHaveBeenCalledWith());
   });
 
   it("renders fetched category health data", async () => {
@@ -336,7 +318,7 @@ describe("AdminScreen", () => {
         skipped: 10,
       },
     ]);
-    await unlock();
+    await renderAdmin();
 
     fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
 
@@ -361,13 +343,13 @@ describe("AdminScreen", () => {
       { id: "1", text: "Pizza", active: true },
       { id: "2", text: "Old Joke", active: false },
     ]);
-    await unlock();
+    await renderAdmin();
     fireEvent.click(screen.getByRole("tab", { name: "Category Health" }));
     await waitFor(() => expect(screen.getByText(/food/i)).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: /food/i }));
 
-    await waitFor(() => expect(listCategoryWordsMock).toHaveBeenCalledWith("right", "food"));
+    await waitFor(() => expect(listCategoryWordsMock).toHaveBeenCalledWith("food"));
     await waitFor(() => expect(screen.getByText("Pizza")).toBeInTheDocument());
     expect(screen.getByText("Old Joke")).toBeInTheDocument();
   });

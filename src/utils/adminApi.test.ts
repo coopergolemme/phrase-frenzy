@@ -60,12 +60,11 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await generateWords("secret");
+    const result = await generateWords();
 
     expect(result).toEqual(PENDING);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toContain("/functions/v1/admin-words");
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "generate" });
   });
 
@@ -73,7 +72,7 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { candidates: PENDING });
     vi.stubGlobal("fetch", fetchMock);
 
-    await generateWords("secret", "80s action movies", [
+    await generateWords("80s action movies", [
       {
         categoryId: "new:80s-action-movies",
         categoryLabel: "80s Action Movies",
@@ -107,22 +106,21 @@ describe("adminApi", () => {
       { categoryId: "food", categoryLabel: "Food", categoryEmoji: "🍕", isNewCategory: false, text: "Taco" },
       { categoryId: "food", categoryLabel: "Food", categoryEmoji: "🍕", isNewCategory: false, text: "Pizza" },
     ];
-    const result = await publishWords("secret", words);
+    const result = await publishWords(words);
 
     expect(result).toBe(2);
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "publish", words });
   });
 
-  it("listFlaggedWords sends the password header and returns flagged words with matches", async () => {
+  it("listFlaggedWords returns flagged words with matches", async () => {
     const fetchMock = mockFetch(200, { flagged: FLAGGED });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await listFlaggedWords("secret");
+    const result = await listFlaggedWords();
 
     expect(result).toEqual(FLAGGED);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "list-flagged" });
   });
 
@@ -130,20 +128,19 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { deactivated: ["1"] });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(deactivateWords("secret", ["1"])).resolves.toBeUndefined();
+    await expect(deactivateWords(["1"])).resolves.toBeUndefined();
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "deactivate", ids: ["1"] });
   });
 
-  it("listDeactivatedWords sends the password header and returns deactivated words", async () => {
+  it("listDeactivatedWords returns deactivated words", async () => {
     const fetchMock = mockFetch(200, { deactivated: DEACTIVATED });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await listDeactivatedWords("secret");
+    const result = await listDeactivatedWords();
 
     expect(result).toEqual(DEACTIVATED);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "list-deactivated" });
   });
 
@@ -151,7 +148,7 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { reactivated: ["1"] });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(reactivateWords("secret", ["1"])).resolves.toBeUndefined();
+    await expect(reactivateWords(["1"])).resolves.toBeUndefined();
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ action: "reactivate", ids: ["1"] });
   });
@@ -161,11 +158,10 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { suggestions: SUGGESTIONS });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await suggestSimilarWords("secret", "1");
+    const result = await suggestSimilarWords("1");
 
     expect(result).toEqual(SUGGESTIONS);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "suggest-similar", wordId: "1" });
   });
 
@@ -173,7 +169,7 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { suggestions: [] });
     vi.stubGlobal("fetch", fetchMock);
 
-    await suggestSimilarWords("secret", "1", "too obscure");
+    await suggestSimilarWords("1", "too obscure");
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({
@@ -183,7 +179,7 @@ describe("adminApi", () => {
     });
   });
 
-  it("getCategoryHealth sends the password header and returns per-category stats", async () => {
+  it("getCategoryHealth returns per-category stats", async () => {
     const CATEGORIES = [
       {
         categoryId: "food",
@@ -199,11 +195,10 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { categories: CATEGORIES });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await getCategoryHealth("secret");
+    const result = await getCategoryHealth();
 
     expect(result).toEqual(CATEGORIES);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "category-health" });
   });
 
@@ -215,21 +210,20 @@ describe("adminApi", () => {
     const fetchMock = mockFetch(200, { words: WORDS });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await listCategoryWords("secret", "food");
+    const result = await listCategoryWords("food");
 
     expect(result).toEqual(WORDS);
     const [, init] = fetchMock.mock.calls[0];
-    expect(init.headers["x-admin-password"]).toBe("secret");
     expect(JSON.parse(init.body)).toEqual({ action: "list-category-words", categoryId: "food" });
   });
 
   it("throws AdminApiError with the response status and server message on failure", async () => {
-    vi.stubGlobal("fetch", mockFetch(401, { error: "Unauthorized" }));
+    vi.stubGlobal("fetch", mockFetch(401, { error: "Server error" }));
 
-    await expect(listFlaggedWords("wrong")).rejects.toMatchObject({
+    await expect(listFlaggedWords()).rejects.toMatchObject({
       name: "AdminApiError",
       status: 401,
-      message: "Unauthorized",
+      message: "Server error",
     });
   });
 });
