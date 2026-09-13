@@ -59,7 +59,7 @@ describe("AdminGenerateForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
 
-    expect(onGenerate).toHaveBeenCalledWith(20, "80s action movies");
+    expect(onGenerate).toHaveBeenCalledWith("80s action movies");
   });
 
   it("submits with no instructions when the field is left blank", async () => {
@@ -69,7 +69,7 @@ describe("AdminGenerateForm", () => {
     render(<AdminGenerateForm isGenerating={false} onGenerate={onGenerate} />);
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }));
 
-    expect(onGenerate).toHaveBeenCalledWith(20, undefined);
+    expect(onGenerate).toHaveBeenCalledWith(undefined);
   });
 
   it("streams the live transcript into the instructions field while listening", async () => {
@@ -107,7 +107,7 @@ describe("AdminGenerateForm", () => {
       vi.advanceTimersByTime(2000);
     });
 
-    expect(onGenerate).toHaveBeenCalledWith(20, "90s movies");
+    expect(onGenerate).toHaveBeenCalledWith("90s movies");
   });
 
   it("cancels the auto-submit countdown when Cancel is clicked", async () => {

@@ -14,22 +14,33 @@ describe("buildPrompt", () => {
   it("includes each category's id, label, and existing words as JSON", () => {
     const existing = new Map([["food", ["pizza", "taco"]]]);
 
-    const prompt = buildPrompt([FOOD], existing, 10);
+    const prompt = buildPrompt([FOOD], existing);
 
     expect(prompt).toContain('id: "food"');
     expect(prompt).toContain('label: "Food"');
     expect(prompt).toContain(JSON.stringify(["pizza", "taco"]));
-    expect(prompt).toContain("Generate 10 original");
+  });
+
+  it("tells the model to default to 10 words when no count is requested", () => {
+    const prompt = buildPrompt([FOOD], new Map());
+
+    expect(prompt).toContain("generate exactly 10");
+  });
+
+  it("tells the model to infer the count from an explicit request", () => {
+    const prompt = buildPrompt([FOOD], new Map(), "give me 15 famous places");
+
+    expect(prompt).toContain("generate exactly that many");
   });
 
   it("uses an empty existing-words array for categories with no words yet", () => {
-    const prompt = buildPrompt([ANIMALS], new Map(), 5);
+    const prompt = buildPrompt([ANIMALS], new Map());
 
     expect(prompt).toContain("existing words: []");
   });
 
   it("instructs the model to reuse an existing category or propose a new one", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5);
+    const prompt = buildPrompt([FOOD], new Map());
 
     expect(prompt).toContain("propose ONE new category");
     expect(prompt).toContain("newCategoryLabel");
@@ -37,13 +48,13 @@ describe("buildPrompt", () => {
   });
 
   it("omits the request block when no instructions are given", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5);
+    const prompt = buildPrompt([FOOD], new Map());
 
     expect(prompt).not.toContain("admin's request");
   });
 
   it("includes trimmed admin instructions as the driving request", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5, "  80s action movies  ");
+    const prompt = buildPrompt([FOOD], new Map(), "  80s action movies  ");
 
     expect(prompt.toLowerCase()).toContain("admin's request");
     expect(prompt).toContain('"80s action movies"');
@@ -51,13 +62,13 @@ describe("buildPrompt", () => {
   });
 
   it("ignores blank instructions", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5, "   ");
+    const prompt = buildPrompt([FOOD], new Map(), "   ");
 
     expect(prompt).not.toContain("admin's request");
   });
 
   it("tells the model not to drift onto a related-but-different topic", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5, "famous places");
+    const prompt = buildPrompt([FOOD], new Map(), "famous places");
 
     expect(prompt).toContain("Do NOT drift onto a related-but-different topic");
     expect(prompt).toContain("famous people");
@@ -65,7 +76,7 @@ describe("buildPrompt", () => {
   });
 
   it("makes the admin's request an override, not just filing context", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5, "famous places");
+    const prompt = buildPrompt([FOOD], new Map(), "famous places");
 
     expect(prompt).toContain("THIS IS YOUR ASSIGNMENT, NOT A SUGGESTION");
     expect(prompt).toContain("not a menu of\ntopics to pick from or a source of inspiration");
@@ -73,7 +84,7 @@ describe("buildPrompt", () => {
   });
 
   it("tells the model to pick from existing categories when no request is given", () => {
-    const prompt = buildPrompt([FOOD], new Map(), 5);
+    const prompt = buildPrompt([FOOD], new Map());
 
     expect(prompt).toContain("No specific topic was requested");
     expect(prompt).not.toContain("YOUR ASSIGNMENT");
@@ -82,7 +93,7 @@ describe("buildPrompt", () => {
   it("clamps instructions to MAX_INSTRUCTIONS_LENGTH characters", () => {
     const long = "a".repeat(MAX_INSTRUCTIONS_LENGTH + 50);
 
-    const prompt = buildPrompt([FOOD], new Map(), 5, long);
+    const prompt = buildPrompt([FOOD], new Map(), long);
 
     expect(prompt).toContain("a".repeat(MAX_INSTRUCTIONS_LENGTH));
     expect(prompt).not.toContain("a".repeat(MAX_INSTRUCTIONS_LENGTH + 1));

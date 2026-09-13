@@ -100,7 +100,6 @@ Deno.serve(async (req: Request) => {
         return json({
           candidates: await generate(
             client,
-            body.count as number,
             body.instructions as string | undefined,
             (body.localWords as LocalWordDto[] | undefined) ?? []
           ),
@@ -149,14 +148,9 @@ async function listFlagged(client: SupabaseClient): Promise<FlaggedWordDto[]> {
 
 async function generate(
   client: SupabaseClient,
-  count: number,
   instructions: string | undefined,
   localWords: LocalWordDto[]
 ): Promise<PendingWordDto[]> {
-  if (!Number.isInteger(count) || count <= 0) {
-    throw new Error("count must be a positive integer");
-  }
-
   const { data: categoryRows, error: categoryError } = await client
     .from("categories")
     .select("id, label, emoji, sort_order")
@@ -206,7 +200,7 @@ async function generate(
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
-  const prompt = buildPrompt(knownCategories, existingWordsByCategory, count, instructions);
+  const prompt = buildPrompt(knownCategories, existingWordsByCategory, instructions);
   const rawBatches = await callGeminiForWords(prompt, apiKey);
   const accepted = dedupeAgainstExisting(rawBatches, knownCategories, existingWordSetByCategory);
 

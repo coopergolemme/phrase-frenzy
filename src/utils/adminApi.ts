@@ -67,13 +67,12 @@ async function callAdminWords<T>(
 
 export async function generateWords(
   password: string,
-  count: number,
   instructions?: string,
   localWords?: LocalWord[]
 ): Promise<PendingWord[]> {
   const { candidates } = await callAdminWords<{ candidates: PendingWord[] }>(
     "generate",
-    { count, instructions, localWords },
+    { instructions, localWords },
     password
   );
   return candidates;

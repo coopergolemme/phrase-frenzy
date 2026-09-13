@@ -142,7 +142,6 @@ describe("AdminScreen", () => {
     await waitFor(() =>
       expect(generateWordsMock).toHaveBeenLastCalledWith(
         "right",
-        20,
         undefined,
         expect.arrayContaining([
           expect.objectContaining({ text: "Taco", categoryId: "food" }),
@@ -170,12 +169,11 @@ describe("AdminScreen", () => {
     await waitFor(() =>
       expect(generateWordsMock).toHaveBeenLastCalledWith(
         "right",
-        20,
         undefined,
         expect.arrayContaining([expect.objectContaining({ text: "Taco", categoryId: "food" })])
       )
     );
-    const lastCallLocalWords = generateWordsMock.mock.calls.at(-1)?.[3] as { text: string }[];
+    const lastCallLocalWords = generateWordsMock.mock.calls.at(-1)?.[2] as { text: string }[];
     expect(lastCallLocalWords.filter((w) => w.text === "Taco")).toHaveLength(1);
   });
 

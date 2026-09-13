@@ -3,7 +3,7 @@ import { useVoiceInput } from "../hooks/useVoiceInput";
 
 interface AdminGenerateFormProps {
   isGenerating: boolean;
-  onGenerate: (count: number, instructions?: string) => void;
+  onGenerate: (instructions?: string) => void;
 }
 
 const fieldLabelClass = "text-[0.8rem] font-semibold text-text-secondary";
@@ -13,7 +13,6 @@ const fieldControlClass =
 const AUTO_SUBMIT_SECONDS = 2;
 
 export function AdminGenerateForm({ isGenerating, onGenerate }: AdminGenerateFormProps) {
-  const [count, setCount] = useState(20);
   const [instructions, setInstructions] = useState("");
   const [autoSubmitSecondsLeft, setAutoSubmitSecondsLeft] = useState<number | null>(null);
   const { isSupported, isListening, transcript, error: voiceError, start, stop } = useVoiceInput();
@@ -43,7 +42,7 @@ export function AdminGenerateForm({ isGenerating, onGenerate }: AdminGenerateFor
         setAutoSubmitSecondsLeft((secondsLeft) => {
           if (secondsLeft === null || secondsLeft <= 1) {
             cancelAutoSubmit();
-            onGenerate(count, spokenInstructions);
+            onGenerate(spokenInstructions);
             return null;
           }
           return secondsLeft - 1;
@@ -70,7 +69,7 @@ export function AdminGenerateForm({ isGenerating, onGenerate }: AdminGenerateFor
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     cancelAutoSubmit();
-    onGenerate(count, instructions.trim() || undefined);
+    onGenerate(instructions.trim() || undefined);
   };
 
   return (
@@ -117,24 +116,9 @@ export function AdminGenerateForm({ isGenerating, onGenerate }: AdminGenerateFor
         )}
       </div>
 
-      <div className="flex items-end gap-3">
-        <div className="flex flex-none basis-[5.5rem] flex-col gap-1">
-          <label className={fieldLabelClass} htmlFor="admin-generate-count">
-            Count
-          </label>
-          <input
-            id="admin-generate-count"
-            className={fieldControlClass}
-            type="number"
-            min={1}
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-          />
-        </div>
-        <button type="submit" className="btn btn--primary flex-1" disabled={isGenerating}>
-          {isGenerating ? "Generating…" : "Generate"}
-        </button>
-      </div>
+      <button type="submit" className="btn btn--primary w-full" disabled={isGenerating}>
+        {isGenerating ? "Generating…" : "Generate"}
+      </button>
     </form>
   );
 }

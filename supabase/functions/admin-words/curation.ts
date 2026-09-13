@@ -71,10 +71,11 @@ KEEP words/phrases that are:
 
 export const MAX_INSTRUCTIONS_LENGTH = 300;
 
+export const DEFAULT_WORD_COUNT = 10;
+
 export function buildPrompt(
   categories: KnownCategory[],
   existingWordsByCategory: Map<string, string[]>,
-  count: number,
   instructions?: string
 ): string {
   const categoryList = categories
@@ -116,7 +117,13 @@ that could use more entries and generate words that clearly belong to it.`;
 
 ${topicDirective}
 
-Generate ${count} original words/phrases for the request above, following
+Decide how many words/phrases to generate based on the request above: if it
+explicitly asks for a specific number (e.g. "give me 15", "a few", "just
+one"), generate exactly that many (interpret vague quantities like "a few"
+as a small number such as 3-5). If the request does not mention a number at
+all, generate exactly ${DEFAULT_WORD_COUNT}.
+
+Generate that many original words/phrases for the request above, following
 every rule in the guessability guidelines at the top of this prompt.
 
 Once you know what the words are about, decide which ONE category they
