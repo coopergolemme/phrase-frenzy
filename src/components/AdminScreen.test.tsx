@@ -8,6 +8,7 @@ const publishWordsMock = vi.fn();
 const deactivateWordsMock = vi.fn();
 const reactivateWordsMock = vi.fn();
 const getCategoryHealthMock = vi.fn();
+const suggestSimilarWordsMock = vi.fn();
 
 vi.mock("../utils/adminApi", () => ({
   listFlaggedWords: (...args: unknown[]) => listFlaggedWordsMock(...args),
@@ -17,6 +18,7 @@ vi.mock("../utils/adminApi", () => ({
   deactivateWords: (...args: unknown[]) => deactivateWordsMock(...args),
   reactivateWords: (...args: unknown[]) => reactivateWordsMock(...args),
   getCategoryHealth: (...args: unknown[]) => getCategoryHealthMock(...args),
+  suggestSimilarWords: (...args: unknown[]) => suggestSimilarWordsMock(...args),
 }));
 
 async function unlock() {
@@ -58,6 +60,8 @@ describe("AdminScreen", () => {
     reactivateWordsMock.mockReset();
     getCategoryHealthMock.mockReset();
     getCategoryHealthMock.mockResolvedValue([]);
+    suggestSimilarWordsMock.mockReset();
+    suggestSimilarWordsMock.mockResolvedValue([]);
   });
 
   it("shows a password prompt and does not reveal the queue up front", async () => {
@@ -247,6 +251,40 @@ describe("AdminScreen", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
     expect(screen.getByText("Taco")).toBeInTheDocument();
+  });
+
+  it("fetches and shows similar-word suggestions after deactivating a flagged word", async () => {
+    listFlaggedWordsMock.mockResolvedValue([
+      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
+    ]);
+    suggestSimilarWordsMock.mockResolvedValue([{ id: "5", text: "Burrito" }]);
+    await unlock();
+    fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+
+    await waitFor(() => expect(suggestSimilarWordsMock).toHaveBeenCalledWith("right", "1"));
+    await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
+  });
+
+  it("deactivates an accepted similar-word suggestion and moves it into the Deactivated tab", async () => {
+    listFlaggedWordsMock.mockResolvedValue([
+      { id: "1", categoryId: "food", categoryLabel: "Food", text: "Taco", active: true, flaggedCount: 2 },
+    ]);
+    suggestSimilarWordsMock.mockResolvedValue([{ id: "5", text: "Burrito" }]);
+    await unlock();
+    fireEvent.click(screen.getByRole("tab", { name: "Flagged Words" }));
+    fireEvent.click(screen.getByRole("button", { name: /deactivate/i }));
+    await waitFor(() => expect(screen.getByText("Burrito")).toBeInTheDocument());
+
+    const deactivateButtons = screen.getAllByRole("button", { name: "Deactivate" });
+    fireEvent.click(deactivateButtons[deactivateButtons.length - 1]);
+
+    await waitFor(() => expect(deactivateWordsMock).toHaveBeenCalledWith("right", ["5"]));
+    expect(screen.queryByText("Burrito")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Deactivated Words" }));
+    expect(screen.getByText("Burrito")).toBeInTheDocument();
   });
 
   it("lazily fetches category health only when that tab is opened", async () => {

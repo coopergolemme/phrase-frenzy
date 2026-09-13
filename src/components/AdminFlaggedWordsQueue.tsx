@@ -20,7 +20,7 @@ export function AdminFlaggedWordsQueue({
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px]">
+    <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface backdrop-blur-[20px] [-webkit-overflow-scrolling:touch]">
       {flaggedWords.map((flagged) => {
         const suggestions = similarSuggestions[flagged.id];
         return (
@@ -72,7 +72,7 @@ export function AdminFlaggedWordsQueue({
                     </button>
                     <button
                       type="button"
-                      className="btn btn--small btn--text"
+                      className="btn btn--small btn--outline"
                       onClick={() => onDismissSuggestion(flagged.id, suggestion.id)}
                       aria-label={`Dismiss suggestion: ${suggestion.text}`}
                     >
