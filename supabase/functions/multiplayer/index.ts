@@ -126,12 +126,32 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
   };
 }
 
-// Writes the redacted projection clients actually read (room_public_state)
-// straight from the same room/state the caller already has in hand.
-// Realtime delivers this row's new content directly to subscribed clients
-// as the change payload — no separate "go fetch" round trip needed on the
-// client side, which is what keeps Correct/Pass feeling instant on other
-// players' screens.
+// Postgres Changes (CDC) has to tail the WAL before a client sees anything
+// — usually a few hundred ms, sometimes close to a second. Broadcast skips
+// that entirely: this sends the payload straight over the Realtime
+// WebSocket relay to whoever's subscribed to the topic, no polling layer
+// in between, which is what actually keeps Correct/Pass feeling instant.
+// `channel.send()` here runs over REST (server-side, never subscribed) —
+// see https://supabase.com/docs/guides/realtime/broadcast.
+async function broadcast(
+  client: SupabaseClient,
+  topic: string,
+  event: string,
+  payload: unknown
+): Promise<void> {
+  try {
+    const response = await client.channel(topic).send({ type: "broadcast", event, payload });
+    if (response !== "ok") console.error(`broadcast ${topic}/${event} failed`, response);
+  } catch (error) {
+    console.error(`broadcast ${topic}/${event} failed`, error);
+  }
+}
+
+// Persists the redacted projection (room_public_state) so a client loading
+// the room fresh (or reconnecting) has something to read, then broadcasts
+// the same payload directly to whoever's already subscribed — see
+// broadcast() above for why that second step is the one that matters for
+// latency.
 async function publishPublicState(
   client: SupabaseClient,
   room: RoomRow,
@@ -156,6 +176,8 @@ async function publishPublicState(
     { onConflict: "room_code" }
   );
   if (error) console.error("publishPublicState failed", error);
+
+  await broadcast(client, `room-state:${room.code}`, "state", publicState);
 }
 
 async function fetchRoom(client: SupabaseClient, roomCode: string): Promise<RoomRow> {
@@ -329,6 +351,8 @@ async function joinRoom(
     .insert({ id: player.id, room_code: roomCode, name, team_index: teamIndex, join_order: joinOrder });
   if (rosterError) throw rosterError;
 
+  await broadcast(client, `room-lobby:${roomCode}`, "changed", {});
+
   return { playerToken: player.player_token, playerId: player.id };
 }
 
@@ -423,6 +447,7 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     .eq("code", roomCode);
   if (updateError) throw updateError;
 
+  await broadcast(client, `room-lobby:${roomCode}`, "changed", {});
   await publishPublicState(client, { ...room, status: "playing" }, newState);
 }
 

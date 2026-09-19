@@ -1,9 +1,12 @@
-// Reads (initial load and every live update) go straight from Postgres to
-// the client via RLS + Realtime Postgres Changes — no edge function hop on
-// the read path. Only writes (create/join/start/correct/pass/timeUp/
-// nextTurn) still go through the multiplayer edge function; see
-// supabase/functions/multiplayer/index.ts, which is the only thing that
-// ever writes to the tables read here.
+// Initial reads go straight from Postgres to the client via RLS (no edge
+// function hop). Live updates arrive over Realtime Broadcast, pushed
+// directly by the multiplayer edge function right after each write — see
+// supabase/functions/multiplayer/index.ts. Broadcast (a direct WebSocket
+// push) is used instead of Postgres Changes (a WAL-tailing CDC poll) to
+// avoid the few-hundred-ms-to-1s latency Postgres Changes adds, which is
+// what actually keeps Correct/Pass feeling instant on other players'
+// screens. The edge function is still the only thing that ever writes to
+// the tables read here.
 import { getSupabaseClient } from "./supabaseClient";
 import type { Lobby, LobbyPlayer, PublicGameState } from "./multiplayerApi";
 import type { RoundLogEntry, Team } from "../game/turnLogic";
@@ -95,31 +98,22 @@ export async function fetchPublicState(roomCode: string): Promise<PublicGameStat
 }
 
 // Lobby membership/config changes a handful of times per game (joins,
-// then one start) — a full re-fetch on any change keeps this simple
-// without needing to hand-patch a roster array from raw insert/update
-// payloads. Still avoids the edge function round trip since both reads
-// are direct, fast PostgREST calls.
+// then one start) — a full re-fetch on the "changed" ping keeps this
+// simple without needing to hand-patch a roster array from a broadcast
+// payload. Still avoids the edge function round trip on the read since the
+// re-fetch is a direct, fast PostgREST call.
 export function subscribeToLobby(roomCode: string, onChange: () => void): () => void {
   const client = getSupabaseClient();
   const channel = client
     .channel(`room-lobby:${roomCode}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "rooms", filter: `code=eq.${roomCode}` },
-      onChange
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "room_roster", filter: `room_code=eq.${roomCode}` },
-      onChange
-    )
+    .on("broadcast", { event: "changed" }, onChange)
     .subscribe();
   return () => client.removeChannel(channel);
 }
 
-// The hot path: gameplay state (score, turn, timer anchor) is delivered
-// directly as the changed row, with no follow-up fetch — this is what
-// keeps Correct/Pass feeling instant on the other players' screens.
+// The hot path: gameplay state (score, turn, timer anchor) is pushed
+// directly in the broadcast payload, with no follow-up fetch — this is
+// what keeps Correct/Pass feeling instant on the other players' screens.
 export function subscribeToPublicState(
   roomCode: string,
   onChange: (state: PublicGameState) => void
@@ -127,14 +121,10 @@ export function subscribeToPublicState(
   const client = getSupabaseClient();
   const channel = client
     .channel(`room-state:${roomCode}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "room_public_state", filter: `room_code=eq.${roomCode}` },
-      (payload) => {
-        const row = payload.new as RoomPublicStateRow | undefined;
-        if (row && Object.keys(row).length > 0) onChange(mapPublicStateRow(row));
-      }
-    )
+    .on("broadcast", { event: "state" }, (message) => {
+      const state = message.payload as PublicGameState | undefined;
+      if (state) onChange(state);
+    })
     .subscribe();
   return () => client.removeChannel(channel);
 }
