@@ -6,10 +6,11 @@
 
 /* "Marquee ticket" theme: a dark, carnival-arcade look built for a phone
    getting passed hand to hand under party lights — chunky ticket-stub
-   cards, a bold Space Grotesk face for the word/timer/headlines, and a
-   punchy three-accent palette (green = go, gold = pass, coral = urgent). */
+   cards, a bold rounded Baloo 2 face (fairground-signage lettering) for
+   the word/timer/headlines, and a punchy three-accent palette (green =
+   go, gold = pass, coral = urgent). */
 :root {
-  --font-system: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  --font-system: "Baloo 2", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
   --font-display: var(--font-system);
 
@@ -100,10 +101,6 @@ body {
   margin: 0;
   font-family: var(--font-system);
   background: var(--color-bg);
-  background-image:
-    radial-gradient(circle at 12% -6%, rgba(255, 212, 71, 0.12), transparent 42%),
-    radial-gradient(circle at 88% 8%, rgba(58, 217, 126, 0.1), transparent 40%);
-  background-attachment: fixed;
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
