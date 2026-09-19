@@ -8,12 +8,18 @@ import {
   timeUp as apiTimeUp,
   nextTurn as apiNextTurn,
   restartGame as apiRestartGame,
+  reportFoul as apiReportFoul,
   type PublicGameState,
   type LobbyPlayer,
 } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
 import { drawNextWordSeeded, type RoundLogEntry, type WordOutcome } from "../game/turnLogic";
+import { playBuzzerSound, triggerHaptic } from "../utils/audio";
+
+import { useMatchHistory } from "./useMatchHistory";
+import { useWordStats } from "./useWordStats";
+import { useGameSync } from "./useGameSync";
 
 // The describer's local mirror of the turn's deck — word bank + the deck's
 // (seed, index) position (see drawNextWordSeeded) plus this turn's score
@@ -58,22 +64,77 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const timeUpSentForTurnRef = useRef<string | null>(null);
   const wordFetchedForTurnRef = useRef<string | null>(null);
   const localDeckRef = useRef<LocalDeck | null>(null);
+  const lastRecordedTurnRef = useRef<string | null>(null);
+  const matchRecordedRef = useRef<boolean>(false);
+
+  const { addMatch } = useMatchHistory();
+  const { recordRoundLog } = useWordStats();
+  const { trackTurn, resetSession, finishMatch } = useGameSync();
   // Chains correct/pass persistence calls one after another so concurrent
   // taps can never race a read-modify-write on the server's deck position
   // — the UI itself never waits on this chain, only timeUp does (below),
   // so the round doesn't finalize before every tap has been recorded.
   const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
 
+  const [lastFoul, setLastFoul] = useState<{ spectatorName: string; penaltySec: number } | null>(null);
+  const foulTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!state) return;
+
+    if (
+      state.status === "lobby" ||
+      (state.status === "playing" && state.turnIndex === 0 && matchRecordedRef.current)
+    ) {
+      matchRecordedRef.current = false;
+      lastRecordedTurnRef.current = null;
+      resetSession();
+    }
+
+    if ((state.status === "roundSummary" || state.status === "gameOver") && state.roundLog) {
+      if (lastRecordedTurnRef.current !== state.turnStartedAt) {
+        lastRecordedTurnRef.current = state.turnStartedAt;
+        recordRoundLog(state.roundLog);
+        trackTurn(state.roundLog);
+      }
+    }
+
+    if (state.status === "gameOver" && !matchRecordedRef.current) {
+      matchRecordedRef.current = true;
+      const match = addMatch(state.teams, state.roundsPerTeam);
+      finishMatch(match, state.teams);
+    }
+  }, [state, recordRoundLog, trackTurn, addMatch, finishMatch, resetSession]);
+
   useEffect(() => {
     let cancelled = false;
     fetchPublicState(session.roomCode).then((result) => {
       if (!cancelled && result) setState(result);
     });
-    const unsubscribe = subscribeToPublicState(session.roomCode, (result) => {
-      if (!cancelled) setState(result);
-    });
+    const unsubscribe = subscribeToPublicState(
+      session.roomCode,
+      (result) => {
+        if (!cancelled) setState(result);
+      },
+      (foulPayload) => {
+        if (cancelled) return;
+        playBuzzerSound();
+        triggerHaptic([150, 50, 150]);
+        setLastFoul(foulPayload);
+
+        if (foulTimeoutRef.current) {
+          window.clearTimeout(foulTimeoutRef.current);
+        }
+        foulTimeoutRef.current = window.setTimeout(() => {
+          setLastFoul(null);
+        }, 2500);
+      }
+    );
     return () => {
       cancelled = true;
+      if (foulTimeoutRef.current) {
+        window.clearTimeout(foulTimeoutRef.current);
+      }
       unsubscribe();
     };
   }, [session.roomCode]);
@@ -229,6 +290,13 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     );
   }, [isHost, session.roomCode, session.playerToken]);
 
+  const handleFoul = useCallback(() => {
+    if (isDescriber || isPaused) return;
+    apiReportFoul(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't call foul")
+    );
+  }, [isDescriber, isPaused, session.roomCode, session.playerToken]);
+
   const isLastTurn = state ? state.turnIndex + 1 >= state.turnOrder.length : false;
   const nextTeamIndex = state ? state.turnOrder[state.turnIndex + 1] : undefined;
   const nextTeamName =
@@ -248,6 +316,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     currentWord: isDescriber ? word : null,
     timeRemaining,
     isPaused,
+    lastFoul,
     // While the round is live, the describer's own device shows its local
     // optimistic tally instead of waiting on the server round trip +
     // realtime broadcast; every other device (and everyone once the round
@@ -256,6 +325,8 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundScore: state?.status === "playing" && isDescriber ? localRoundScore : state?.roundScore ?? 0,
     roundLog:
       state?.status === "playing" ? (isDescriber ? localRoundLog : []) : state?.roundLog ?? [],
+    turnIndex: state?.turnIndex ?? 0,
+    roundsPerTeam: state?.roundsPerTeam ?? 1,
     isLastTurn,
     nextTeamName,
     error,
@@ -265,5 +336,6 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     handleSkipRound,
     handleNextTurn,
     handleRestart,
+    handleFoul,
   };
 }

@@ -70,9 +70,9 @@ describe("useMultiplayerRoom", () => {
   it("restores active session when stored session matches initialRoomCode", async () => {
     const session: MultiplayerSession = {
       roomCode: "ROOM123",
-      playerToken: "token-1",
+      playerToken: "token-abc",
       playerId: "p1",
-      name: "Host",
+      name: "Cooper",
     };
     loadMultiplayerSessionMock.mockReturnValue(session);
 
