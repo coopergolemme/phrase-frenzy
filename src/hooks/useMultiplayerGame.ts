@@ -14,6 +14,10 @@ import type { MultiplayerSession } from "../utils/multiplayerSession";
 import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
 import { drawNextWordSeeded, type RoundLogEntry, type WordOutcome } from "../game/turnLogic";
 
+import { useMatchHistory } from "./useMatchHistory";
+import { useWordStats } from "./useWordStats";
+import { useGameSync } from "./useGameSync";
+
 // The describer's local mirror of the turn's deck — word bank + the deck's
 // (seed, index) position (see drawNextWordSeeded) plus this turn's score
 // so far. Since the seed makes the deck order fully reproducible without
@@ -57,11 +61,44 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const timeUpSentForTurnRef = useRef<string | null>(null);
   const wordFetchedForTurnRef = useRef<string | null>(null);
   const localDeckRef = useRef<LocalDeck | null>(null);
+  const lastRecordedTurnRef = useRef<string | null>(null);
+  const matchRecordedRef = useRef<boolean>(false);
+
+  const { addMatch } = useMatchHistory();
+  const { recordRoundLog } = useWordStats();
+  const { trackTurn, resetSession, finishMatch } = useGameSync();
   // Chains correct/pass persistence calls one after another so concurrent
   // taps can never race a read-modify-write on the server's deck position
   // — the UI itself never waits on this chain, only timeUp does (below),
   // so the round doesn't finalize before every tap has been recorded.
   const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    if (!state) return;
+
+    if (
+      state.status === "lobby" ||
+      (state.status === "playing" && state.turnIndex === 0 && matchRecordedRef.current)
+    ) {
+      matchRecordedRef.current = false;
+      lastRecordedTurnRef.current = null;
+      resetSession();
+    }
+
+    if ((state.status === "roundSummary" || state.status === "gameOver") && state.roundLog) {
+      if (lastRecordedTurnRef.current !== state.turnStartedAt) {
+        lastRecordedTurnRef.current = state.turnStartedAt;
+        recordRoundLog(state.roundLog);
+        trackTurn(state.roundLog);
+      }
+    }
+
+    if (state.status === "gameOver" && !matchRecordedRef.current) {
+      matchRecordedRef.current = true;
+      const match = addMatch(state.teams, state.roundsPerTeam);
+      finishMatch(match, state.teams);
+    }
+  }, [state, recordRoundLog, trackTurn, addMatch, finishMatch, resetSession]);
 
   useEffect(() => {
     let cancelled = false;
