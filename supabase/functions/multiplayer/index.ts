@@ -653,6 +653,59 @@ async function skipRound(client: SupabaseClient, body: Record<string, unknown>):
   await finalizeRound(client, room, state);
 }
 
+const FOUL_PENALTY_SEC = 2;
+
+async function foul(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const [room, state] = await fetchRoomAndState(client, roomCode);
+  if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
+  if (state.paused_at) throw new ApiError("The game is paused", 409);
+
+  const { data: callerRow, error: callerError } = await client
+    .from("room_players")
+    .select("name, player_token")
+    .eq("room_code", roomCode)
+    .eq("player_token", playerToken)
+    .maybeSingle();
+  if (callerError) throw callerError;
+  if (!callerRow) throw new ApiError("Player not found", 403);
+
+  const describer = await getActiveDescriberPlayer(client, roomCode, state);
+  if (describer.player_token === playerToken) {
+    throw new ApiError("Active describer cannot foul themselves", 403);
+  }
+
+  const spectatorName = (callerRow as { name: string }).name;
+  const nextState: RoomStateRow = {
+    ...state,
+    penalty_sec: state.penalty_sec + FOUL_PENALTY_SEC,
+  };
+
+  if (remainingSeconds(nextState, room) <= 0) {
+    await finalizeRound(client, room, nextState);
+    EdgeRuntime.waitUntil(
+      broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec: FOUL_PENALTY_SEC })
+    );
+    return;
+  }
+
+  const { error: stateError } = await client
+    .from("room_state")
+    .update({
+      penalty_sec: nextState.penalty_sec,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("room_code", roomCode);
+  if (stateError) throw stateError;
+
+  EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
+  EdgeRuntime.waitUntil(
+    broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec: FOUL_PENALTY_SEC })
+  );
+}
+
 async function timeUp(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const room = await fetchRoom(client, roomCode);
