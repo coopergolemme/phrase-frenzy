@@ -14,9 +14,7 @@ export class MultiplayerApiError extends Error {
 type Action =
   | "createRoom"
   | "joinRoom"
-  | "getLobby"
   | "startGame"
-  | "getState"
   | "getCurrentWord"
   | "correct"
   | "pass"
@@ -88,10 +86,6 @@ export interface Lobby {
   players: LobbyPlayer[];
 }
 
-export function getLobby(roomCode: string): Promise<Lobby> {
-  return callMultiplayer<Lobby>("getLobby", { roomCode });
-}
-
 export function startGame(roomCode: string, playerToken: string): Promise<Record<string, never>> {
   return callMultiplayer("startGame", { roomCode, playerToken });
 }
@@ -107,10 +101,6 @@ export interface PublicGameState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
-}
-
-export function getState(roomCode: string): Promise<PublicGameState> {
-  return callMultiplayer<PublicGameState>("getState", { roomCode });
 }
 
 export function getCurrentWord(roomCode: string, playerToken: string): Promise<{ word: string }> {

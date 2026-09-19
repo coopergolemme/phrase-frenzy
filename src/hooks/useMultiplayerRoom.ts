@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createRoom as apiCreateRoom,
   joinRoom as apiJoinRoom,
-  getLobby as apiGetLobby,
   startGame as apiStartGame,
   MultiplayerApiError,
   type Lobby,
@@ -13,12 +12,14 @@ import {
   saveMultiplayerSession,
   type MultiplayerSession,
 } from "../utils/multiplayerSession";
-import { subscribeToRoomEvents } from "../utils/multiplayerChannel";
+import { fetchLobbySnapshot, subscribeToLobby } from "../utils/multiplayerRealtime";
 
 // Lobby-phase multiplayer state: creating/joining a room, watching the
 // roster fill in over realtime, and (host-only) starting the game. Once
 // `lobby.status` moves off "lobby", the caller (MultiplayerApp) switches
-// to useMultiplayerGame for the same room/session.
+// to useMultiplayerGame for the same room/session. Reads go straight to
+// Postgres (fetchLobbySnapshot/subscribeToLobby) rather than through the
+// edge function — see multiplayerRealtime.ts.
 export function useMultiplayerRoom(initialRoomCode?: string) {
   const [session, setSession] = useState<MultiplayerSession | null>(() => {
     const stored = loadMultiplayerSession();
@@ -30,17 +31,17 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
   const [isBusy, setIsBusy] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  // Any room_events change (join, start, turn advance, ...) means the
-  // lobby snapshot may be stale — re-fetch it rather than trying to keep
-  // a locally-patched copy in sync. Cheap and always correct.
+  // Any change to rooms/room_roster means the lobby snapshot may be stale
+  // — re-fetch it rather than trying to keep a locally-patched copy in
+  // sync. Cheap and always correct.
   const refreshLobby = useCallback((roomCode: string) => {
-    apiGetLobby(roomCode).then(setLobby).catch(() => {});
+    fetchLobbySnapshot(roomCode).then(setLobby).catch(() => {});
   }, []);
 
   const subscribe = useCallback(
     (roomCode: string) => {
       unsubscribeRef.current?.();
-      unsubscribeRef.current = subscribeToRoomEvents(roomCode, () => refreshLobby(roomCode));
+      unsubscribeRef.current = subscribeToLobby(roomCode, () => refreshLobby(roomCode));
     },
     [refreshLobby]
   );
@@ -54,7 +55,7 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    apiGetLobby(session.roomCode)
+    fetchLobbySnapshot(session.roomCode)
       .then((result) => {
         if (!cancelled) setLobby(result);
       })
@@ -91,7 +92,7 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
         };
         saveMultiplayerSession(newSession);
         setSession(newSession);
-        const lobbySnapshot = await apiGetLobby(result.roomCode);
+        const lobbySnapshot = await fetchLobbySnapshot(result.roomCode);
         setLobby(lobbySnapshot);
         subscribe(result.roomCode);
       } catch (err) {
@@ -118,7 +119,7 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
         };
         saveMultiplayerSession(newSession);
         setSession(newSession);
-        const lobbySnapshot = await apiGetLobby(roomCode);
+        const lobbySnapshot = await fetchLobbySnapshot(roomCode);
         setLobby(lobbySnapshot);
         subscribe(roomCode);
       } catch (err) {
@@ -134,7 +135,7 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
     setIsBusy(true);
     setError(null);
     try {
-      const lobbySnapshot = await apiGetLobby(roomCode.toUpperCase());
+      const lobbySnapshot = await fetchLobbySnapshot(roomCode.toUpperCase());
       setLobby(lobbySnapshot);
       subscribe(roomCode.toUpperCase());
     } catch (err) {

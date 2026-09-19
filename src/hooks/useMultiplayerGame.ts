@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getState as apiGetState,
   getCurrentWord as apiGetCurrentWord,
   markCorrect as apiMarkCorrect,
   markPass as apiMarkPass,
@@ -10,7 +9,7 @@ import {
   type LobbyPlayer,
 } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
-import { subscribeToRoomEvents } from "../utils/multiplayerChannel";
+import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
 
 const TICK_MS = 250;
 
@@ -19,11 +18,12 @@ function computeRemaining(state: PublicGameState): number {
   return Math.max(0, state.durationSec - elapsedSec - state.penaltySec);
 }
 
-// In-game multiplayer state for a single device: subscribes to the
-// server-pushed public state (scores, turn order, timer anchor — never
-// the word itself), runs a local countdown anchored to that timer the
-// same way useCountdown.ts does, and fetches the current word directly
-// only when this device becomes the active describer.
+// In-game multiplayer state for a single device: subscribes directly to
+// Postgres Changes on room_public_state (scores, turn order, timer anchor
+// — never the word itself), which delivers each update as the changed row
+// itself with no follow-up fetch, runs a local countdown anchored to that
+// timer the same way useCountdown.ts does, and fetches the current word
+// directly only when this device becomes the active describer.
 export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: LobbyPlayer[]) {
   const [state, setState] = useState<PublicGameState | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -34,13 +34,12 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   useEffect(() => {
     let cancelled = false;
-    const refresh = () => {
-      apiGetState(session.roomCode).then((result) => {
-        if (!cancelled) setState(result);
-      });
-    };
-    refresh();
-    const unsubscribe = subscribeToRoomEvents(session.roomCode, refresh);
+    fetchPublicState(session.roomCode).then((result) => {
+      if (!cancelled && result) setState(result);
+    });
+    const unsubscribe = subscribeToPublicState(session.roomCode, (result) => {
+      if (!cancelled) setState(result);
+    });
     return () => {
       cancelled = true;
       unsubscribe();

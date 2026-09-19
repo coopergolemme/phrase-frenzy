@@ -95,25 +95,6 @@ class ApiError extends Error {
   }
 }
 
-// Pings Realtime's built-in Postgres Changes (CDC) instead of pushing a
-// payload ourselves: an UPDATE to this room's room_events row is enough —
-// Postgres emits a change event for the statement whether or not any
-// column's value actually differs, so clients subscribed to this table
-// get notified and re-fetch the real (redacted) state via getLobby/
-// getState. Best effort: the actual db write already succeeded, and a
-// missed notification just means a client waits for the next one (or its
-// own next getState poll) instead of losing data.
-async function touchRoomEvent(client: SupabaseClient, roomCode: string): Promise<void> {
-  try {
-    const { error } = await client
-      .from("room_events")
-      .upsert({ room_code: roomCode, updated_at: new Date().toISOString() }, { onConflict: "room_code" });
-    if (error) console.error("touchRoomEvent failed", error);
-  } catch (error) {
-    console.error("touchRoomEvent failed", error);
-  }
-}
-
 interface PublicState {
   status: RoomRow["status"];
   teams: Team[];
@@ -143,6 +124,38 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
     durationSec: room.round_duration_sec,
     penaltySec: state.penalty_sec,
   };
+}
+
+// Writes the redacted projection clients actually read (room_public_state)
+// straight from the same room/state the caller already has in hand.
+// Realtime delivers this row's new content directly to subscribed clients
+// as the change payload — no separate "go fetch" round trip needed on the
+// client side, which is what keeps Correct/Pass feeling instant on other
+// players' screens.
+async function publishPublicState(
+  client: SupabaseClient,
+  room: RoomRow,
+  state: RoomStateRow
+): Promise<void> {
+  const publicState = toPublicState(room, state);
+  const { error } = await client.from("room_public_state").upsert(
+    {
+      room_code: room.code,
+      status: publicState.status,
+      teams: publicState.teams,
+      turn_order: publicState.turnOrder,
+      turn_index: publicState.turnIndex,
+      rounds_per_team: publicState.roundsPerTeam,
+      round_score: publicState.roundScore,
+      round_log: publicState.roundLog,
+      turn_started_at: publicState.turnStartedAt,
+      duration_sec: publicState.durationSec,
+      penalty_sec: publicState.penaltySec,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "room_code" }
+  );
+  if (error) console.error("publishPublicState failed", error);
 }
 
 async function fetchRoom(client: SupabaseClient, roomCode: string): Promise<RoomRow> {
@@ -270,12 +283,14 @@ async function createRoom(
     .select()
     .single();
   if (playerError) throw playerError;
+  const host = playerRow as RoomPlayerRow;
 
-  return {
-    roomCode,
-    playerToken: (playerRow as RoomPlayerRow).player_token,
-    playerId: (playerRow as RoomPlayerRow).id,
-  };
+  const { error: rosterError } = await client
+    .from("room_roster")
+    .insert({ id: host.id, room_code: roomCode, name: host.name, team_index: 0, join_order: 0 });
+  if (rosterError) throw rosterError;
+
+  return { roomCode, playerToken: host.player_token, playerId: host.id };
 }
 
 async function joinRoom(
@@ -300,62 +315,21 @@ async function joinRoom(
     .eq("room_code", roomCode);
   if (countError) throw countError;
 
+  const joinOrder = count ?? 0;
   const { data: playerRow, error: playerError } = await client
     .from("room_players")
-    .insert({ room_code: roomCode, name, team_index: teamIndex, join_order: count ?? 0 })
+    .insert({ room_code: roomCode, name, team_index: teamIndex, join_order: joinOrder })
     .select()
     .single();
   if (playerError) throw playerError;
+  const player = playerRow as RoomPlayerRow;
 
-  await touchRoomEvent(client, roomCode);
+  const { error: rosterError } = await client
+    .from("room_roster")
+    .insert({ id: player.id, room_code: roomCode, name, team_index: teamIndex, join_order: joinOrder });
+  if (rosterError) throw rosterError;
 
-  return {
-    playerToken: (playerRow as RoomPlayerRow).player_token,
-    playerId: (playerRow as RoomPlayerRow).id,
-  };
-}
-
-interface LobbyPlayerDto {
-  id: string;
-  name: string;
-  teamIndex: number;
-}
-
-interface LobbyDto {
-  status: RoomRow["status"];
-  roundsPerTeam: number;
-  roundDurationSec: number;
-  categoryIds: string[];
-  teamNames: string[];
-  players: LobbyPlayerDto[];
-}
-
-async function buildLobbyPayload(client: SupabaseClient, room: RoomRow): Promise<LobbyDto> {
-  const { data, error } = await client
-    .from("room_players")
-    .select("id, name, team_index")
-    .eq("room_code", room.code)
-    .order("join_order");
-  if (error) throw error;
-
-  return {
-    status: room.status,
-    roundsPerTeam: room.rounds_per_team,
-    roundDurationSec: room.round_duration_sec,
-    categoryIds: room.category_ids,
-    teamNames: room.team_names,
-    players: (data ?? []).map((row: { id: string; name: string; team_index: number }) => ({
-      id: row.id,
-      name: row.name,
-      teamIndex: row.team_index,
-    })),
-  };
-}
-
-async function getLobby(client: SupabaseClient, body: Record<string, unknown>): Promise<LobbyDto> {
-  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
-  const room = await fetchRoom(client, roomCode);
-  return buildLobbyPayload(client, room);
+  return { playerToken: player.player_token, playerId: player.id };
 }
 
 async function fetchWordsForCategories(
@@ -449,14 +423,7 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     .eq("code", roomCode);
   if (updateError) throw updateError;
 
-  await touchRoomEvent(client, roomCode);
-}
-
-async function getState(client: SupabaseClient, body: Record<string, unknown>): Promise<PublicState> {
-  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
-  const room = await fetchRoom(client, roomCode);
-  const state = await fetchRoomState(client, roomCode);
-  return toPublicState(room, state);
+  await publishPublicState(client, { ...room, status: "playing" }, newState);
 }
 
 async function getCurrentWord(
@@ -501,7 +468,7 @@ async function finalizeRound(
     .eq("code", room.code);
   if (roomError) throw roomError;
 
-  await touchRoomEvent(client, room.code);
+  await publishPublicState(client, { ...room, status: "roundSummary" }, { ...state, teams });
 }
 
 async function correctOrPass(
@@ -556,7 +523,7 @@ async function correctOrPass(
     .eq("room_code", roomCode);
   if (stateError) throw stateError;
 
-  await touchRoomEvent(client, roomCode);
+  await publishPublicState(client, room, nextState);
 
   return { word: nextState.current_word };
 }
@@ -597,7 +564,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   if (nextTurnIndex >= state.turn_order.length) {
     const { error } = await client.from("rooms").update({ status: "gameOver" }).eq("code", roomCode);
     if (error) throw error;
-    await touchRoomEvent(client, roomCode);
+    await publishPublicState(client, { ...room, status: "gameOver" }, state);
     return;
   }
 
@@ -636,7 +603,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     .eq("code", roomCode);
   if (roomError) throw roomError;
 
-  await touchRoomEvent(client, roomCode);
+  await publishPublicState(client, { ...room, status: "playing" }, nextState);
 }
 
 Deno.serve(async (req: Request) => {
@@ -662,13 +629,9 @@ Deno.serve(async (req: Request) => {
         return json(await createRoom(client, body));
       case "joinRoom":
         return json(await joinRoom(client, body));
-      case "getLobby":
-        return json(await getLobby(client, body));
       case "startGame":
         await startGame(client, body);
         return json({});
-      case "getState":
-        return json(await getState(client, body));
       case "getCurrentWord":
         return json(await getCurrentWord(client, body));
       case "correct":
