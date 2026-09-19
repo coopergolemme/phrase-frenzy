@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { CategoryPickerSheet } from "./CategoryPickerSheet";
+import { QrScannerModal } from "./QrScannerModal";
 import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
 import { WordStatsSheet } from "./WordStatsSheet";
 import { MatchHistorySheet } from "./MatchHistorySheet";
@@ -65,6 +66,7 @@ export function MultiplayerHomeScreen({
   const [isPickingCategories, setIsPickingCategories] = useState(false);
 
   const [joinCode, setJoinCode] = useState("");
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const canAddTeam = teamNames.length < MAX_TEAMS;
   const canRemoveTeam = teamNames.length > MIN_TEAMS;
@@ -202,6 +204,14 @@ export function MultiplayerHomeScreen({
             maxLength={6}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
           />
+          <button
+            type="button"
+            className="btn btn--outline flex w-full items-center justify-center gap-2 py-3"
+            onClick={() => setIsScannerOpen(true)}
+          >
+            <span aria-hidden="true" className="text-lg">📷</span>
+            Scan QR Code
+          </button>
         </div>
         {error && <p className="m-0 text-[0.9rem] text-danger">{error}</p>}
         <button
@@ -211,6 +221,15 @@ export function MultiplayerHomeScreen({
         >
           {isBusy ? "Joining…" : "Continue"}
         </button>
+
+        <QrScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanSuccess={(code) => {
+            setJoinCode(code);
+            onJoin(code);
+          }}
+        />
       </div>
     );
   }

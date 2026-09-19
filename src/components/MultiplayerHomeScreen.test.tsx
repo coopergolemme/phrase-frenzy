@@ -30,6 +30,24 @@ describe("MultiplayerHomeScreen", () => {
     expect(screen.getByRole("button", { name: /join a game/i })).toBeInTheDocument();
   });
 
+  it("switches to join mode and renders Scan QR Code button", () => {
+    renderScreen();
+
+    fireEvent.click(screen.getByRole("button", { name: /join a game/i }));
+
+    expect(screen.getByPlaceholderText(/e\.g\. ABCDEF/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /scan qr code/i })).toBeInTheDocument();
+  });
+
+  it("opens QrScannerModal when Scan QR Code is clicked", () => {
+    renderScreen();
+
+    fireEvent.click(screen.getByRole("button", { name: /join a game/i }));
+    fireEvent.click(screen.getByRole("button", { name: /scan qr code/i }));
+
+    expect(screen.getByRole("dialog", { name: "Scan QR Code" })).toBeInTheDocument();
+  });
+
   it("does not display flagged, stats, or history buttons when no data is provided", () => {
     renderScreen();
 
