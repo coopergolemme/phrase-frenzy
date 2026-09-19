@@ -426,8 +426,12 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     throw new ApiError("Every team needs at least one player", 400);
   }
 
+  const flaggedWords = Array.isArray(body.flaggedWords)
+    ? body.flaggedWords.filter((w): w is string => typeof w === "string")
+    : [];
+
   const wordsByCategory = await fetchWordsForCategories(client, room.category_ids);
-  const wordBank = buildWordBank(wordsByCategory);
+  const wordBank = buildWordBank(wordsByCategory, flaggedWords);
   if (wordBank.length === 0) {
     throw new ApiError("No words available for the selected categories", 400);
   }

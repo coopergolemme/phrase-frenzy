@@ -86,8 +86,12 @@ export interface Lobby {
   players: LobbyPlayer[];
 }
 
-export function startGame(roomCode: string, playerToken: string): Promise<Record<string, never>> {
-  return callMultiplayer("startGame", { roomCode, playerToken });
+export function startGame(
+  roomCode: string,
+  playerToken: string,
+  flaggedWords: string[]
+): Promise<Record<string, never>> {
+  return callMultiplayer("startGame", { roomCode, playerToken, flaggedWords });
 }
 
 export interface PublicGameState {
