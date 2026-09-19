@@ -56,6 +56,7 @@ export function createRoom(params: {
   teamNames: string[];
   roundsPerTeam: number;
   roundDurationSec: number;
+  foulPenaltySec?: number;
   categoryIds: string[];
 }): Promise<CreateRoomResult> {
   return callMultiplayer<CreateRoomResult>("createRoom", params);
@@ -84,6 +85,7 @@ export interface Lobby {
   status: "lobby" | "playing" | "roundSummary" | "gameOver";
   roundsPerTeam: number;
   roundDurationSec: number;
+  foulPenaltySec?: number;
   categoryIds: string[];
   teamNames: string[];
   players: LobbyPlayer[];
@@ -108,6 +110,7 @@ export interface PublicGameState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
+  foulPenaltySec?: number;
   pausedAt: string | null;
 }
 

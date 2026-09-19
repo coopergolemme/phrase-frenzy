@@ -272,6 +272,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     timeRemaining,
     isPaused,
     lastFoul,
+    foulPenaltySec: state?.foulPenaltySec ?? 2,
     // While the round is live, the describer's own device shows its local
     // optimistic tally instead of waiting on the server round trip +
     // realtime broadcast; every other device (and everyone once the round

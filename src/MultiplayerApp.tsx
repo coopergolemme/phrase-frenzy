@@ -155,6 +155,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             roundScore={game.roundScore}
             teamTotalScore={game.teamTotalScore}
             timeRemaining={game.timeRemaining}
+            foulPenaltySec={game.foulPenaltySec}
             onFoul={game.handleFoul}
           />
         </div>
