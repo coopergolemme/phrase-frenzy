@@ -285,6 +285,8 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundScore: state?.status === "playing" && isDescriber ? localRoundScore : state?.roundScore ?? 0,
     roundLog:
       state?.status === "playing" ? (isDescriber ? localRoundLog : []) : state?.roundLog ?? [],
+    turnIndex: state?.turnIndex ?? 0,
+    roundsPerTeam: state?.roundsPerTeam ?? 1,
     isLastTurn,
     nextTeamName,
     error,

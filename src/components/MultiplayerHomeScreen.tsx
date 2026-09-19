@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { CategoryPickerSheet } from "./CategoryPickerSheet";
+import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
+import { WordStatsSheet } from "./WordStatsSheet";
+import { MatchHistorySheet } from "./MatchHistorySheet";
+import type { WordStats } from "../utils/wordStats";
+import type { MatchRecord } from "../utils/matchHistory";
 
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
@@ -24,6 +29,12 @@ interface MultiplayerHomeScreenProps {
   }) => void;
   onJoin: (roomCode: string) => void;
   onBack: () => void;
+  flaggedWords?: string[];
+  onUnflagWord?: (word: string) => void;
+  isWordFlagged?: (word: string) => boolean;
+  onToggleFlag?: (word: string) => void;
+  wordStats?: WordStats;
+  matchHistory?: MatchRecord[];
 }
 
 type Mode = "choose" | "host" | "join";
@@ -35,8 +46,15 @@ export function MultiplayerHomeScreen({
   onCreate,
   onJoin,
   onBack,
+  flaggedWords = [],
+  onUnflagWord,
+  isWordFlagged,
+  onToggleFlag,
+  wordStats = {},
+  matchHistory = [],
 }: MultiplayerHomeScreenProps) {
   const [mode, setMode] = useState<Mode>("choose");
+  const [activeSheet, setActiveSheet] = useState<"flags" | "stats" | "history" | null>(null);
   const allCategoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
 
   const [hostName, setHostName] = useState("");
@@ -91,6 +109,68 @@ export function MultiplayerHomeScreen({
         <button className="btn btn--outline btn--large w-full" onClick={() => setMode("join")}>
           Join a Game
         </button>
+
+        {(flaggedWords.length > 0 || Object.keys(wordStats).length > 0 || matchHistory.length > 0) && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {flaggedWords.length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("flags")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  🚩
+                </span>
+                Flagged ({flaggedWords.length})
+              </button>
+            )}
+            {Object.keys(wordStats).length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("stats")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  📊
+                </span>
+                Stats
+              </button>
+            )}
+            {matchHistory.length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("history")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  🕐
+                </span>
+                History
+              </button>
+            )}
+          </div>
+        )}
+
+        {activeSheet === "flags" && onUnflagWord && (
+          <FlaggedWordsSheet
+            flaggedWords={flaggedWords}
+            onUnflag={onUnflagWord}
+            onClose={() => setActiveSheet(null)}
+          />
+        )}
+
+        {activeSheet === "stats" && (
+          <WordStatsSheet
+            stats={wordStats}
+            isWordFlagged={isWordFlagged ?? (() => false)}
+            onToggleFlag={onToggleFlag ?? (() => {})}
+            onClose={() => setActiveSheet(null)}
+          />
+        )}
+
+        {activeSheet === "history" && (
+          <MatchHistorySheet history={matchHistory} onClose={() => setActiveSheet(null)} />
+        )}
       </div>
     );
   }

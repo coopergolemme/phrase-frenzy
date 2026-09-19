@@ -5,7 +5,7 @@ import * as realtime from "../utils/multiplayerRealtime";
 import * as matchHistoryModule from "./useMatchHistory";
 import * as wordStatsModule from "./useWordStats";
 import * as gameSyncModule from "./useGameSync";
-import type { PublicGameState } from "../utils/multiplayerApi";
+import type { PublicGameState, LobbyPlayer } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 
 const mockSession: MultiplayerSession = {
@@ -15,7 +15,7 @@ const mockSession: MultiplayerSession = {
   name: "Alice",
 };
 
-const mockLobbyPlayers = [
+const mockLobbyPlayers: LobbyPlayer[] = [
   { id: "p1", name: "Alice", teamIndex: 0 },
   { id: "p2", name: "Bob", teamIndex: 1 },
 ];
@@ -55,6 +55,47 @@ describe("useMultiplayerGame", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("returns default values before public state loads", async () => {
+    const { result } = renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+
+    expect(result.current.status).toBe("lobby");
+    expect(result.current.turnIndex).toBe(0);
+    expect(result.current.roundsPerTeam).toBe(1);
+    expect(result.current.teams).toEqual([]);
+  });
+
+  it("exposes turnIndex, roundsPerTeam, and other game state values when state is loaded", async () => {
+    const { result } = renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+
+    const mockPublicState: PublicGameState = {
+      status: "roundSummary",
+      turnIndex: 2,
+      roundsPerTeam: 3,
+      durationSec: 60,
+      turnStartedAt: new Date().toISOString(),
+      pausedAt: null,
+      penaltySec: 0,
+      teams: [
+        { id: "team-1", name: "Team 1", totalScore: 5, members: ["Alice"] },
+        { id: "team-2", name: "Team 2", totalScore: 3, members: ["Bob"] },
+      ],
+      turnOrder: [0, 1, 0, 1, 0, 1],
+      roundScore: 2,
+      roundLog: [{ word: "APPLE", outcome: "correct" }],
+    };
+
+    act(() => {
+      subscriberCallback!(mockPublicState);
+    });
+
+    expect(result.current.status).toBe("roundSummary");
+    expect(result.current.turnIndex).toBe(2);
+    expect(result.current.roundsPerTeam).toBe(3);
+    expect(result.current.teams).toEqual(mockPublicState.teams);
+    expect(result.current.roundLog).toEqual(mockPublicState.roundLog);
+    expect(result.current.isLastTurn).toBe(false);
   });
 
   it("records round log and match result on round summary and game over state transitions", () => {

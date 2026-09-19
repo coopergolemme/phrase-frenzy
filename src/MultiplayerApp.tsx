@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { useWordCategories } from "./hooks/useWordCategories";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
+import { useMatchHistory } from "./hooks/useMatchHistory";
+import { useWordStats } from "./hooks/useWordStats";
 import { useMultiplayerRoom } from "./hooks/useMultiplayerRoom";
 import { useMultiplayerGame } from "./hooks/useMultiplayerGame";
 import { MultiplayerHomeScreen } from "./components/MultiplayerHomeScreen";
@@ -25,7 +27,9 @@ interface MultiplayerAppProps {
 // are derived from server-pushed state instead of a local reducer.
 function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
   const { categories } = useWordCategories();
-  const { isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { history: matchHistory } = useMatchHistory();
+  const { stats: wordStats } = useWordStats();
   const room = useMultiplayerRoom(initialRoomCode);
   const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(initialRoomCode ?? null);
 
@@ -57,6 +61,12 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
               void room.loadPreview(code);
             }}
             onBack={goHome}
+            flaggedWords={flaggedWords}
+            onUnflagWord={unflagWord}
+            isWordFlagged={isFlagged}
+            onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
+            wordStats={wordStats}
+            matchHistory={matchHistory}
           />
         </div>
       </div>
