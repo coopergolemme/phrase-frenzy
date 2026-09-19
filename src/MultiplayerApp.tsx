@@ -1,6 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWordCategories } from "./hooks/useWordCategories";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
+import { useMatchHistory } from "./hooks/useMatchHistory";
+import { useWordStats } from "./hooks/useWordStats";
+import { useGameSync } from "./hooks/useGameSync";
 import { useMultiplayerRoom } from "./hooks/useMultiplayerRoom";
 import { useMultiplayerGame } from "./hooks/useMultiplayerGame";
 import { MultiplayerHomeScreen } from "./components/MultiplayerHomeScreen";
@@ -11,6 +14,8 @@ import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 import type { LobbyPlayer } from "./utils/multiplayerApi";
 import type { MultiplayerSession } from "./utils/multiplayerSession";
+import type { Team, RoundLogEntry } from "./game/turnLogic";
+import type { MatchRecord } from "./utils/matchHistory";
 
 interface MultiplayerAppProps {
   // Room code parsed out of a "#room/<code>" join link, if this device
@@ -25,7 +30,10 @@ interface MultiplayerAppProps {
 // are derived from server-pushed state instead of a local reducer.
 function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
   const { categories } = useWordCategories();
-  const { isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { history: matchHistory, addMatch } = useMatchHistory();
+  const { stats: wordStats, recordRoundLog } = useWordStats();
+  const { trackTurn, resetSession, finishMatch } = useGameSync();
   const room = useMultiplayerRoom(initialRoomCode);
   const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(initialRoomCode ?? null);
 
@@ -50,13 +58,21 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
             isBusy={room.isBusy}
             error={room.error}
             onCreate={(params) => {
+              resetSession();
               void room.create(params);
             }}
             onJoin={(code) => {
+              resetSession();
               setPendingRoomCode(code);
               void room.loadPreview(code);
             }}
             onBack={goHome}
+            flaggedWords={flaggedWords}
+            onUnflagWord={unflagWord}
+            isWordFlagged={isFlagged}
+            onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
+            wordStats={wordStats}
+            matchHistory={matchHistory}
           />
         </div>
       </div>
@@ -78,6 +94,7 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
               void room.join({ roomCode, name, teamIndex });
             }}
             onStart={() => {
+              resetSession();
               void room.startGame();
             }}
             onLeave={handleLeave}
@@ -94,6 +111,10 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
       onLeave={handleLeave}
       isWordFlagged={isFlagged}
       onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
+      addMatch={addMatch}
+      recordRoundLog={recordRoundLog}
+      trackTurn={trackTurn}
+      finishMatch={finishMatch}
     />
   );
 }
@@ -104,10 +125,42 @@ interface InGameProps {
   onLeave: () => void;
   isWordFlagged: (word: string) => boolean;
   onToggleFlag: (word: string) => void;
+  addMatch: (teams: Team[], roundsPerTeam: number) => MatchRecord;
+  recordRoundLog: (log: RoundLogEntry[]) => void;
+  trackTurn: (log: RoundLogEntry[]) => void;
+  finishMatch: (match: MatchRecord, teams: Team[]) => void;
 }
 
-function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGameProps) {
+function InGame({
+  session,
+  players,
+  onLeave,
+  isWordFlagged,
+  onToggleFlag,
+  addMatch,
+  recordRoundLog,
+  trackTurn,
+  finishMatch,
+}: InGameProps) {
   const game = useMultiplayerGame(session, players);
+  const recordedTurnsRef = useRef<Set<number>>(new Set());
+  const recordedGameOverRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (game.status === "roundSummary" && !recordedTurnsRef.current.has(game.turnIndex)) {
+      recordedTurnsRef.current.add(game.turnIndex);
+      recordRoundLog(game.roundLog);
+      trackTurn(game.roundLog);
+    }
+  }, [game.status, game.turnIndex, game.roundLog, recordRoundLog, trackTurn]);
+
+  useEffect(() => {
+    if (game.status === "gameOver" && !recordedGameOverRef.current) {
+      recordedGameOverRef.current = true;
+      const match = addMatch(game.teams, game.roundsPerTeam);
+      finishMatch(match, game.teams);
+    }
+  }, [game.status, game.teams, game.roundsPerTeam, addMatch, finishMatch]);
 
   if (game.status === "gameOver") {
     return (
