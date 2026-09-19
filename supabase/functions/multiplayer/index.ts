@@ -764,6 +764,9 @@ Deno.serve(async (req: Request) => {
         return json(await correctOrPass(client, body, "correct"));
       case "pass":
         return json(await correctOrPass(client, body, "passed"));
+      case "foul":
+        await foul(client, body);
+        return json({});
       case "togglePause":
         await togglePause(client, body);
         return json({});

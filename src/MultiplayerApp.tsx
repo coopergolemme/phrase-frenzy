@@ -145,15 +145,10 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             // the plan's known limitations. The review list itself (and
             // flagging) still works since flagging is a local device
             // preference, not shared game state.
-            onToggleWordOutcome={() => {}}
+            onToggleWordOutcome={() => { }}
             isWordFlagged={isWordFlagged}
             onToggleFlag={onToggleFlag}
           />
-          {!game.isHost && (
-            <p className="m-0 text-center text-[0.85rem] text-text-secondary">
-              Waiting for the host to continue…
-            </p>
-          )}
         </div>
       </div>
     );
@@ -170,6 +165,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             roundScore={game.roundScore}
             teamTotalScore={game.teamTotalScore}
             timeRemaining={game.timeRemaining}
+            onFoul={game.handleFoul}
           />
         </div>
       </div>
@@ -188,6 +184,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
           score={game.roundScore}
           teams={game.teams}
           isPaused={game.isPaused}
+          lastFoul={game.lastFoul}
           onCorrect={game.handleCorrect}
           onPass={game.handlePass}
           onSkipRound={game.handleSkipRound}
