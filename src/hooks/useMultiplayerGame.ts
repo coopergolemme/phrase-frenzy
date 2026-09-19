@@ -204,6 +204,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     status: state?.status ?? "lobby",
     teams: state?.teams ?? [],
     teamName: activeTeam?.name ?? "",
+    teamTotalScore: activeTeam?.totalScore ?? 0,
     describerName,
     isDescriber,
     isHost,

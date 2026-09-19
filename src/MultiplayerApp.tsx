@@ -6,6 +6,7 @@ import { useMultiplayerGame } from "./hooks/useMultiplayerGame";
 import { MultiplayerHomeScreen } from "./components/MultiplayerHomeScreen";
 import { MultiplayerLobbyScreen } from "./components/MultiplayerLobbyScreen";
 import { GameScreen } from "./components/GameScreen";
+import { SpectatorScreen } from "./components/SpectatorScreen";
 import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 import type { LobbyPlayer } from "./utils/multiplayerApi";
@@ -143,6 +144,23 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
               Waiting for the host to continue…
             </p>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!game.isDescriber) {
+    return (
+      <div className="app-shell">
+        <div className="screen-container">
+          <SpectatorScreen
+            teamName={game.teamName}
+            describerName={game.describerName}
+            roundLabel={game.roundLabel}
+            roundScore={game.roundScore}
+            teamTotalScore={game.teamTotalScore}
+            timeRemaining={game.timeRemaining}
+          />
         </div>
       </div>
     );
