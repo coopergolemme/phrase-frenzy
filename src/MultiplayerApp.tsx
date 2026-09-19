@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { useWordCategories } from "./hooks/useWordCategories";
 import { useFlaggedWords } from "./hooks/useFlaggedWords";
+import { useMatchHistory } from "./hooks/useMatchHistory";
+import { useWordStats } from "./hooks/useWordStats";
 import { useMultiplayerRoom } from "./hooks/useMultiplayerRoom";
 import { useMultiplayerGame } from "./hooks/useMultiplayerGame";
 import { MultiplayerHomeScreen } from "./components/MultiplayerHomeScreen";
@@ -25,7 +27,9 @@ interface MultiplayerAppProps {
 // are derived from server-pushed state instead of a local reducer.
 function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
   const { categories } = useWordCategories();
-  const { isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { flaggedWords, isFlagged, flagWord, unflagWord } = useFlaggedWords();
+  const { history: matchHistory } = useMatchHistory();
+  const { stats: wordStats } = useWordStats();
   const room = useMultiplayerRoom(initialRoomCode);
   const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(initialRoomCode ?? null);
 
@@ -57,6 +61,12 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
               void room.loadPreview(code);
             }}
             onBack={goHome}
+            flaggedWords={flaggedWords}
+            onUnflagWord={unflagWord}
+            isWordFlagged={isFlagged}
+            onToggleFlag={(word) => (isFlagged(word) ? unflagWord(word) : flagWord(word))}
+            wordStats={wordStats}
+            matchHistory={matchHistory}
           />
         </div>
       </div>
@@ -113,7 +123,12 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
     return (
       <div className="app-shell">
         <div className="screen-container">
-          <FinalStandingsScreen teams={game.teams} onPlayAgain={onLeave} />
+          <FinalStandingsScreen
+            teams={game.teams}
+            canPlayAgain={game.isHost}
+            onPlayAgain={game.handleRestart}
+            onLeave={onLeave}
+          />
         </div>
       </div>
     );
@@ -135,15 +150,10 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             // the plan's known limitations. The review list itself (and
             // flagging) still works since flagging is a local device
             // preference, not shared game state.
-            onToggleWordOutcome={() => {}}
+            onToggleWordOutcome={() => { }}
             isWordFlagged={isWordFlagged}
             onToggleFlag={onToggleFlag}
           />
-          {!game.isHost && (
-            <p className="m-0 text-center text-[0.85rem] text-text-secondary">
-              Waiting for the host to continue…
-            </p>
-          )}
         </div>
       </div>
     );
@@ -160,6 +170,8 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             roundScore={game.roundScore}
             teamTotalScore={game.teamTotalScore}
             timeRemaining={game.timeRemaining}
+            foulPenaltySec={game.foulPenaltySec}
+            onFoul={game.handleFoul}
           />
         </div>
       </div>
@@ -178,10 +190,21 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
           score={game.roundScore}
           teams={game.teams}
           isPaused={game.isPaused}
+          lastFoul={game.lastFoul}
           onCorrect={game.handleCorrect}
           onPass={game.handlePass}
           onSkipRound={game.handleSkipRound}
-          onRestart={onLeave}
+          onRestart={() => {
+            // Only the host can reset the shared room for everyone — a
+            // non-host tapping Restart just leaves, same as before.
+            if (!game.isHost) {
+              onLeave();
+              return;
+            }
+            if (window.confirm("Restart the game for everyone? This will erase the current scores.")) {
+              game.handleRestart();
+            }
+          }}
           onTogglePause={game.handleTogglePause}
         />
       </div>

@@ -44,6 +44,7 @@ interface RoomRow {
   status: "lobby" | "playing" | "roundSummary" | "gameOver";
   rounds_per_team: number;
   round_duration_sec: number;
+  foul_penalty_sec: number;
   category_ids: string[];
   team_names: string[];
 }
@@ -107,6 +108,7 @@ interface PublicState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
+  foulPenaltySec: number;
   pausedAt: string | null;
 }
 
@@ -123,6 +125,7 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
     turnStartedAt: state.turn_started_at,
     durationSec: room.round_duration_sec,
     penaltySec: state.penalty_sec,
+    foulPenaltySec: room.foul_penalty_sec ?? 2,
     pausedAt: state.paused_at,
   };
 }
@@ -172,6 +175,7 @@ async function publishPublicState(
       turn_started_at: publicState.turnStartedAt,
       duration_sec: publicState.durationSec,
       penalty_sec: publicState.penaltySec,
+      foul_penalty_sec: publicState.foulPenaltySec,
       paused_at: publicState.pausedAt,
       updated_at: new Date().toISOString(),
     },
@@ -283,6 +287,7 @@ async function createRoom(
   const teamNames = (body.teamNames as unknown[] | undefined)?.map((n) => String(n).trim()) ?? [];
   const roundsPerTeam = Number(body.roundsPerTeam);
   const roundDurationSec = Number(body.roundDurationSec);
+  const foulPenaltySec = body.foulPenaltySec !== undefined ? Number(body.foulPenaltySec) : 2;
   const categoryIds = (body.categoryIds as unknown[] | undefined)?.map((c) => String(c)) ?? [];
 
   if (teamNames.length < MIN_TEAMS || teamNames.length > MAX_TEAMS || teamNames.some((n) => !n)) {
@@ -298,6 +303,9 @@ async function createRoom(
   ) {
     throw new ApiError("Invalid roundDurationSec", 400);
   }
+  if (!Number.isInteger(foulPenaltySec) || foulPenaltySec < 0 || foulPenaltySec > 10) {
+    throw new ApiError("Invalid foulPenaltySec", 400);
+  }
   if (categoryIds.length === 0) {
     throw new ApiError("Select at least one category", 400);
   }
@@ -308,6 +316,7 @@ async function createRoom(
     status: "lobby",
     rounds_per_team: roundsPerTeam,
     round_duration_sec: roundDurationSec,
+    foul_penalty_sec: foulPenaltySec,
     category_ids: categoryIds,
     team_names: teamNames,
   });
@@ -651,6 +660,58 @@ async function skipRound(client: SupabaseClient, body: Record<string, unknown>):
   await finalizeRound(client, room, state);
 }
 
+async function foul(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const [room, state] = await fetchRoomAndState(client, roomCode);
+  if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
+  if (state.paused_at) throw new ApiError("The game is paused", 409);
+
+  const { data: callerRow, error: callerError } = await client
+    .from("room_players")
+    .select("name, player_token")
+    .eq("room_code", roomCode)
+    .eq("player_token", playerToken)
+    .maybeSingle();
+  if (callerError) throw callerError;
+  if (!callerRow) throw new ApiError("Player not found", 403);
+
+  const describer = await getActiveDescriberPlayer(client, roomCode, state);
+  if (describer.player_token === playerToken) {
+    throw new ApiError("Active describer cannot foul themselves", 403);
+  }
+
+  const penaltySec = room.foul_penalty_sec ?? 2;
+  const spectatorName = (callerRow as { name: string }).name;
+  const nextState: RoomStateRow = {
+    ...state,
+    penalty_sec: state.penalty_sec + penaltySec,
+  };
+
+  if (remainingSeconds(nextState, room) <= 0) {
+    await finalizeRound(client, room, nextState);
+    EdgeRuntime.waitUntil(
+      broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec })
+    );
+    return;
+  }
+
+  const { error: stateError } = await client
+    .from("room_state")
+    .update({
+      penalty_sec: nextState.penalty_sec,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("room_code", roomCode);
+  if (stateError) throw stateError;
+
+  EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
+  EdgeRuntime.waitUntil(
+    broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec })
+  );
+}
+
 async function timeUp(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const room = await fetchRoom(client, roomCode);
@@ -730,6 +791,85 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, nextState));
 }
 
+// Resets an in-progress or finished room for a rematch with the same
+// players/teams: fresh scores, turn order, and word deck, without touching
+// room_players/room_roster. Host-only, mirroring startGame's authorization
+// (join_order 0) since there's no other notion of ownership in this model.
+async function restartGame(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const room = await fetchRoom(client, roomCode);
+  if (room.status === "lobby") {
+    throw new ApiError("The game hasn't started yet", 409);
+  }
+
+  const { data: playerRows, error: playersError } = await client
+    .from("room_players")
+    .select("*")
+    .eq("room_code", roomCode)
+    .order("join_order");
+  if (playersError) throw playersError;
+  const players = (playerRows ?? []) as RoomPlayerRow[];
+
+  const host = players.find((p) => p.join_order === 0);
+  if (!host || host.player_token !== playerToken) {
+    throw new ApiError("Only the host can restart the game", 403);
+  }
+
+  const teams: Team[] = room.team_names.map((name, index) => ({
+    id: `team-${index}`,
+    name,
+    totalScore: 0,
+    members: players
+      .filter((p) => p.team_index === index)
+      .sort((a, b) => a.join_order - b.join_order)
+      .map((p) => p.name),
+  }));
+  if (teams.some((t) => t.members.length === 0)) {
+    throw new ApiError("Every team needs at least one player to restart", 400);
+  }
+
+  const wordsByCategory = await fetchWordsForCategories(client, room.category_ids);
+  const wordBank = buildWordBank(wordsByCategory);
+  if (wordBank.length === 0) {
+    throw new ApiError("No words available for the selected categories", 400);
+  }
+
+  const deck = initialSeededDeck(wordBank);
+  const turnOrder = buildTurnOrder(teams.length, room.rounds_per_team);
+
+  const newState: RoomStateRow = {
+    room_code: roomCode,
+    turn_order: turnOrder,
+    turn_index: 0,
+    teams,
+    round_score: 0,
+    round_log: [],
+    word_bank: wordBank,
+    deck_seed: deck.deckSeed,
+    deck_index: deck.deckIndex,
+    current_word: deck.word,
+    turn_started_at: new Date().toISOString(),
+    penalty_sec: 0,
+  };
+
+  const { error: stateError } = await client
+    .from("room_state")
+    .update(newState)
+    .eq("room_code", roomCode);
+  if (stateError) throw stateError;
+
+  const { error: roomError } = await client
+    .from("rooms")
+    .update({ status: "playing" })
+    .eq("code", roomCode);
+  if (roomError) throw roomError;
+
+  EdgeRuntime.waitUntil(broadcast(client, `room-lobby:${roomCode}`, "changed", {}));
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, newState));
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -762,6 +902,9 @@ Deno.serve(async (req: Request) => {
         return json(await correctOrPass(client, body, "correct"));
       case "pass":
         return json(await correctOrPass(client, body, "passed"));
+      case "foul":
+        await foul(client, body);
+        return json({});
       case "togglePause":
         await togglePause(client, body);
         return json({});
@@ -773,6 +916,9 @@ Deno.serve(async (req: Request) => {
         return json({});
       case "nextTurn":
         await nextTurn(client, body);
+        return json({});
+      case "restartGame":
+        await restartGame(client, body);
         return json({});
       default:
         return json({ error: `Unknown action "${body.action}"` }, 400);

@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { playBuzzerSound, triggerHaptic } from "../utils/audio";
+
 interface SpectatorScreenProps {
   teamName: string;
   describerName: string | null;
@@ -5,12 +8,12 @@ interface SpectatorScreenProps {
   roundScore: number;
   teamTotalScore: number;
   timeRemaining: number;
+  foulPenaltySec?: number;
+  onFoul?: () => void;
 }
 
 // Shown on a non-active player's own device while a teammate or opponent
-// is describing — there's nothing for them to tap, so this replaces
-// GameScreen's word card + Correct/Pass with a passive, glanceable view of
-// how the live turn is going.
+// is describing — provides glanceable turn status and a live FOUL! buzzer button.
 export function SpectatorScreen({
   teamName,
   describerName,
@@ -18,8 +21,29 @@ export function SpectatorScreen({
   roundScore,
   teamTotalScore,
   timeRemaining,
+  foulPenaltySec = 2,
+  onFoul,
 }: SpectatorScreenProps) {
+  const [cooldownSec, setCooldownSec] = useState(0);
   const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
+
+  useEffect(() => {
+    if (cooldownSec <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSec((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSec]);
+
+  const handleFoulClick = () => {
+    if (cooldownSec > 0 || !onFoul) return;
+    triggerHaptic([120, 60, 120]);
+    playBuzzerSound();
+    onFoul();
+    setCooldownSec(2);
+  };
+
+  const penaltyLabel = foulPenaltySec > 0 ? `-${foulPenaltySec}s` : "No penalty";
 
   return (
     <div className="screen justify-center items-center gap-5 text-center">
@@ -59,6 +83,21 @@ export function SpectatorScreen({
           </p>
         </div>
       </div>
+
+      {onFoul && (
+        <div className="w-full pt-2">
+          <button
+            type="button"
+            className="btn btn--foul w-full py-4 text-xl font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
+            onClick={handleFoulClick}
+            disabled={cooldownSec > 0 || timeRemaining <= 0}
+            aria-label={`Report a rule foul (${penaltyLabel})`}
+          >
+            <span>🚨</span>
+            <span>{cooldownSec > 0 ? `Buzzed! (${cooldownSec}s)` : `FOUL! (${penaltyLabel})`}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

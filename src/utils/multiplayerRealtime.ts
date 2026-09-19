@@ -16,6 +16,7 @@ interface RoomRow {
   status: Lobby["status"];
   rounds_per_team: number;
   round_duration_sec: number;
+  foul_penalty_sec?: number;
   category_ids: string[];
   team_names: string[];
 }
@@ -38,6 +39,7 @@ interface RoomPublicStateRow {
   turn_started_at: string;
   duration_sec: number;
   penalty_sec: number;
+  foul_penalty_sec?: number;
   paused_at: string | null;
 }
 
@@ -53,6 +55,7 @@ function mapPublicStateRow(row: RoomPublicStateRow): PublicGameState {
     turnStartedAt: row.turn_started_at,
     durationSec: row.duration_sec,
     penaltySec: row.penalty_sec,
+    foulPenaltySec: row.foul_penalty_sec ?? 2,
     pausedAt: row.paused_at,
   };
 }
@@ -82,6 +85,7 @@ export async function fetchLobbySnapshot(roomCode: string): Promise<Lobby> {
     status: room.status,
     roundsPerTeam: room.rounds_per_team,
     roundDurationSec: room.round_duration_sec,
+    foulPenaltySec: room.foul_penalty_sec ?? 2,
     categoryIds: room.category_ids,
     teamNames: room.team_names,
     players,
@@ -113,12 +117,18 @@ export function subscribeToLobby(roomCode: string, onChange: () => void): () => 
   return () => client.removeChannel(channel);
 }
 
+export interface FoulPayload {
+  spectatorName: string;
+  penaltySec: number;
+}
+
 // The hot path: gameplay state (score, turn, timer anchor) is pushed
 // directly in the broadcast payload, with no follow-up fetch — this is
 // what keeps Correct/Pass feeling instant on the other players' screens.
 export function subscribeToPublicState(
   roomCode: string,
-  onChange: (state: PublicGameState) => void
+  onChange: (state: PublicGameState) => void,
+  onFoul?: (foul: FoulPayload) => void
 ): () => void {
   const client = getSupabaseClient();
   const channel = client
@@ -126,6 +136,10 @@ export function subscribeToPublicState(
     .on("broadcast", { event: "state" }, (message) => {
       const state = message.payload as PublicGameState | undefined;
       if (state) onChange(state);
+    })
+    .on("broadcast", { event: "foul" }, (message) => {
+      const foulPayload = message.payload as FoulPayload | undefined;
+      if (foulPayload && onFoul) onFoul(foulPayload);
     })
     .subscribe();
   return () => client.removeChannel(channel);
