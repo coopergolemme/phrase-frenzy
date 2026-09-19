@@ -182,13 +182,10 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
           timeRemaining={game.timeRemaining}
           score={game.roundScore}
           teams={game.teams}
-          isPaused={false}
+          isPaused={game.isPaused}
           onCorrect={game.handleCorrect}
           onPass={game.handlePass}
-          onSkipRound={() => {
-            // Pausing/skipping a distributed timer has no clean cross-device
-            // semantics for v1 — see the plan's known limitations.
-          }}
+          onSkipRound={game.handleSkipRound}
           onRestart={() => {
             // Only the host can reset the shared room for everyone — a
             // non-host tapping Restart just leaves, same as before.
@@ -200,7 +197,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
               game.handleRestart();
             }
           }}
-          onTogglePause={() => {}}
+          onTogglePause={game.handleTogglePause}
         />
       </div>
     </div>
