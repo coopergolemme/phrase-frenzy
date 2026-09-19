@@ -732,6 +732,85 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, nextState));
 }
 
+// Resets an in-progress or finished room for a rematch with the same
+// players/teams: fresh scores, turn order, and word deck, without touching
+// room_players/room_roster. Host-only, mirroring startGame's authorization
+// (join_order 0) since there's no other notion of ownership in this model.
+async function restartGame(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const room = await fetchRoom(client, roomCode);
+  if (room.status === "lobby") {
+    throw new ApiError("The game hasn't started yet", 409);
+  }
+
+  const { data: playerRows, error: playersError } = await client
+    .from("room_players")
+    .select("*")
+    .eq("room_code", roomCode)
+    .order("join_order");
+  if (playersError) throw playersError;
+  const players = (playerRows ?? []) as RoomPlayerRow[];
+
+  const host = players.find((p) => p.join_order === 0);
+  if (!host || host.player_token !== playerToken) {
+    throw new ApiError("Only the host can restart the game", 403);
+  }
+
+  const teams: Team[] = room.team_names.map((name, index) => ({
+    id: `team-${index}`,
+    name,
+    totalScore: 0,
+    members: players
+      .filter((p) => p.team_index === index)
+      .sort((a, b) => a.join_order - b.join_order)
+      .map((p) => p.name),
+  }));
+  if (teams.some((t) => t.members.length === 0)) {
+    throw new ApiError("Every team needs at least one player to restart", 400);
+  }
+
+  const wordsByCategory = await fetchWordsForCategories(client, room.category_ids);
+  const wordBank = buildWordBank(wordsByCategory);
+  if (wordBank.length === 0) {
+    throw new ApiError("No words available for the selected categories", 400);
+  }
+
+  const deck = initialSeededDeck(wordBank);
+  const turnOrder = buildTurnOrder(teams.length, room.rounds_per_team);
+
+  const newState: RoomStateRow = {
+    room_code: roomCode,
+    turn_order: turnOrder,
+    turn_index: 0,
+    teams,
+    round_score: 0,
+    round_log: [],
+    word_bank: wordBank,
+    deck_seed: deck.deckSeed,
+    deck_index: deck.deckIndex,
+    current_word: deck.word,
+    turn_started_at: new Date().toISOString(),
+    penalty_sec: 0,
+  };
+
+  const { error: stateError } = await client
+    .from("room_state")
+    .update(newState)
+    .eq("room_code", roomCode);
+  if (stateError) throw stateError;
+
+  const { error: roomError } = await client
+    .from("rooms")
+    .update({ status: "playing" })
+    .eq("code", roomCode);
+  if (roomError) throw roomError;
+
+  EdgeRuntime.waitUntil(broadcast(client, `room-lobby:${roomCode}`, "changed", {}));
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, newState));
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -778,6 +857,9 @@ Deno.serve(async (req: Request) => {
         return json({});
       case "nextTurn":
         await nextTurn(client, body);
+        return json({});
+      case "restartGame":
+        await restartGame(client, body);
         return json({});
       default:
         return json({ error: `Unknown action "${body.action}"` }, 400);

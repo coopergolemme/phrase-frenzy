@@ -123,7 +123,12 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
     return (
       <div className="app-shell">
         <div className="screen-container">
-          <FinalStandingsScreen teams={game.teams} onPlayAgain={onLeave} />
+          <FinalStandingsScreen
+            teams={game.teams}
+            canPlayAgain={game.isHost}
+            onPlayAgain={game.handleRestart}
+            onLeave={onLeave}
+          />
         </div>
       </div>
     );
@@ -188,7 +193,17 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
           onCorrect={game.handleCorrect}
           onPass={game.handlePass}
           onSkipRound={game.handleSkipRound}
-          onRestart={onLeave}
+          onRestart={() => {
+            // Only the host can reset the shared room for everyone — a
+            // non-host tapping Restart just leaves, same as before.
+            if (!game.isHost) {
+              onLeave();
+              return;
+            }
+            if (window.confirm("Restart the game for everyone? This will erase the current scores.")) {
+              game.handleRestart();
+            }
+          }}
           onTogglePause={game.handleTogglePause}
         />
       </div>

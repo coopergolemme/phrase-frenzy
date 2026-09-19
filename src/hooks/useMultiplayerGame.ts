@@ -7,6 +7,7 @@ import {
   skipRound as apiSkipRound,
   timeUp as apiTimeUp,
   nextTurn as apiNextTurn,
+  restartGame as apiRestartGame,
   reportFoul as apiReportFoul,
   type PublicGameState,
   type LobbyPlayer,
@@ -282,6 +283,13 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     );
   }, [isHost, session.roomCode, session.playerToken]);
 
+  const handleRestart = useCallback(() => {
+    if (!isHost) return;
+    apiRestartGame(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't restart the game")
+    );
+  }, [isHost, session.roomCode, session.playerToken]);
+
   const handleFoul = useCallback(() => {
     if (isDescriber || isPaused) return;
     apiReportFoul(session.roomCode, session.playerToken).catch((err) =>
@@ -327,6 +335,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     handleTogglePause,
     handleSkipRound,
     handleNextTurn,
+    handleRestart,
     handleFoul,
   };
 }
