@@ -22,7 +22,12 @@ export function AdminFlaggedWordsQueue({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reasonDraft, setReasonDraft] = useState("");
 
-  if (flaggedWords.length === 0) {
+  // Already-deactivated words can't be acted on from here — the
+  // deactivated-words queue is where those get reviewed — so keep this
+  // list to the ones still awaiting a decision.
+  const activeFlaggedWords = flaggedWords.filter((flagged) => flagged.active);
+
+  if (activeFlaggedWords.length === 0) {
     return <p className="py-5 text-center text-text-secondary">No flagged words.</p>;
   }
 
@@ -44,7 +49,7 @@ export function AdminFlaggedWordsQueue({
 
   return (
     <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface backdrop-blur-[20px] [-webkit-overflow-scrolling:touch]">
-      {flaggedWords.map((flagged) => {
+      {activeFlaggedWords.map((flagged) => {
         const suggestions = similarSuggestions[flagged.id];
         const isConfirming = confirmingId === flagged.id;
         return (
@@ -55,15 +60,11 @@ export function AdminFlaggedWordsQueue({
                 <span className="ml-2 text-[0.8rem] text-text-secondary">
                   {flagged.categoryLabel} · flagged {flagged.flaggedCount}x
                 </span>
-                {!flagged.active && (
-                  <span className="ml-2 text-[0.8rem] text-text-secondary">already inactive</span>
-                )}
               </div>
               {!isConfirming && (
                 <button
                   type="button"
                   className="btn btn--small btn--outline"
-                  disabled={!flagged.active}
                   onClick={() => startConfirm(flagged.id)}
                 >
                   Deactivate

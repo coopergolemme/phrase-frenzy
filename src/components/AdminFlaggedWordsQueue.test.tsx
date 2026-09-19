@@ -28,13 +28,18 @@ describe("AdminFlaggedWordsQueue", () => {
     expect(screen.getByText(/no flagged words/i)).toBeInTheDocument();
   });
 
-  it("renders each flagged word with its category and flag count", () => {
+  it("shows an empty state when every flagged word is already inactive", () => {
+    renderQueue({ flaggedWords: [FLAGGED[1]] });
+
+    expect(screen.getByText(/no flagged words/i)).toBeInTheDocument();
+  });
+
+  it("renders each still-active flagged word with its category and flag count, hiding already-inactive ones", () => {
     renderQueue();
 
     expect(screen.getByText("Taco")).toBeInTheDocument();
     expect(screen.getByText(/flagged 3x/i)).toBeInTheDocument();
-    expect(screen.getByText("Old One")).toBeInTheDocument();
-    expect(screen.getByText(/already inactive/i)).toBeInTheDocument();
+    expect(screen.queryByText("Old One")).not.toBeInTheDocument();
   });
 
   it("shows a reason prompt before deactivating, and calls onDeactivate without a reason if left blank", () => {
@@ -72,13 +77,6 @@ describe("AdminFlaggedWordsQueue", () => {
 
     expect(onDeactivate).not.toHaveBeenCalled();
     expect(screen.queryByLabelText(/why was this word bad/i)).not.toBeInTheDocument();
-  });
-
-  it("disables the button for a word that's already inactive", () => {
-    renderQueue();
-
-    const buttons = screen.getAllByRole("button", { name: /deactivate/i });
-    expect(buttons[1]).toBeDisabled();
   });
 
   it("shows a loading message while fetching similar-word suggestions", () => {

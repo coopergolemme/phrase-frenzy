@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Lobby } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
+import { RoomQrCode } from "./RoomQrCode";
 
 interface MultiplayerLobbyScreenProps {
   roomCode: string;
@@ -93,6 +94,12 @@ export function MultiplayerLobbyScreen({
         {roomCode}
       </p>
       <p className="m-0 text-text-secondary">Share this code so others can join.</p>
+
+      {isHost && (
+        <RoomQrCode
+          url={`${window.location.origin}${window.location.pathname}#room/${encodeURIComponent(roomCode)}`}
+        />
+      )}
 
       <div className="standings w-full">
         {playersByTeam.map(({ teamName, members }) => (
