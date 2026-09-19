@@ -19,7 +19,8 @@ type Action =
   | "correct"
   | "pass"
   | "timeUp"
-  | "nextTurn";
+  | "nextTurn"
+  | "restartGame";
 
 async function callMultiplayer<T>(action: Action, payload: Record<string, unknown>): Promise<T> {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -128,4 +129,8 @@ export function timeUp(roomCode: string): Promise<Record<string, never>> {
 
 export function nextTurn(roomCode: string, playerToken: string): Promise<Record<string, never>> {
   return callMultiplayer("nextTurn", { roomCode, playerToken });
+}
+
+export function restartGame(roomCode: string, playerToken: string): Promise<Record<string, never>> {
+  return callMultiplayer("restartGame", { roomCode, playerToken });
 }

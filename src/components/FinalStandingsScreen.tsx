@@ -3,9 +3,20 @@ import type { Team } from "../hooks/useGameState";
 interface FinalStandingsScreenProps {
   teams: Team[];
   onPlayAgain: () => void;
+  // Multiplayer only: when set, this device isn't the host, so "Play
+  // Again" can't trigger a rematch (only the host can restart the shared
+  // room) — show a waiting message instead of a button that would do
+  // nothing. Omitted in local pass-and-play, where every device is "host".
+  canPlayAgain?: boolean;
+  onLeave?: () => void;
 }
 
-export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScreenProps) {
+export function FinalStandingsScreen({
+  teams,
+  onPlayAgain,
+  canPlayAgain = true,
+  onLeave,
+}: FinalStandingsScreenProps) {
   const standings = [...teams].sort((a, b) => b.totalScore - a.totalScore);
   const topScore = standings[0]?.totalScore ?? 0;
   const winners = standings.filter((team) => team.totalScore === topScore);
@@ -45,9 +56,21 @@ export function FinalStandingsScreen({ teams, onPlayAgain }: FinalStandingsScree
         </div>
       </div>
 
-      <button className="btn btn--primary btn--large w-full" onClick={onPlayAgain}>
-        Play Again
-      </button>
+      {canPlayAgain ? (
+        <button className="btn btn--primary btn--large w-full" onClick={onPlayAgain}>
+          Play Again
+        </button>
+      ) : (
+        <p className="m-0 text-center text-[0.85rem] text-text-secondary">
+          Waiting for the host to start a new game…
+        </p>
+      )}
+
+      {onLeave && (
+        <button className="btn btn--outline btn--large w-full" onClick={onLeave}>
+          Leave Room
+        </button>
+      )}
     </div>
   );
 }

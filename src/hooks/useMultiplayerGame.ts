@@ -5,6 +5,7 @@ import {
   markPass as apiMarkPass,
   timeUp as apiTimeUp,
   nextTurn as apiNextTurn,
+  restartGame as apiRestartGame,
   type PublicGameState,
   type LobbyPlayer,
 } from "../utils/multiplayerApi";
@@ -193,6 +194,13 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     );
   }, [isHost, session.roomCode, session.playerToken]);
 
+  const handleRestart = useCallback(() => {
+    if (!isHost) return;
+    apiRestartGame(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't restart the game")
+    );
+  }, [isHost, session.roomCode, session.playerToken]);
+
   const isLastTurn = state ? state.turnIndex + 1 >= state.turnOrder.length : false;
   const nextTeamIndex = state ? state.turnOrder[state.turnIndex + 1] : undefined;
   const nextTeamName =
@@ -225,5 +233,6 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     handleCorrect,
     handlePass,
     handleNextTurn,
+    handleRestart,
   };
 }
