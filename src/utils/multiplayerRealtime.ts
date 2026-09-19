@@ -38,6 +38,7 @@ interface RoomPublicStateRow {
   turn_started_at: string;
   duration_sec: number;
   penalty_sec: number;
+  paused_at: string | null;
 }
 
 function mapPublicStateRow(row: RoomPublicStateRow): PublicGameState {
@@ -52,6 +53,7 @@ function mapPublicStateRow(row: RoomPublicStateRow): PublicGameState {
     turnStartedAt: row.turn_started_at,
     durationSec: row.duration_sec,
     penaltySec: row.penalty_sec,
+    pausedAt: row.paused_at,
   };
 }
 

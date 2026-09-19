@@ -3,6 +3,8 @@ import {
   getCurrentWord as apiGetCurrentWord,
   markCorrect as apiMarkCorrect,
   markPass as apiMarkPass,
+  togglePause as apiTogglePause,
+  skipRound as apiSkipRound,
   timeUp as apiTimeUp,
   nextTurn as apiNextTurn,
   type PublicGameState,
@@ -30,7 +32,12 @@ interface LocalDeck {
 const TICK_MS = 250;
 
 function computeRemaining(state: PublicGameState): number {
-  const elapsedSec = Math.floor((Date.now() - new Date(state.turnStartedAt).getTime()) / 1000);
+  // While paused, freeze at the instant the pause began instead of "now" —
+  // resuming shifts turnStartedAt forward server-side by the pause
+  // duration, so this collapses back to the normal now-based calculation
+  // once unpaused. See togglePause in supabase/functions/multiplayer/index.ts.
+  const now = state.pausedAt ? new Date(state.pausedAt).getTime() : Date.now();
+  const elapsedSec = Math.floor((now - new Date(state.turnStartedAt).getTime()) / 1000);
   return Math.max(0, state.durationSec - elapsedSec - state.penaltySec);
 }
 
@@ -76,6 +83,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     const tick = () => {
       const remaining = computeRemaining(state);
       setTimeRemaining(remaining);
+      if (state.pausedAt) return;
       if (remaining <= 0 && timeUpSentForTurnRef.current !== state.turnStartedAt) {
         timeUpSentForTurnRef.current = state.turnStartedAt;
         // Wait for every queued correct/pass to finish persisting first —
@@ -176,13 +184,33 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     [session.roomCode, session.playerToken]
   );
 
+  const isPaused = state?.pausedAt != null;
+
   const handleCorrect = useCallback(() => {
-    if (isDescriber) advance("correct");
-  }, [isDescriber, advance]);
+    if (isDescriber && !isPaused) advance("correct");
+  }, [isDescriber, isPaused, advance]);
 
   const handlePass = useCallback(() => {
-    if (isDescriber) advance("passed");
-  }, [isDescriber, advance]);
+    if (isDescriber && !isPaused) advance("passed");
+  }, [isDescriber, isPaused, advance]);
+
+  // Gated the same way handleCorrect/handlePass are — only the active
+  // describer's device renders these controls (GameScreen), so this
+  // mirrors the existing authorization rather than adding a separate
+  // host-only surface.
+  const handleTogglePause = useCallback(() => {
+    if (!isDescriber) return;
+    apiTogglePause(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't toggle pause")
+    );
+  }, [isDescriber, session.roomCode, session.playerToken]);
+
+  const handleSkipRound = useCallback(() => {
+    if (!isDescriber) return;
+    apiSkipRound(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't skip the round")
+    );
+  }, [isDescriber, session.roomCode, session.playerToken]);
 
   const isHost = lobbyPlayers[0]?.id === session.playerId;
 
@@ -211,6 +239,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundLabel: state ? `Round ${currentRoundNumber} of ${state.roundsPerTeam}` : "",
     currentWord: isDescriber ? word : null,
     timeRemaining,
+    isPaused,
     // While the round is live, the describer's own device shows its local
     // optimistic tally instead of waiting on the server round trip +
     // realtime broadcast; every other device (and everyone once the round
@@ -224,6 +253,8 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     error,
     handleCorrect,
     handlePass,
+    handleTogglePause,
+    handleSkipRound,
     handleNextTurn,
   };
 }

@@ -177,15 +177,12 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
           timeRemaining={game.timeRemaining}
           score={game.roundScore}
           teams={game.teams}
-          isPaused={false}
+          isPaused={game.isPaused}
           onCorrect={game.handleCorrect}
           onPass={game.handlePass}
-          onSkipRound={() => {
-            // Pausing/skipping a distributed timer has no clean cross-device
-            // semantics for v1 — see the plan's known limitations.
-          }}
+          onSkipRound={game.handleSkipRound}
           onRestart={onLeave}
-          onTogglePause={() => {}}
+          onTogglePause={game.handleTogglePause}
         />
       </div>
     </div>
