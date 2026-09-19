@@ -18,8 +18,8 @@ import {
   applyCorrect,
   buildTurnOrder,
   buildWordBank,
-  drawNextWord,
-  shuffle,
+  drawNextWordSeeded,
+  initialSeededDeck,
   type RoundLogEntry,
   type Team,
 } from "../_shared/turnLogic.ts";
@@ -65,7 +65,7 @@ interface RoomStateRow {
   round_score: number;
   round_log: RoundLogEntry[];
   word_bank: string[];
-  deck_order: string[];
+  deck_seed: number;
   deck_index: number;
   current_word: string;
   turn_started_at: string;
@@ -432,7 +432,7 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     throw new ApiError("No words available for the selected categories", 400);
   }
 
-  const deckOrder = shuffle(wordBank);
+  const deck = initialSeededDeck(wordBank);
   const turnOrder = buildTurnOrder(teams.length, room.rounds_per_team);
 
   const newState: RoomStateRow = {
@@ -443,9 +443,9 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     round_score: 0,
     round_log: [],
     word_bank: wordBank,
-    deck_order: deckOrder,
-    deck_index: 1,
-    current_word: deckOrder[0],
+    deck_seed: deck.deckSeed,
+    deck_index: deck.deckIndex,
+    current_word: deck.word,
     turn_started_at: new Date().toISOString(),
     penalty_sec: 0,
   };
@@ -466,10 +466,16 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
   EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, newState));
 }
 
+// Returns everything the active describer's device needs to step through
+// the rest of this turn's deck entirely locally (see drawNextWordSeeded):
+// the word bank and the deck's current (seed, index) position. Safe to
+// hand over in full because only the describer — who already discloses
+// each word aloud as they go — ever receives this response; it never
+// reaches the shared realtime channel other players are subscribed to.
 async function getCurrentWord(
   client: SupabaseClient,
   body: Record<string, unknown>
-): Promise<{ word: string }> {
+): Promise<{ word: string; wordBank: string[]; deckSeed: number; deckIndex: number }> {
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
 
@@ -479,7 +485,12 @@ async function getCurrentWord(
   const describer = await getActiveDescriberPlayer(client, roomCode, state);
   requireDescriber(describer, playerToken);
 
-  return { word: state.current_word };
+  return {
+    word: state.current_word,
+    wordBank: state.word_bank,
+    deckSeed: state.deck_seed,
+    deckIndex: state.deck_index,
+  };
 }
 
 function remainingSeconds(state: RoomStateRow, room: RoomRow): number {
@@ -524,14 +535,14 @@ async function correctOrPass(
   const describer = await getActiveDescriberPlayer(client, roomCode, state);
   requireDescriber(describer, playerToken);
 
-  const draw = drawNextWord(state.deck_order, state.deck_index, state.current_word, state.word_bank);
+  const draw = drawNextWordSeeded(state.word_bank, state.deck_seed, state.deck_index, state.current_word);
   const roundLog: RoundLogEntry[] = [...state.round_log, { word: state.current_word, outcome }];
   const roundScore = outcome === "correct" ? state.round_score + 1 : state.round_score;
   const penaltySec = outcome === "passed" ? state.penalty_sec + PASS_PENALTY_SEC : state.penalty_sec;
 
   const nextState: RoomStateRow = {
     ...state,
-    deck_order: draw.deckOrder,
+    deck_seed: draw.deckSeed,
     deck_index: draw.deckIndex,
     current_word: draw.word,
     round_log: roundLog,
@@ -550,7 +561,7 @@ async function correctOrPass(
   const { error: stateError } = await client
     .from("room_state")
     .update({
-      deck_order: nextState.deck_order,
+      deck_seed: nextState.deck_seed,
       deck_index: nextState.deck_index,
       current_word: nextState.current_word,
       round_log: nextState.round_log,
@@ -608,11 +619,11 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     return;
   }
 
-  const draw = drawNextWord(state.deck_order, state.deck_index, state.current_word, state.word_bank);
+  const draw = drawNextWordSeeded(state.word_bank, state.deck_seed, state.deck_index, state.current_word);
   const nextState: RoomStateRow = {
     ...state,
     turn_index: nextTurnIndex,
-    deck_order: draw.deckOrder,
+    deck_seed: draw.deckSeed,
     deck_index: draw.deckIndex,
     current_word: draw.word,
     round_score: 0,
@@ -625,7 +636,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     .from("room_state")
     .update({
       turn_index: nextState.turn_index,
-      deck_order: nextState.deck_order,
+      deck_seed: nextState.deck_seed,
       deck_index: nextState.deck_index,
       current_word: nextState.current_word,
       round_score: nextState.round_score,

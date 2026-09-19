@@ -103,7 +103,14 @@ export interface PublicGameState {
   penaltySec: number;
 }
 
-export function getCurrentWord(roomCode: string, playerToken: string): Promise<{ word: string }> {
+export interface CurrentWordResult {
+  word: string;
+  wordBank: string[];
+  deckSeed: number;
+  deckIndex: number;
+}
+
+export function getCurrentWord(roomCode: string, playerToken: string): Promise<CurrentWordResult> {
   return callMultiplayer("getCurrentWord", { roomCode, playerToken });
 }
 

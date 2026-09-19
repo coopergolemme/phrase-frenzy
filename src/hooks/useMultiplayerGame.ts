@@ -10,6 +10,22 @@ import {
 } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
+import { drawNextWordSeeded, type RoundLogEntry, type WordOutcome } from "../game/turnLogic";
+
+// The describer's local mirror of the turn's deck — word bank + the deck's
+// (seed, index) position (see drawNextWordSeeded) plus this turn's score
+// so far. Since the seed makes the deck order fully reproducible without
+// the server, taps can advance this locally and instantly; the matching
+// correct/pass call is only needed to persist the outcome, not to learn
+// what the next word is.
+interface LocalDeck {
+  wordBank: string[];
+  deckSeed: number;
+  deckIndex: number;
+  currentWord: string;
+  roundScore: number;
+  roundLog: RoundLogEntry[];
+}
 
 const TICK_MS = 250;
 
@@ -28,9 +44,17 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const [state, setState] = useState<PublicGameState | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [word, setWord] = useState<string | null>(null);
+  const [localRoundScore, setLocalRoundScore] = useState(0);
+  const [localRoundLog, setLocalRoundLog] = useState<RoundLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const timeUpSentForTurnRef = useRef<string | null>(null);
   const wordFetchedForTurnRef = useRef<string | null>(null);
+  const localDeckRef = useRef<LocalDeck | null>(null);
+  // Chains correct/pass persistence calls one after another so concurrent
+  // taps can never race a read-modify-write on the server's deck position
+  // — the UI itself never waits on this chain, only timeUp does (below),
+  // so the round doesn't finalize before every tap has been recorded.
+  const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     let cancelled = false;
@@ -54,9 +78,15 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
       setTimeRemaining(remaining);
       if (remaining <= 0 && timeUpSentForTurnRef.current !== state.turnStartedAt) {
         timeUpSentForTurnRef.current = state.turnStartedAt;
-        apiTimeUp(session.roomCode).catch(() => {
-          // Idempotent on the server — another device likely beat us to it.
-        });
+        // Wait for every queued correct/pass to finish persisting first —
+        // otherwise a tap made in the last instant could still be in
+        // flight when the round finalizes and its point would be lost.
+        persistQueueRef.current
+          .catch(() => {})
+          .then(() => apiTimeUp(session.roomCode))
+          .catch(() => {
+            // Idempotent on the server — another device likely beat us to it.
+          });
       }
     };
     tick();
@@ -86,33 +116,73 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   useEffect(() => {
     if (!state || state.status !== "playing" || !isDescriber) {
+      localDeckRef.current = null;
       setWord(null);
       return;
     }
     if (wordFetchedForTurnRef.current === state.turnStartedAt) return;
     wordFetchedForTurnRef.current = state.turnStartedAt;
     apiGetCurrentWord(session.roomCode, session.playerToken)
-      .then((result) => setWord(result.word))
+      .then((result) => {
+        localDeckRef.current = {
+          wordBank: result.wordBank,
+          deckSeed: result.deckSeed,
+          deckIndex: result.deckIndex,
+          currentWord: result.word,
+          roundScore: 0,
+          roundLog: [],
+        };
+        setWord(result.word);
+        setLocalRoundScore(0);
+        setLocalRoundLog([]);
+      })
       .catch(() => setWord(null));
   }, [state, isDescriber, session.roomCode, session.playerToken]);
 
+  // Advances the describer's own view immediately from the local deck
+  // mirror, then queues the matching server call in the background — the
+  // server independently derives the same next word from its own
+  // (deckSeed, deckIndex), so nothing from this draw needs to be sent to
+  // it, only the outcome for scoring.
+  const advance = useCallback(
+    (outcome: WordOutcome) => {
+      const deck = localDeckRef.current;
+      if (!deck) return;
+
+      const draw = drawNextWordSeeded(deck.wordBank, deck.deckSeed, deck.deckIndex, deck.currentWord);
+      const roundLog = [...deck.roundLog, { word: deck.currentWord, outcome }];
+      const roundScore = outcome === "correct" ? deck.roundScore + 1 : deck.roundScore;
+      localDeckRef.current = {
+        ...deck,
+        deckSeed: draw.deckSeed,
+        deckIndex: draw.deckIndex,
+        currentWord: draw.word,
+        roundScore,
+        roundLog,
+      };
+      setWord(draw.word);
+      setLocalRoundScore(roundScore);
+      setLocalRoundLog(roundLog);
+
+      const persist = outcome === "correct" ? apiMarkCorrect : apiMarkPass;
+      persistQueueRef.current = persistQueueRef.current.then(() =>
+        persist(session.roomCode, session.playerToken)
+          .then(() => {})
+          .catch((err) =>
+            setError(err instanceof Error ? err.message : `Couldn't persist "${outcome}"`)
+          )
+      );
+    },
+    [session.roomCode, session.playerToken]
+  );
+
   const handleCorrect = useCallback(() => {
-    if (!isDescriber) return;
-    apiMarkCorrect(session.roomCode, session.playerToken)
-      .then((result) => {
-        if (result.word) setWord(result.word);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't mark correct"));
-  }, [isDescriber, session.roomCode, session.playerToken]);
+    if (isDescriber) advance("correct");
+  }, [isDescriber, advance]);
 
   const handlePass = useCallback(() => {
-    if (!isDescriber) return;
-    apiMarkPass(session.roomCode, session.playerToken)
-      .then((result) => {
-        if (result.word) setWord(result.word);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't mark pass"));
-  }, [isDescriber, session.roomCode, session.playerToken]);
+    if (isDescriber) advance("passed");
+  }, [isDescriber, advance]);
 
   const isHost = lobbyPlayers[0]?.id === session.playerId;
 
@@ -140,8 +210,14 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundLabel: state ? `Round ${currentRoundNumber} of ${state.roundsPerTeam}` : "",
     currentWord: isDescriber ? word : null,
     timeRemaining,
-    roundScore: state?.roundScore ?? 0,
-    roundLog: state?.roundLog ?? [],
+    // While the round is live, the describer's own device shows its local
+    // optimistic tally instead of waiting on the server round trip +
+    // realtime broadcast; every other device (and everyone once the round
+    // ends) reads the server-synced value, which the queue above
+    // guarantees matches by the time the round finalizes.
+    roundScore: state?.status === "playing" && isDescriber ? localRoundScore : state?.roundScore ?? 0,
+    roundLog:
+      state?.status === "playing" ? (isDescriber ? localRoundLog : []) : state?.roundLog ?? [],
     isLastTurn,
     nextTeamName,
     error,
