@@ -16,7 +16,10 @@ const mockScoreboardState: ScoreboardState = {
     { id: "t1", name: "Team Fire", totalScore: 12, members: ["Alice"] },
     { id: "t2", name: "Team Ice", totalScore: 8, members: ["Bob"] },
   ],
-  roundLog: [{ word: "BANANA", outcome: "correct" }],
+  roundLog: [
+    { word: "BANANA", outcome: "correct" },
+    { word: "TITANIC", outcome: "passed" },
+  ],
   turnQueue: [{ teamName: "Team Ice", describerName: "Bob" }],
   isPaused: false,
   isLoading: false,
@@ -34,13 +37,15 @@ vi.mock("../RoomQrCode", () => ({
 }));
 
 describe("ScoreboardScreen", () => {
-  it("renders live playing view correctly", () => {
+  it("renders live playing view with activity feed correctly", () => {
     render(<ScoreboardScreen roomCode="TEST123" />);
 
     expect(screen.getAllByText("Team Fire")[0]).toBeInTheDocument();
     expect(screen.getByText(/Alice describing/i)).toBeInTheDocument();
     expect(screen.getByText("45s")).toBeInTheDocument();
-    expect(screen.getByText("✓ BANANA")).toBeInTheDocument();
+    expect(screen.getByText("BANANA")).toBeInTheDocument();
+    expect(screen.getByText("TITANIC")).toBeInTheDocument();
+    expect(screen.getByText("-3s penalty")).toBeInTheDocument();
   });
 
   it("renders overlay mode HUD when specified", () => {
@@ -49,5 +54,6 @@ describe("ScoreboardScreen", () => {
     expect(screen.getByText("Match Standings")).toBeInTheDocument();
     expect(screen.getAllByText("Team Fire")[0]).toBeInTheDocument();
     expect(screen.getByText("Team Ice")).toBeInTheDocument();
+    expect(screen.getByText("TITANIC")).toBeInTheDocument();
   });
 });

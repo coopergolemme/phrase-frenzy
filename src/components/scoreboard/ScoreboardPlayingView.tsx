@@ -21,6 +21,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
   } = scoreboard;
 
   const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
+  const recentEvents = [...roundLog].reverse();
 
   return (
     <div className="scoreboard-screen scoreboard-playing">
@@ -118,7 +119,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
           )}
         </div>
 
-        {/* Right: Team Scores Leaderboard & Live Turn Log */}
+        {/* Right: Team Scores Leaderboard & Live Turn Feed */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           {/* Team Scores Leaderboard */}
           <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl backdrop-blur-xl flex flex-col gap-4">
@@ -161,27 +162,56 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
             </div>
           </div>
 
-          {/* Live Solved Words Ticker */}
-          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl backdrop-blur-xl flex flex-col gap-3 flex-1 min-h-[180px]">
-            <h3 className="text-sm font-display font-bold text-text-primary m-0 flex items-center gap-2">
-              <span>✅</span> Solved This Turn ({roundLog.length})
-            </h3>
+          {/* Live Activity Feed (Correct Guesses + Foul Calls) */}
+          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl backdrop-blur-xl flex flex-col gap-3 flex-1 min-h-[220px]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-display font-bold text-text-primary m-0 flex items-center gap-2">
+                <span>📡</span> Live Activity Feed ({roundLog.length})
+              </h3>
+              <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 animate-pulse">
+                REAL-TIME
+              </span>
+            </div>
 
-            {roundLog.length === 0 ? (
+            {recentEvents.length === 0 ? (
               <div className="flex items-center justify-center flex-1 text-xs text-text-secondary italic">
-                Words solved will appear here live...
+                Correct guesses and fouls called will appear live...
               </div>
             ) : (
-              <ul className="list-none p-0 m-0 space-y-2 overflow-y-auto max-h-[220px]">
-                {roundLog.map((entry, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 font-bold text-sm"
-                  >
-                    <span className="tracking-wide">✓ {entry.word}</span>
-                    <span className="text-xs font-mono text-emerald-400/80">+1 pt</span>
-                  </li>
-                ))}
+              <ul className="list-none p-0 m-0 space-y-2.5 overflow-y-auto max-h-[260px]">
+                {recentEvents.map((entry, idx) => {
+                  const isCorrect = entry.outcome === "correct";
+                  return (
+                    <li
+                      key={idx}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                        isCorrect
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-sm"
+                          : "bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-sm"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2 font-bold text-sm tracking-wide">
+                          <span>{isCorrect ? "✓" : "🚨 FOUL"}</span>
+                          <span>{entry.word}</span>
+                        </div>
+                        <span className="text-[11px] text-text-secondary opacity-90">
+                          {describerName || "Player"} • {activeTeam?.name ?? "Team"}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg ${
+                          isCorrect
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-rose-500/30 text-rose-300 border border-rose-500/40"
+                        }`}
+                      >
+                        {isCorrect ? "+1 pt" : "-3s penalty"}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
