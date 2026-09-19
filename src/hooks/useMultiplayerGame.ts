@@ -3,6 +3,8 @@ import {
   getCurrentWord as apiGetCurrentWord,
   markCorrect as apiMarkCorrect,
   markPass as apiMarkPass,
+  togglePause as apiTogglePause,
+  skipRound as apiSkipRound,
   timeUp as apiTimeUp,
   nextTurn as apiNextTurn,
   type PublicGameState,
@@ -11,6 +13,10 @@ import {
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
 import { drawNextWordSeeded, type RoundLogEntry, type WordOutcome } from "../game/turnLogic";
+
+import { useMatchHistory } from "./useMatchHistory";
+import { useWordStats } from "./useWordStats";
+import { useGameSync } from "./useGameSync";
 
 // The describer's local mirror of the turn's deck — word bank + the deck's
 // (seed, index) position (see drawNextWordSeeded) plus this turn's score
@@ -30,7 +36,12 @@ interface LocalDeck {
 const TICK_MS = 250;
 
 function computeRemaining(state: PublicGameState): number {
-  const elapsedSec = Math.floor((Date.now() - new Date(state.turnStartedAt).getTime()) / 1000);
+  // While paused, freeze at the instant the pause began instead of "now" —
+  // resuming shifts turnStartedAt forward server-side by the pause
+  // duration, so this collapses back to the normal now-based calculation
+  // once unpaused. See togglePause in supabase/functions/multiplayer/index.ts.
+  const now = state.pausedAt ? new Date(state.pausedAt).getTime() : Date.now();
+  const elapsedSec = Math.floor((now - new Date(state.turnStartedAt).getTime()) / 1000);
   return Math.max(0, state.durationSec - elapsedSec - state.penaltySec);
 }
 
@@ -50,11 +61,44 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const timeUpSentForTurnRef = useRef<string | null>(null);
   const wordFetchedForTurnRef = useRef<string | null>(null);
   const localDeckRef = useRef<LocalDeck | null>(null);
+  const lastRecordedTurnRef = useRef<string | null>(null);
+  const matchRecordedRef = useRef<boolean>(false);
+
+  const { addMatch } = useMatchHistory();
+  const { recordRoundLog } = useWordStats();
+  const { trackTurn, resetSession, finishMatch } = useGameSync();
   // Chains correct/pass persistence calls one after another so concurrent
   // taps can never race a read-modify-write on the server's deck position
   // — the UI itself never waits on this chain, only timeUp does (below),
   // so the round doesn't finalize before every tap has been recorded.
   const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    if (!state) return;
+
+    if (
+      state.status === "lobby" ||
+      (state.status === "playing" && state.turnIndex === 0 && matchRecordedRef.current)
+    ) {
+      matchRecordedRef.current = false;
+      lastRecordedTurnRef.current = null;
+      resetSession();
+    }
+
+    if ((state.status === "roundSummary" || state.status === "gameOver") && state.roundLog) {
+      if (lastRecordedTurnRef.current !== state.turnStartedAt) {
+        lastRecordedTurnRef.current = state.turnStartedAt;
+        recordRoundLog(state.roundLog);
+        trackTurn(state.roundLog);
+      }
+    }
+
+    if (state.status === "gameOver" && !matchRecordedRef.current) {
+      matchRecordedRef.current = true;
+      const match = addMatch(state.teams, state.roundsPerTeam);
+      finishMatch(match, state.teams);
+    }
+  }, [state, recordRoundLog, trackTurn, addMatch, finishMatch, resetSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +120,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     const tick = () => {
       const remaining = computeRemaining(state);
       setTimeRemaining(remaining);
+      if (state.pausedAt) return;
       if (remaining <= 0 && timeUpSentForTurnRef.current !== state.turnStartedAt) {
         timeUpSentForTurnRef.current = state.turnStartedAt;
         // Wait for every queued correct/pass to finish persisting first —
@@ -176,13 +221,33 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     [session.roomCode, session.playerToken]
   );
 
+  const isPaused = state?.pausedAt != null;
+
   const handleCorrect = useCallback(() => {
-    if (isDescriber) advance("correct");
-  }, [isDescriber, advance]);
+    if (isDescriber && !isPaused) advance("correct");
+  }, [isDescriber, isPaused, advance]);
 
   const handlePass = useCallback(() => {
-    if (isDescriber) advance("passed");
-  }, [isDescriber, advance]);
+    if (isDescriber && !isPaused) advance("passed");
+  }, [isDescriber, isPaused, advance]);
+
+  // Gated the same way handleCorrect/handlePass are — only the active
+  // describer's device renders these controls (GameScreen), so this
+  // mirrors the existing authorization rather than adding a separate
+  // host-only surface.
+  const handleTogglePause = useCallback(() => {
+    if (!isDescriber) return;
+    apiTogglePause(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't toggle pause")
+    );
+  }, [isDescriber, session.roomCode, session.playerToken]);
+
+  const handleSkipRound = useCallback(() => {
+    if (!isDescriber) return;
+    apiSkipRound(session.roomCode, session.playerToken).catch((err) =>
+      setError(err instanceof Error ? err.message : "Couldn't skip the round")
+    );
+  }, [isDescriber, session.roomCode, session.playerToken]);
 
   const isHost = lobbyPlayers[0]?.id === session.playerId;
 
@@ -211,6 +276,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundLabel: state ? `Round ${currentRoundNumber} of ${state.roundsPerTeam}` : "",
     currentWord: isDescriber ? word : null,
     timeRemaining,
+    isPaused,
     // While the round is live, the describer's own device shows its local
     // optimistic tally instead of waiting on the server round trip +
     // realtime broadcast; every other device (and everyone once the round
@@ -219,11 +285,15 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundScore: state?.status === "playing" && isDescriber ? localRoundScore : state?.roundScore ?? 0,
     roundLog:
       state?.status === "playing" ? (isDescriber ? localRoundLog : []) : state?.roundLog ?? [],
+    turnIndex: state?.turnIndex ?? 0,
+    roundsPerTeam: state?.roundsPerTeam ?? 1,
     isLastTurn,
     nextTeamName,
     error,
     handleCorrect,
     handlePass,
+    handleTogglePause,
+    handleSkipRound,
     handleNextTurn,
   };
 }

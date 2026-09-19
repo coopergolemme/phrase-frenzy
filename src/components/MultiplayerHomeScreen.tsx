@@ -2,6 +2,11 @@ import { useMemo, useState } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { CategoryPickerSheet } from "./CategoryPickerSheet";
 import { QrScannerModal } from "./QrScannerModal";
+import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
+import { WordStatsSheet } from "./WordStatsSheet";
+import { MatchHistorySheet } from "./MatchHistorySheet";
+import type { WordStats } from "../utils/wordStats";
+import type { MatchRecord } from "../utils/matchHistory";
 
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
@@ -25,6 +30,12 @@ interface MultiplayerHomeScreenProps {
   }) => void;
   onJoin: (roomCode: string) => void;
   onBack: () => void;
+  flaggedWords?: string[];
+  onUnflagWord?: (word: string) => void;
+  isWordFlagged?: (word: string) => boolean;
+  onToggleFlag?: (word: string) => void;
+  wordStats?: WordStats;
+  matchHistory?: MatchRecord[];
 }
 
 type Mode = "choose" | "host" | "join";
@@ -36,8 +47,15 @@ export function MultiplayerHomeScreen({
   onCreate,
   onJoin,
   onBack,
+  flaggedWords = [],
+  onUnflagWord,
+  isWordFlagged,
+  onToggleFlag,
+  wordStats = {},
+  matchHistory = [],
 }: MultiplayerHomeScreenProps) {
   const [mode, setMode] = useState<Mode>("choose");
+  const [activeSheet, setActiveSheet] = useState<"flags" | "stats" | "history" | null>(null);
   const allCategoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
 
   const [hostName, setHostName] = useState("");
@@ -93,6 +111,68 @@ export function MultiplayerHomeScreen({
         <button className="btn btn--outline btn--large w-full" onClick={() => setMode("join")}>
           Join a Game
         </button>
+
+        {(flaggedWords.length > 0 || Object.keys(wordStats).length > 0 || matchHistory.length > 0) && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {flaggedWords.length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("flags")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  🚩
+                </span>
+                Flagged ({flaggedWords.length})
+              </button>
+            )}
+            {Object.keys(wordStats).length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("stats")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  📊
+                </span>
+                Stats
+              </button>
+            )}
+            {matchHistory.length > 0 && (
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={() => setActiveSheet("history")}
+              >
+                <span className="btn__icon" aria-hidden="true">
+                  🕐
+                </span>
+                History
+              </button>
+            )}
+          </div>
+        )}
+
+        {activeSheet === "flags" && onUnflagWord && (
+          <FlaggedWordsSheet
+            flaggedWords={flaggedWords}
+            onUnflag={onUnflagWord}
+            onClose={() => setActiveSheet(null)}
+          />
+        )}
+
+        {activeSheet === "stats" && (
+          <WordStatsSheet
+            stats={wordStats}
+            isWordFlagged={isWordFlagged ?? (() => false)}
+            onToggleFlag={onToggleFlag ?? (() => {})}
+            onClose={() => setActiveSheet(null)}
+          />
+        )}
+
+        {activeSheet === "history" && (
+          <MatchHistorySheet history={matchHistory} onClose={() => setActiveSheet(null)} />
+        )}
       </div>
     );
   }
@@ -112,11 +192,14 @@ export function MultiplayerHomeScreen({
             Join a Game
           </h1>
         </div>
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-col gap-2 text-left">
+          <label className="text-[0.85rem] font-bold uppercase tracking-wider text-text-secondary text-center">
+            Enter 6-Letter Room Code
+          </label>
           <input
-            className="min-h-touch w-full rounded-button border border-outline bg-surface px-3 py-2 text-center font-[inherit] text-[1.4rem] font-bold uppercase tracking-[0.3em] text-text outline-none placeholder:text-text-secondary placeholder:tracking-normal"
+            className="min-h-touch w-full rounded-button border-2 border-outline bg-surface px-3 py-3 text-center font-display text-[1.6rem] font-bold uppercase tracking-[0.3em] text-text outline-none focus:border-primary placeholder:text-text-secondary placeholder:tracking-normal placeholder:font-sans placeholder:text-base"
             type="text"
-            placeholder="Room code"
+            placeholder="e.g. ABCDEF"
             value={joinCode}
             maxLength={6}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}

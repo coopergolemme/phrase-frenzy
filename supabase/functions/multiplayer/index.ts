@@ -70,6 +70,7 @@ interface RoomStateRow {
   current_word: string;
   turn_started_at: string;
   penalty_sec: number;
+  paused_at: string | null;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -106,6 +107,7 @@ interface PublicState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
+  pausedAt: string | null;
 }
 
 function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
@@ -123,6 +125,7 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
     turnStartedAt: state.turn_started_at,
     durationSec: room.round_duration_sec,
     penaltySec: state.penalty_sec,
+    pausedAt: state.paused_at,
   };
 }
 
@@ -171,6 +174,7 @@ async function publishPublicState(
       turn_started_at: publicState.turnStartedAt,
       duration_sec: publicState.durationSec,
       penalty_sec: publicState.penaltySec,
+      paused_at: publicState.pausedAt,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "room_code" }
@@ -452,6 +456,7 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     current_word: deck.word,
     turn_started_at: new Date().toISOString(),
     penalty_sec: 0,
+    paused_at: null,
   };
 
   const { error: stateError } = await client.from("room_state").insert(newState);
@@ -498,7 +503,12 @@ async function getCurrentWord(
 }
 
 function remainingSeconds(state: RoomStateRow, room: RoomRow): number {
-  const elapsedSec = Math.floor((Date.now() - new Date(state.turn_started_at).getTime()) / 1000);
+  // While paused, freeze the clock at the instant the pause began rather
+  // than at "now" — resuming (togglePause) shifts turn_started_at forward
+  // by the elapsed pause duration, so once resumed this reduces back to
+  // the normal now-based calculation.
+  const now = state.paused_at ? new Date(state.paused_at).getTime() : Date.now();
+  const elapsedSec = Math.floor((now - new Date(state.turn_started_at).getTime()) / 1000);
   return room.round_duration_sec - elapsedSec - state.penalty_sec;
 }
 
@@ -512,7 +522,7 @@ async function finalizeRound(
 
   const { error: stateError } = await client
     .from("room_state")
-    .update({ teams, updated_at: new Date().toISOString() })
+    .update({ teams, paused_at: null, updated_at: new Date().toISOString() })
     .eq("room_code", room.code);
   if (stateError) throw stateError;
 
@@ -522,7 +532,9 @@ async function finalizeRound(
     .eq("code", room.code);
   if (roomError) throw roomError;
 
-  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "roundSummary" }, { ...state, teams }));
+  EdgeRuntime.waitUntil(
+    publishPublicState(client, { ...room, status: "roundSummary" }, { ...state, teams, paused_at: null })
+  );
 }
 
 async function correctOrPass(
@@ -535,6 +547,7 @@ async function correctOrPass(
 
   const [room, state] = await fetchRoomAndState(client, roomCode);
   if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
+  if (state.paused_at) throw new ApiError("The game is paused", 409);
 
   const describer = await getActiveDescriberPlayer(client, roomCode, state);
   requireDescriber(describer, playerToken);
@@ -582,6 +595,62 @@ async function correctOrPass(
   EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
 
   return { word: nextState.current_word };
+}
+
+// Authorized the same way correct/pass are (the active describer's device
+// is the only one showing pause/skip controls, mirroring the local
+// pass-and-play UI where whoever's holding the phone controls the round)
+// rather than introducing a separate host-only control surface.
+async function togglePause(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const [room, state] = await fetchRoomAndState(client, roomCode);
+  if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
+
+  const describer = await getActiveDescriberPlayer(client, roomCode, state);
+  requireDescriber(describer, playerToken);
+
+  const now = Date.now();
+  let nextState: RoomStateRow;
+  if (state.paused_at) {
+    // Resuming: shift the turn's anchor forward by however long the pause
+    // lasted, so remainingSeconds (now-based once unpaused) picks up
+    // exactly where it left off.
+    const pausedMs = now - new Date(state.paused_at).getTime();
+    const shiftedStart = new Date(new Date(state.turn_started_at).getTime() + pausedMs).toISOString();
+    nextState = { ...state, turn_started_at: shiftedStart, paused_at: null };
+  } else {
+    nextState = { ...state, paused_at: new Date(now).toISOString() };
+  }
+
+  const { error: stateError } = await client
+    .from("room_state")
+    .update({
+      turn_started_at: nextState.turn_started_at,
+      paused_at: nextState.paused_at,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("room_code", roomCode);
+  if (stateError) throw stateError;
+
+  EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
+}
+
+// Describer-triggerable early end to the current turn — reuses
+// finalizeRound as-is, which scores whatever round_score has accumulated
+// so far, same as timeUp does when the clock naturally runs out.
+async function skipRound(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const [room, state] = await fetchRoomAndState(client, roomCode);
+  if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
+
+  const describer = await getActiveDescriberPlayer(client, roomCode, state);
+  requireDescriber(describer, playerToken);
+
+  await finalizeRound(client, room, state);
 }
 
 async function timeUp(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
@@ -634,6 +703,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     round_log: [],
     turn_started_at: new Date().toISOString(),
     penalty_sec: 0,
+    paused_at: null,
   };
 
   const { error: stateError } = await client
@@ -647,6 +717,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
       round_log: nextState.round_log,
       turn_started_at: nextState.turn_started_at,
       penalty_sec: nextState.penalty_sec,
+      paused_at: nextState.paused_at,
       updated_at: new Date().toISOString(),
     })
     .eq("room_code", roomCode);
@@ -693,6 +764,12 @@ Deno.serve(async (req: Request) => {
         return json(await correctOrPass(client, body, "correct"));
       case "pass":
         return json(await correctOrPass(client, body, "passed"));
+      case "togglePause":
+        await togglePause(client, body);
+        return json({});
+      case "skipRound":
+        await skipRound(client, body);
+        return json({});
       case "timeUp":
         await timeUp(client, body);
         return json({});

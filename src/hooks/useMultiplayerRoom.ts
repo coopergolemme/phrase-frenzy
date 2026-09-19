@@ -51,6 +51,23 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
     return () => unsubscribeRef.current?.();
   }, []);
 
+  const loadPreview = useCallback(
+    async (roomCode: string) => {
+      setIsBusy(true);
+      setError(null);
+      try {
+        const lobbySnapshot = await fetchLobbySnapshot(roomCode.toUpperCase());
+        setLobby(lobbySnapshot);
+        subscribe(roomCode.toUpperCase());
+      } catch (err) {
+        setError(err instanceof MultiplayerApiError ? err.message : "Couldn't find that room");
+      } finally {
+        setIsBusy(false);
+      }
+    },
+    [subscribe]
+  );
+
   // Resume an in-progress session (e.g. a reloaded tab) by re-fetching the
   // lobby snapshot and resubscribing.
   useEffect(() => {
@@ -72,6 +89,12 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.roomCode]);
+
+  // Load room preview and subscribe when arriving via deep link / QR code without a stored session.
+  useEffect(() => {
+    if (session || !initialRoomCode) return;
+    void loadPreview(initialRoomCode);
+  }, [initialRoomCode, session, loadPreview]);
 
   const create = useCallback(
     async (params: {
@@ -132,19 +155,6 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
     [subscribe]
   );
 
-  const loadPreview = useCallback(async (roomCode: string) => {
-    setIsBusy(true);
-    setError(null);
-    try {
-      const lobbySnapshot = await fetchLobbySnapshot(roomCode.toUpperCase());
-      setLobby(lobbySnapshot);
-      subscribe(roomCode.toUpperCase());
-    } catch (err) {
-      setError(err instanceof MultiplayerApiError ? err.message : "Couldn't find that room");
-    } finally {
-      setIsBusy(false);
-    }
-  }, [subscribe]);
 
   const startGame = useCallback(async () => {
     if (!session) return;
