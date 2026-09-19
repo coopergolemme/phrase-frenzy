@@ -126,6 +126,17 @@ export function MultiplayerLobbyScreen({
         <p className="m-0 text-text-secondary">Waiting for the host to start the game…</p>
       )}
 
+      <div className="flex w-full gap-2 mt-2">
+        <a
+          href={`#scoreboard/${encodeURIComponent(roomCode)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn--outline w-full flex items-center justify-center gap-2 text-decoration-none"
+        >
+          <span>📺</span> <span>TV / Stream View</span>
+        </a>
+      </div>
+
       <button className="btn btn--text" onClick={onLeave}>
         Leave
       </button>

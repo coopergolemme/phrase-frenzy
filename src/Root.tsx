@@ -12,8 +12,11 @@ const AdminScreen = lazy(() =>
 // only ship to players who actually navigate into it, same reasoning as the
 // admin screen above.
 const MultiplayerApp = lazy(() => import("./MultiplayerApp.tsx"));
+const ScoreboardScreen = lazy(() => import("./components/scoreboard/ScoreboardScreen.tsx"));
 
 const ROOM_HASH_PREFIX = "#room/";
+const SCOREBOARD_HASH_PREFIX = "#scoreboard/";
+const OVERLAY_HASH_PREFIX = "#overlay/";
 
 export function Root() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -28,6 +31,24 @@ export function Root() {
     return (
       <Suspense fallback={null}>
         <AdminScreen />
+      </Suspense>
+    );
+  }
+
+  if (hash.startsWith(SCOREBOARD_HASH_PREFIX)) {
+    const roomCode = decodeURIComponent(hash.slice(SCOREBOARD_HASH_PREFIX.length));
+    return (
+      <Suspense fallback={null}>
+        <ScoreboardScreen roomCode={roomCode} />
+      </Suspense>
+    );
+  }
+
+  if (hash.startsWith(OVERLAY_HASH_PREFIX)) {
+    const roomCode = decodeURIComponent(hash.slice(OVERLAY_HASH_PREFIX.length));
+    return (
+      <Suspense fallback={null}>
+        <ScoreboardScreen roomCode={roomCode} isOverlayMode={true} />
       </Suspense>
     );
   }
