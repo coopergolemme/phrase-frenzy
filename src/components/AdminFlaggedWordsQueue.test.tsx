@@ -123,4 +123,19 @@ describe("AdminFlaggedWordsQueue", () => {
 
     expect(screen.queryByText(/similar words still active/i)).not.toBeInTheDocument();
   });
+
+  it("keeps a just-deactivated word visible, without a Deactivate button, while it still has similar-word suggestions to review", () => {
+    const justDeactivated: FlaggedWord = { ...FLAGGED[0], active: false };
+    const similarSuggestions: Record<string, SimilarWordSuggestions> = {
+      "1": { status: "done", items: [{ id: "5", text: "Burrito" }] },
+    };
+    renderQueue({ flaggedWords: [justDeactivated], similarSuggestions });
+
+    expect(screen.getByText("Taco")).toBeInTheDocument();
+    expect(screen.getByText(/deactivated/i)).toBeInTheDocument();
+    expect(screen.getByText("Burrito")).toBeInTheDocument();
+    // Only the suggestion's own Deactivate button should exist — Taco
+    // itself has nothing left to deactivate.
+    expect(screen.getAllByRole("button", { name: /^deactivate$/i })).toHaveLength(1);
+  });
 });

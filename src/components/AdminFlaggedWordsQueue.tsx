@@ -23,9 +23,13 @@ export function AdminFlaggedWordsQueue({
   const [reasonDraft, setReasonDraft] = useState("");
 
   // Already-deactivated words can't be acted on from here — the
-  // deactivated-words queue is where those get reviewed — so keep this
-  // list to the ones still awaiting a decision.
-  const activeFlaggedWords = flaggedWords.filter((flagged) => flagged.active);
+  // deactivated-words queue is where those get reviewed — so hide them,
+  // *unless* this word was just deactivated in this session and still has
+  // a similar-words follow-up to show: that row needs to stay visible for
+  // the admin to act on it.
+  const activeFlaggedWords = flaggedWords.filter(
+    (flagged) => flagged.active || similarSuggestions[flagged.id] !== undefined
+  );
 
   if (activeFlaggedWords.length === 0) {
     return <p className="py-5 text-center text-text-secondary">No flagged words.</p>;
@@ -60,8 +64,11 @@ export function AdminFlaggedWordsQueue({
                 <span className="ml-2 text-[0.8rem] text-text-secondary">
                   {flagged.categoryLabel} · flagged {flagged.flaggedCount}x
                 </span>
+                {!flagged.active && (
+                  <span className="ml-2 text-[0.8rem] text-text-secondary">deactivated</span>
+                )}
               </div>
-              {!isConfirming && (
+              {!isConfirming && flagged.active && (
                 <button
                   type="button"
                   className="btn btn--small btn--outline"
