@@ -113,12 +113,18 @@ export function subscribeToLobby(roomCode: string, onChange: () => void): () => 
   return () => client.removeChannel(channel);
 }
 
+export interface FoulPayload {
+  spectatorName: string;
+  penaltySec: number;
+}
+
 // The hot path: gameplay state (score, turn, timer anchor) is pushed
 // directly in the broadcast payload, with no follow-up fetch — this is
 // what keeps Correct/Pass feeling instant on the other players' screens.
 export function subscribeToPublicState(
   roomCode: string,
-  onChange: (state: PublicGameState) => void
+  onChange: (state: PublicGameState) => void,
+  onFoul?: (foul: FoulPayload) => void
 ): () => void {
   const client = getSupabaseClient();
   const channel = client
@@ -126,6 +132,10 @@ export function subscribeToPublicState(
     .on("broadcast", { event: "state" }, (message) => {
       const state = message.payload as PublicGameState | undefined;
       if (state) onChange(state);
+    })
+    .on("broadcast", { event: "foul" }, (message) => {
+      const foulPayload = message.payload as FoulPayload | undefined;
+      if (foulPayload && onFoul) onFoul(foulPayload);
     })
     .subscribe();
   return () => client.removeChannel(channel);

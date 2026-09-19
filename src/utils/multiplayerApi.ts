@@ -18,6 +18,7 @@ type Action =
   | "getCurrentWord"
   | "correct"
   | "pass"
+  | "foul"
   | "togglePause"
   | "skipRound"
   | "timeUp"
@@ -143,4 +144,8 @@ export function timeUp(roomCode: string): Promise<Record<string, never>> {
 
 export function nextTurn(roomCode: string, playerToken: string): Promise<Record<string, never>> {
   return callMultiplayer("nextTurn", { roomCode, playerToken });
+}
+
+export function reportFoul(roomCode: string, playerToken: string): Promise<Record<string, never>> {
+  return callMultiplayer("foul", { roomCode, playerToken });
 }

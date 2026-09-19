@@ -14,6 +14,7 @@ interface GameScreenProps {
   score: number;
   teams: Team[];
   isPaused: boolean;
+  lastFoul?: { spectatorName: string; penaltySec: number } | null;
   onCorrect: () => void;
   onPass: () => void;
   onSkipRound: () => void;
@@ -30,6 +31,7 @@ export function GameScreen({
   score,
   teams,
   isPaused,
+  lastFoul,
   onCorrect,
   onPass,
   onSkipRound,
@@ -59,7 +61,16 @@ export function GameScreen({
   };
 
   return (
-    <div className={`screen screen--game${isUrgent ? " screen--game-urgent" : ""}`}>
+    <div className={`screen screen--game${isUrgent ? " screen--game-urgent" : ""}${lastFoul ? " screen--foul-flash" : ""}`}>
+      {lastFoul && (
+        <div className="foul-alert-banner" role="alert" aria-live="assertive">
+          <span className="foul-alert-banner__icon">🚨</span>
+          <span>
+            <strong>FOUL CALLED BY {lastFoul.spectatorName.toUpperCase()}!</strong> (-{lastFoul.penaltySec}s)
+          </span>
+        </div>
+      )}
+
       <div className="game__rotate-hint">
         <span className="game__rotate-hint-icon" aria-hidden="true">
           📱
