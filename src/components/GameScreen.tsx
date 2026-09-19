@@ -7,7 +7,9 @@ interface GameScreenProps {
   teamName: string;
   describerName: string | null;
   roundLabel: string;
-  currentWord: string;
+  // null means "hidden from this device" — used in distributed multiplayer
+  // where only the active describer's device ever receives the word.
+  currentWord: string | null;
   timeRemaining: number;
   score: number;
   teams: Team[];
@@ -39,6 +41,7 @@ export function GameScreen({
   const isUrgent = !isPaused && timeRemaining <= 10 && timeRemaining > 0;
 
   const closeMenu = () => setIsMenuOpen(false);
+  const actionsDisabled = isPaused || currentWord === null;
 
   const handleSkipRound = () => {
     closeMenu();
@@ -65,7 +68,11 @@ export function GameScreen({
       </div>
 
       <div className="game__word-area">
-        <WordCard word={isPaused ? "Paused" : currentWord} />
+        {currentWord !== null ? (
+          <WordCard word={isPaused ? "Paused" : currentWord} />
+        ) : (
+          <WordCard word={describerName ? `Waiting for ${describerName}…` : "Waiting…"} />
+        )}
 
         <div className="game__hud game__hud--left">
           <p className="game__team-name">{teamName}</p>
@@ -155,7 +162,7 @@ export function GameScreen({
         <button
           className="btn btn--pass btn--large"
           onClick={onPass}
-          disabled={isPaused}
+          disabled={actionsDisabled}
         >
           <span className="btn__icon" aria-hidden="true">
             ✕
@@ -165,7 +172,7 @@ export function GameScreen({
         <button
           className="btn btn--primary btn--large"
           onClick={onCorrect}
-          disabled={isPaused}
+          disabled={actionsDisabled}
         >
           <span className="btn__icon" aria-hidden="true">
             ✓

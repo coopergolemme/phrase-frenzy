@@ -1,7 +1,11 @@
 import { useEffect, useReducer } from "react";
 import type { WordCategory } from "../data/wordCategory";
-import { shuffle } from "../utils/shuffle";
 import { loadGameState, saveGameState } from "../utils/gameStateStorage";
+import { shuffle } from "../utils/shuffle";
+import { buildTurnOrder, drawNextWord } from "../game/turnLogic";
+import type { RoundLogEntry, Team, WordOutcome } from "../game/turnLogic";
+
+export type { RoundLogEntry, Team, WordOutcome };
 
 export type GameStatus =
   | "home"
@@ -9,20 +13,6 @@ export type GameStatus =
   | "playing"
   | "roundSummary"
   | "gameOver";
-
-export interface Team {
-  id: string;
-  name: string;
-  totalScore: number;
-  members: string[];
-}
-
-export type WordOutcome = "correct" | "passed";
-
-export interface RoundLogEntry {
-  word: string;
-  outcome: WordOutcome;
-}
 
 export interface GameState {
   gameStatus: GameStatus;
@@ -71,33 +61,6 @@ const initialState: GameState = {
   deckOrder: [],
   deckIndex: 0,
 };
-
-function drawNextWord(
-  deckOrder: string[],
-  deckIndex: number,
-  currentWord: string,
-  wordBank: string[]
-) {
-  if (deckIndex >= deckOrder.length) {
-    const reshuffled = shuffle(wordBank);
-    if (reshuffled[0] === currentWord && reshuffled.length > 1) {
-      const swapIndex = 1 + Math.floor(Math.random() * (reshuffled.length - 1));
-      [reshuffled[0], reshuffled[swapIndex]] = [reshuffled[swapIndex], reshuffled[0]];
-    }
-    return { deckOrder: reshuffled, deckIndex: 1, word: reshuffled[0] };
-  }
-  return { deckOrder, deckIndex: deckIndex + 1, word: deckOrder[deckIndex] };
-}
-
-function buildTurnOrder(teamCount: number, roundsPerTeam: number): number[] {
-  const order: number[] = [];
-  for (let round = 0; round < roundsPerTeam; round++) {
-    for (let team = 0; team < teamCount; team++) {
-      order.push(team);
-    }
-  }
-  return order;
-}
 
 function reducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {

@@ -87,6 +87,15 @@ export function HomeScreen({
           <button className="btn btn--primary btn--large" onClick={onStart}>
             Start Game
           </button>
+          <button
+            type="button"
+            className="btn btn--outline btn--large"
+            onClick={() => {
+              window.location.hash = "multiplayer";
+            }}
+          >
+            Play Online
+          </button>
           <div className="flex flex-wrap justify-center gap-2">
             {flaggedWords.length > 0 && (
               <button type="button" className="btn btn--small btn--outline" onClick={() => openSheet("flags")}>
