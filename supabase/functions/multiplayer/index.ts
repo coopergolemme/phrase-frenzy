@@ -44,6 +44,7 @@ interface RoomRow {
   status: "lobby" | "playing" | "roundSummary" | "gameOver";
   rounds_per_team: number;
   round_duration_sec: number;
+  foul_penalty_sec: number;
   category_ids: string[];
   team_names: string[];
 }
@@ -107,6 +108,7 @@ interface PublicState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
+  foulPenaltySec: number;
   pausedAt: string | null;
 }
 
@@ -118,13 +120,11 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
     turnIndex: state.turn_index,
     roundsPerTeam: room.rounds_per_team,
     roundScore: state.round_score,
-    // The round's words are only meaningful for review once the round has
-    // actually ended — never leak them to the whole room while a turn is
-    // still live.
     roundLog: room.status === "playing" ? [] : state.round_log,
     turnStartedAt: state.turn_started_at,
     durationSec: room.round_duration_sec,
     penaltySec: state.penalty_sec,
+    foulPenaltySec: room.foul_penalty_sec ?? 2,
     pausedAt: state.paused_at,
   };
 }
@@ -174,6 +174,7 @@ async function publishPublicState(
       turn_started_at: publicState.turnStartedAt,
       duration_sec: publicState.durationSec,
       penalty_sec: publicState.penaltySec,
+      foul_penalty_sec: publicState.foulPenaltySec,
       paused_at: publicState.pausedAt,
       updated_at: new Date().toISOString(),
     },
@@ -285,6 +286,7 @@ async function createRoom(
   const teamNames = (body.teamNames as unknown[] | undefined)?.map((n) => String(n).trim()) ?? [];
   const roundsPerTeam = Number(body.roundsPerTeam);
   const roundDurationSec = Number(body.roundDurationSec);
+  const foulPenaltySec = body.foulPenaltySec !== undefined ? Number(body.foulPenaltySec) : 2;
   const categoryIds = (body.categoryIds as unknown[] | undefined)?.map((c) => String(c)) ?? [];
 
   if (teamNames.length < MIN_TEAMS || teamNames.length > MAX_TEAMS || teamNames.some((n) => !n)) {
@@ -300,6 +302,9 @@ async function createRoom(
   ) {
     throw new ApiError("Invalid roundDurationSec", 400);
   }
+  if (!Number.isInteger(foulPenaltySec) || foulPenaltySec < 0 || foulPenaltySec > 10) {
+    throw new ApiError("Invalid foulPenaltySec", 400);
+  }
   if (categoryIds.length === 0) {
     throw new ApiError("Select at least one category", 400);
   }
@@ -310,6 +315,7 @@ async function createRoom(
     status: "lobby",
     rounds_per_team: roundsPerTeam,
     round_duration_sec: roundDurationSec,
+    foul_penalty_sec: foulPenaltySec,
     category_ids: categoryIds,
     team_names: teamNames,
   });
@@ -653,8 +659,6 @@ async function skipRound(client: SupabaseClient, body: Record<string, unknown>):
   await finalizeRound(client, room, state);
 }
 
-const FOUL_PENALTY_SEC = 2;
-
 async function foul(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
@@ -677,16 +681,17 @@ async function foul(client: SupabaseClient, body: Record<string, unknown>): Prom
     throw new ApiError("Active describer cannot foul themselves", 403);
   }
 
+  const penaltySec = room.foul_penalty_sec ?? 2;
   const spectatorName = (callerRow as { name: string }).name;
   const nextState: RoomStateRow = {
     ...state,
-    penalty_sec: state.penalty_sec + FOUL_PENALTY_SEC,
+    penalty_sec: state.penalty_sec + penaltySec,
   };
 
   if (remainingSeconds(nextState, room) <= 0) {
     await finalizeRound(client, room, nextState);
     EdgeRuntime.waitUntil(
-      broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec: FOUL_PENALTY_SEC })
+      broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec })
     );
     return;
   }
@@ -702,7 +707,7 @@ async function foul(client: SupabaseClient, body: Record<string, unknown>): Prom
 
   EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
   EdgeRuntime.waitUntil(
-    broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec: FOUL_PENALTY_SEC })
+    broadcast(client, `room-state:${roomCode}`, "foul", { spectatorName, penaltySec })
   );
 }
 

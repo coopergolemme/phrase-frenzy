@@ -26,6 +26,7 @@ interface MultiplayerHomeScreenProps {
     teamNames: string[];
     roundsPerTeam: number;
     roundDurationSec: number;
+    foulPenaltySec: number;
     categoryIds: string[];
   }) => void;
   onJoin: (roomCode: string) => void;
@@ -62,6 +63,7 @@ export function MultiplayerHomeScreen({
   const [teamNames, setTeamNames] = useState<string[]>(["", ""]);
   const [roundsPerTeam, setRoundsPerTeam] = useState(3);
   const [roundDurationSec, setRoundDurationSec] = useState(DEFAULT_ROUND_DURATION_SEC);
+  const [foulPenaltySec, setFoulPenaltySec] = useState(2);
   const [categoryIds, setCategoryIds] = useState<string[]>(allCategoryIds);
   const [isPickingCategories, setIsPickingCategories] = useState(false);
 
@@ -83,6 +85,7 @@ export function MultiplayerHomeScreen({
       teamNames: teamNames.map((n) => n.trim()),
       roundsPerTeam,
       roundDurationSec,
+      foulPenaltySec,
       categoryIds,
     });
   };
@@ -347,7 +350,7 @@ export function MultiplayerHomeScreen({
             </div>
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border-solid px-4 py-3">
             <span className="font-semibold">Round timer</span>
             <div className="flex items-center gap-3">
               <button
@@ -376,6 +379,33 @@ export function MultiplayerHomeScreen({
                 }
                 disabled={roundDurationSec >= MAX_ROUND_DURATION_SEC}
                 aria-label="Increase round timer"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="font-semibold">Foul penalty</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className={stepperBtnClass}
+                onClick={() => setFoulPenaltySec((prev) => Math.max(0, prev - 1))}
+                disabled={foulPenaltySec <= 0}
+                aria-label="Decrease foul penalty"
+              >
+                &minus;
+              </button>
+              <span className="min-w-[1.5ch] text-center font-bold tabular-nums">
+                {foulPenaltySec > 0 ? `${foulPenaltySec}s` : "Off"}
+              </span>
+              <button
+                type="button"
+                className={stepperBtnClass}
+                onClick={() => setFoulPenaltySec((prev) => Math.min(5, prev + 1))}
+                disabled={foulPenaltySec >= 5}
+                aria-label="Increase foul penalty"
               >
                 +
               </button>

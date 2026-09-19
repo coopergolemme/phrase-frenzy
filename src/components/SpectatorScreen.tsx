@@ -8,6 +8,7 @@ interface SpectatorScreenProps {
   roundScore: number;
   teamTotalScore: number;
   timeRemaining: number;
+  foulPenaltySec?: number;
   onFoul?: () => void;
 }
 
@@ -20,6 +21,7 @@ export function SpectatorScreen({
   roundScore,
   teamTotalScore,
   timeRemaining,
+  foulPenaltySec = 2,
   onFoul,
 }: SpectatorScreenProps) {
   const [cooldownSec, setCooldownSec] = useState(0);
@@ -40,6 +42,8 @@ export function SpectatorScreen({
     onFoul();
     setCooldownSec(2);
   };
+
+  const penaltyLabel = foulPenaltySec > 0 ? `-${foulPenaltySec}s` : "No penalty";
 
   return (
     <div className="screen justify-center items-center gap-5 text-center">
@@ -87,10 +91,10 @@ export function SpectatorScreen({
             className="btn btn--foul w-full py-4 text-xl font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
             onClick={handleFoulClick}
             disabled={cooldownSec > 0 || timeRemaining <= 0}
-            aria-label="Report a rule foul (-2s)"
+            aria-label={`Report a rule foul (${penaltyLabel})`}
           >
             <span>🚨</span>
-            <span>{cooldownSec > 0 ? `Buzzed! (${cooldownSec}s)` : "FOUL! (-2s)"}</span>
+            <span>{cooldownSec > 0 ? `Buzzed! (${cooldownSec}s)` : `FOUL! (${penaltyLabel})`}</span>
           </button>
         </div>
       )}
