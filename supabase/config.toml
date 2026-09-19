@@ -1,0 +1,7 @@
+project_id = "xezazakfajclvarcdcda"
+
+[functions.multiplayer]
+verify_jwt = false
+
+[functions.admin-words]
+verify_jwt = false

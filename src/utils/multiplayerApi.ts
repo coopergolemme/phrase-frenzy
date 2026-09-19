@@ -39,9 +39,14 @@ async function callMultiplayer<T>(action: Action, payload: Record<string, unknow
     body: JSON.stringify({ action, ...payload }),
   });
 
-  const data = (await response.json().catch(() => ({}))) as { error?: string };
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    message?: string;
+    code?: string;
+  };
   if (!response.ok) {
-    throw new MultiplayerApiError(data.error ?? "Request failed", response.status);
+    const errorMsg = data.error ?? data.message ?? data.code ?? "Request failed";
+    throw new MultiplayerApiError(errorMsg, response.status);
   }
   return data as T;
 }
