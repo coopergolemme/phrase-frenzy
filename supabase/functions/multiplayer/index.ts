@@ -198,6 +198,18 @@ async function fetchRoomState(client: SupabaseClient, roomCode: string): Promise
   return data as RoomStateRow;
 }
 
+// rooms and room_state are independent reads keyed by the same room code —
+// fetching them concurrently instead of one after the other shaves a full
+// round trip off every action on the hot path (getCurrentWord, correct,
+// pass, timeUp, nextTurn), which is what the acting player's device
+// actually waits on before it can show anything.
+async function fetchRoomAndState(
+  client: SupabaseClient,
+  roomCode: string
+): Promise<[RoomRow, RoomStateRow]> {
+  return Promise.all([fetchRoom(client, roomCode), fetchRoomState(client, roomCode)]);
+}
+
 async function fetchTeamPlayersInOrder(
   client: SupabaseClient,
   roomCode: string,
@@ -351,7 +363,7 @@ async function joinRoom(
     .insert({ id: player.id, room_code: roomCode, name, team_index: teamIndex, join_order: joinOrder });
   if (rosterError) throw rosterError;
 
-  await broadcast(client, `room-lobby:${roomCode}`, "changed", {});
+  EdgeRuntime.waitUntil(broadcast(client, `room-lobby:${roomCode}`, "changed", {}));
 
   return { playerToken: player.player_token, playerId: player.id };
 }
@@ -447,8 +459,11 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     .eq("code", roomCode);
   if (updateError) throw updateError;
 
-  await broadcast(client, `room-lobby:${roomCode}`, "changed", {});
-  await publishPublicState(client, { ...room, status: "playing" }, newState);
+  // Neither of these change the response the host is waiting on (an empty
+  // {} ack) — let them finish after the response goes out instead of
+  // making the host's "Start" tap wait on them.
+  EdgeRuntime.waitUntil(broadcast(client, `room-lobby:${roomCode}`, "changed", {}));
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, newState));
 }
 
 async function getCurrentWord(
@@ -458,9 +473,8 @@ async function getCurrentWord(
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
 
-  const room = await fetchRoom(client, roomCode);
+  const [room, state] = await fetchRoomAndState(client, roomCode);
   if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
-  const state = await fetchRoomState(client, roomCode);
 
   const describer = await getActiveDescriberPlayer(client, roomCode, state);
   requireDescriber(describer, playerToken);
@@ -493,7 +507,7 @@ async function finalizeRound(
     .eq("code", room.code);
   if (roomError) throw roomError;
 
-  await publishPublicState(client, { ...room, status: "roundSummary" }, { ...state, teams });
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "roundSummary" }, { ...state, teams }));
 }
 
 async function correctOrPass(
@@ -504,9 +518,8 @@ async function correctOrPass(
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
 
-  const room = await fetchRoom(client, roomCode);
+  const [room, state] = await fetchRoomAndState(client, roomCode);
   if (room.status !== "playing") throw new ApiError("The game isn't in progress", 409);
-  const state = await fetchRoomState(client, roomCode);
 
   const describer = await getActiveDescriberPlayer(client, roomCode, state);
   requireDescriber(describer, playerToken);
@@ -548,7 +561,10 @@ async function correctOrPass(
     .eq("room_code", roomCode);
   if (stateError) throw stateError;
 
-  await publishPublicState(client, room, nextState);
+  // The describer's own device is waiting on `word` right now to show the
+  // next word — the redacted projection other players read is not on that
+  // critical path, so let it (and the broadcast) finish after we respond.
+  EdgeRuntime.waitUntil(publishPublicState(client, room, nextState));
 
   return { word: nextState.current_word };
 }
@@ -570,9 +586,8 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
   const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
 
-  const room = await fetchRoom(client, roomCode);
+  const [room, state] = await fetchRoomAndState(client, roomCode);
   if (room.status !== "roundSummary") throw new ApiError("No round to advance from", 409);
-  const state = await fetchRoomState(client, roomCode);
 
   const { data: hostRow, error: hostError } = await client
     .from("room_players")
@@ -589,7 +604,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   if (nextTurnIndex >= state.turn_order.length) {
     const { error } = await client.from("rooms").update({ status: "gameOver" }).eq("code", roomCode);
     if (error) throw error;
-    await publishPublicState(client, { ...room, status: "gameOver" }, state);
+    EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "gameOver" }, state));
     return;
   }
 
@@ -628,7 +643,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     .eq("code", roomCode);
   if (roomError) throw roomError;
 
-  await publishPublicState(client, { ...room, status: "playing" }, nextState);
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, nextState));
 }
 
 Deno.serve(async (req: Request) => {
