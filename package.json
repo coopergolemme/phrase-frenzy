@@ -16,6 +16,7 @@
   "dependencies": {
     "@google/genai": "^2.22.0",
     "@supabase/supabase-js": "^2.112.4",
+    "jsqr": "^1.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

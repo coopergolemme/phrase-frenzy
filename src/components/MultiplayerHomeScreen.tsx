@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { WordCategory } from "../data/wordCategory";
 import { CategoryPickerSheet } from "./CategoryPickerSheet";
+import { QrScannerModal } from "./QrScannerModal";
 
 const MIN_TEAMS = 2;
 const MAX_TEAMS = 6;
@@ -47,6 +48,7 @@ export function MultiplayerHomeScreen({
   const [isPickingCategories, setIsPickingCategories] = useState(false);
 
   const [joinCode, setJoinCode] = useState("");
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const canAddTeam = teamNames.length < MAX_TEAMS;
   const canRemoveTeam = teamNames.length > MIN_TEAMS;
@@ -110,14 +112,24 @@ export function MultiplayerHomeScreen({
             Join a Game
           </h1>
         </div>
-        <input
-          className="min-h-touch w-full rounded-button border border-outline bg-surface px-3 py-2 text-center font-[inherit] text-[1.4rem] font-bold uppercase tracking-[0.3em] text-text outline-none placeholder:text-text-secondary placeholder:tracking-normal"
-          type="text"
-          placeholder="Room code"
-          value={joinCode}
-          maxLength={6}
-          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-        />
+        <div className="flex w-full flex-col gap-3">
+          <input
+            className="min-h-touch w-full rounded-button border border-outline bg-surface px-3 py-2 text-center font-[inherit] text-[1.4rem] font-bold uppercase tracking-[0.3em] text-text outline-none placeholder:text-text-secondary placeholder:tracking-normal"
+            type="text"
+            placeholder="Room code"
+            value={joinCode}
+            maxLength={6}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          />
+          <button
+            type="button"
+            className="btn btn--outline flex w-full items-center justify-center gap-2 py-3"
+            onClick={() => setIsScannerOpen(true)}
+          >
+            <span aria-hidden="true" className="text-lg">📷</span>
+            Scan QR Code
+          </button>
+        </div>
         {error && <p className="m-0 text-[0.9rem] text-danger">{error}</p>}
         <button
           className="btn btn--primary btn--large w-full"
@@ -126,6 +138,15 @@ export function MultiplayerHomeScreen({
         >
           {isBusy ? "Joining…" : "Continue"}
         </button>
+
+        <QrScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanSuccess={(code) => {
+            setJoinCode(code);
+            onJoin(code);
+          }}
+        />
       </div>
     );
   }
