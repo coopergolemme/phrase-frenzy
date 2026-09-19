@@ -55,33 +55,35 @@ describe("useMultiplayerRoom", () => {
 
     expect(fetchLobbySnapshotMock).toHaveBeenCalledWith("ROOM123");
     expect(subscribeToLobbyMock).toHaveBeenCalledWith("ROOM123", expect.any(Function));
+    expect(result.current.session).toBeNull();
   });
 
   it("does not fetch preview if no initialRoomCode is provided and no session exists", async () => {
     const { useMultiplayerRoom } = await import("./useMultiplayerRoom");
     const { result } = renderHook(() => useMultiplayerRoom());
 
-    expect(fetchLobbySnapshotMock).not.toHaveBeenCalled();
     expect(result.current.lobby).toBeNull();
+    expect(result.current.session).toBeNull();
+    expect(fetchLobbySnapshotMock).not.toHaveBeenCalled();
   });
 
   it("restores active session when stored session matches initialRoomCode", async () => {
-    const storedSession: MultiplayerSession = {
+    const session: MultiplayerSession = {
       roomCode: "ROOM123",
       playerToken: "token-abc",
       playerId: "p1",
       name: "Cooper",
     };
-    loadMultiplayerSessionMock.mockReturnValue(storedSession);
+    loadMultiplayerSessionMock.mockReturnValue(session);
 
     const { useMultiplayerRoom } = await import("./useMultiplayerRoom");
     const { result } = renderHook(() => useMultiplayerRoom("ROOM123"));
 
-    expect(result.current.session).toEqual(storedSession);
+    expect(result.current.session).toEqual(session);
     await waitFor(() => {
-      expect(fetchLobbySnapshotMock).toHaveBeenCalledWith("ROOM123");
+      expect(result.current.lobby).toEqual(mockLobbySnapshot);
     });
-    expect(result.current.lobby).toEqual(mockLobbySnapshot);
+    expect(fetchLobbySnapshotMock).toHaveBeenCalledWith("ROOM123");
   });
 
   it("joins a room successfully and saves session", async () => {
@@ -89,7 +91,7 @@ describe("useMultiplayerRoom", () => {
     const { result } = renderHook(() => useMultiplayerRoom("ROOM123"));
 
     await waitFor(() => {
-      expect(result.current.lobby).not.toBeNull();
+      expect(result.current.lobby).toEqual(mockLobbySnapshot);
     });
 
     await act(async () => {

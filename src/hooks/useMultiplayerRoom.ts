@@ -13,6 +13,7 @@ import {
   type MultiplayerSession,
 } from "../utils/multiplayerSession";
 import { fetchLobbySnapshot, subscribeToLobby } from "../utils/multiplayerRealtime";
+import { getFlaggedWords } from "../utils/flaggedWords";
 
 // Lobby-phase multiplayer state: creating/joining a room, watching the
 // roster fill in over realtime, and (host-only) starting the game. Once
@@ -160,7 +161,7 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
     setIsBusy(true);
     setError(null);
     try {
-      await apiStartGame(session.roomCode, session.playerToken);
+      await apiStartGame(session.roomCode, session.playerToken, getFlaggedWords());
     } catch (err) {
       setError(err instanceof MultiplayerApiError ? err.message : "Couldn't start the game");
     } finally {
