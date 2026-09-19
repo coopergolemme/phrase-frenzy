@@ -18,6 +18,8 @@ type Action =
   | "getCurrentWord"
   | "correct"
   | "pass"
+  | "togglePause"
+  | "skipRound"
   | "timeUp"
   | "nextTurn";
 
@@ -101,6 +103,7 @@ export interface PublicGameState {
   turnStartedAt: string;
   durationSec: number;
   penaltySec: number;
+  pausedAt: string | null;
 }
 
 export interface CurrentWordResult {
@@ -120,6 +123,14 @@ export function markCorrect(roomCode: string, playerToken: string): Promise<{ wo
 
 export function markPass(roomCode: string, playerToken: string): Promise<{ word?: string }> {
   return callMultiplayer("pass", { roomCode, playerToken });
+}
+
+export function togglePause(roomCode: string, playerToken: string): Promise<Record<string, never>> {
+  return callMultiplayer("togglePause", { roomCode, playerToken });
+}
+
+export function skipRound(roomCode: string, playerToken: string): Promise<Record<string, never>> {
+  return callMultiplayer("skipRound", { roomCode, playerToken });
 }
 
 export function timeUp(roomCode: string): Promise<Record<string, never>> {
