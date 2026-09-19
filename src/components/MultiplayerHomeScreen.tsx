@@ -110,14 +110,19 @@ export function MultiplayerHomeScreen({
             Join a Game
           </h1>
         </div>
-        <input
-          className="min-h-touch w-full rounded-button border border-outline bg-surface px-3 py-2 text-center font-[inherit] text-[1.4rem] font-bold uppercase tracking-[0.3em] text-text outline-none placeholder:text-text-secondary placeholder:tracking-normal"
-          type="text"
-          placeholder="Room code"
-          value={joinCode}
-          maxLength={6}
-          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-        />
+        <div className="flex w-full flex-col gap-2 text-left">
+          <label className="text-[0.85rem] font-bold uppercase tracking-wider text-text-secondary text-center">
+            Enter 6-Letter Room Code
+          </label>
+          <input
+            className="min-h-touch w-full rounded-button border-2 border-outline bg-surface px-3 py-3 text-center font-display text-[1.6rem] font-bold uppercase tracking-[0.3em] text-text outline-none focus:border-primary placeholder:text-text-secondary placeholder:tracking-normal placeholder:font-sans placeholder:text-base"
+            type="text"
+            placeholder="e.g. ABCDEF"
+            value={joinCode}
+            maxLength={6}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          />
+        </div>
         {error && <p className="m-0 text-[0.9rem] text-danger">{error}</p>}
         <button
           className="btn btn--primary btn--large w-full"
