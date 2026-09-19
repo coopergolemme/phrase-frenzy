@@ -10,7 +10,7 @@ import {
   type LobbyPlayer,
 } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
-import { subscribeToRoomChannel } from "../utils/multiplayerChannel";
+import { subscribeToRoomEvents } from "../utils/multiplayerChannel";
 
 const TICK_MS = 250;
 
@@ -34,12 +34,13 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   useEffect(() => {
     let cancelled = false;
-    apiGetState(session.roomCode).then((result) => {
-      if (!cancelled) setState(result);
-    });
-    const unsubscribe = subscribeToRoomChannel(session.roomCode, {
-      onState: (payload) => setState(payload),
-    });
+    const refresh = () => {
+      apiGetState(session.roomCode).then((result) => {
+        if (!cancelled) setState(result);
+      });
+    };
+    refresh();
+    const unsubscribe = subscribeToRoomEvents(session.roomCode, refresh);
     return () => {
       cancelled = true;
       unsubscribe();

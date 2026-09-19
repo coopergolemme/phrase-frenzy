@@ -95,25 +95,22 @@ class ApiError extends Error {
   }
 }
 
-async function broadcast(roomCode: string, event: string, payload: unknown): Promise<void> {
-  // Server-to-client push via Realtime's stateless Broadcast REST endpoint
-  // rather than opening a websocket from this short-lived function. Best
-  // effort: the db write already succeeded, and clients can always recover
-  // via getState, so a failed push here shouldn't fail the whole action.
+// Pings Realtime's built-in Postgres Changes (CDC) instead of pushing a
+// payload ourselves: an UPDATE to this room's room_events row is enough —
+// Postgres emits a change event for the statement whether or not any
+// column's value actually differs, so clients subscribed to this table
+// get notified and re-fetch the real (redacted) state via getLobby/
+// getState. Best effort: the actual db write already succeeded, and a
+// missed notification just means a client waits for the next one (or its
+// own next getState poll) instead of losing data.
+async function touchRoomEvent(client: SupabaseClient, roomCode: string): Promise<void> {
   try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    await fetch(`${url}/realtime/v1/api/broadcast`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-      },
-      body: JSON.stringify({ messages: [{ topic: `room:${roomCode}`, event, payload }] }),
-    });
+    const { error } = await client
+      .from("room_events")
+      .upsert({ room_code: roomCode, updated_at: new Date().toISOString() }, { onConflict: "room_code" });
+    if (error) console.error("touchRoomEvent failed", error);
   } catch (error) {
-    console.error("multiplayer broadcast failed", error);
+    console.error("touchRoomEvent failed", error);
   }
 }
 
@@ -310,7 +307,7 @@ async function joinRoom(
     .single();
   if (playerError) throw playerError;
 
-  await broadcast(roomCode, "lobby", await buildLobbyPayload(client, room));
+  await touchRoomEvent(client, roomCode);
 
   return {
     playerToken: (playerRow as RoomPlayerRow).player_token,
@@ -452,7 +449,7 @@ async function startGame(client: SupabaseClient, body: Record<string, unknown>):
     .eq("code", roomCode);
   if (updateError) throw updateError;
 
-  await broadcast(roomCode, "state", toPublicState({ ...room, status: "playing" }, newState));
+  await touchRoomEvent(client, roomCode);
 }
 
 async function getState(client: SupabaseClient, body: Record<string, unknown>): Promise<PublicState> {
@@ -504,11 +501,7 @@ async function finalizeRound(
     .eq("code", room.code);
   if (roomError) throw roomError;
 
-  await broadcast(
-    room.code,
-    "state",
-    toPublicState({ ...room, status: "roundSummary" }, { ...state, teams })
-  );
+  await touchRoomEvent(client, room.code);
 }
 
 async function correctOrPass(
@@ -563,7 +556,7 @@ async function correctOrPass(
     .eq("room_code", roomCode);
   if (stateError) throw stateError;
 
-  await broadcast(roomCode, "state", toPublicState(room, nextState));
+  await touchRoomEvent(client, roomCode);
 
   return { word: nextState.current_word };
 }
@@ -604,7 +597,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   if (nextTurnIndex >= state.turn_order.length) {
     const { error } = await client.from("rooms").update({ status: "gameOver" }).eq("code", roomCode);
     if (error) throw error;
-    await broadcast(roomCode, "state", toPublicState({ ...room, status: "gameOver" }, state));
+    await touchRoomEvent(client, roomCode);
     return;
   }
 
@@ -643,7 +636,7 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
     .eq("code", roomCode);
   if (roomError) throw roomError;
 
-  await broadcast(roomCode, "state", toPublicState({ ...room, status: "playing" }, nextState));
+  await touchRoomEvent(client, roomCode);
 }
 
 Deno.serve(async (req: Request) => {

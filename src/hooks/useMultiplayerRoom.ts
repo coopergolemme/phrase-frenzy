@@ -13,7 +13,7 @@ import {
   saveMultiplayerSession,
   type MultiplayerSession,
 } from "../utils/multiplayerSession";
-import { subscribeToRoomChannel } from "../utils/multiplayerChannel";
+import { subscribeToRoomEvents } from "../utils/multiplayerChannel";
 
 // Lobby-phase multiplayer state: creating/joining a room, watching the
 // roster fill in over realtime, and (host-only) starting the game. Once
@@ -30,16 +30,20 @@ export function useMultiplayerRoom(initialRoomCode?: string) {
   const [isBusy, setIsBusy] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  const subscribe = useCallback((roomCode: string) => {
-    unsubscribeRef.current?.();
-    unsubscribeRef.current = subscribeToRoomChannel(roomCode, {
-      onLobby: (payload) => setLobby(payload),
-      // The game-start/advance broadcast doesn't carry the lobby roster,
-      // but the status flip is what tells MultiplayerApp to switch from
-      // the lobby screen to the in-game hook for this same room/session.
-      onState: (payload) => setLobby((prev) => (prev ? { ...prev, status: payload.status } : prev)),
-    });
+  // Any room_events change (join, start, turn advance, ...) means the
+  // lobby snapshot may be stale — re-fetch it rather than trying to keep
+  // a locally-patched copy in sync. Cheap and always correct.
+  const refreshLobby = useCallback((roomCode: string) => {
+    apiGetLobby(roomCode).then(setLobby).catch(() => {});
   }, []);
+
+  const subscribe = useCallback(
+    (roomCode: string) => {
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = subscribeToRoomEvents(roomCode, () => refreshLobby(roomCode));
+    },
+    [refreshLobby]
+  );
 
   useEffect(() => {
     return () => unsubscribeRef.current?.();
