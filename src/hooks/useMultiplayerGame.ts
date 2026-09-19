@@ -247,7 +247,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     // guarantees matches by the time the round finalizes.
     roundScore: state?.status === "playing" && isDescriber ? localRoundScore : state?.roundScore ?? 0,
     roundLog:
-      state?.status === "playing" ? (isDescriber ? localRoundLog : []) : state?.roundLog ?? [],
+      state?.status === "playing" && isDescriber ? localRoundLog : state?.roundLog ?? [],
     isLastTurn,
     nextTeamName,
     error,

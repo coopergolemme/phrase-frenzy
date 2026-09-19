@@ -118,10 +118,8 @@ function toPublicState(room: RoomRow, state: RoomStateRow): PublicState {
     turnIndex: state.turn_index,
     roundsPerTeam: room.rounds_per_team,
     roundScore: state.round_score,
-    // The round's words are only meaningful for review once the round has
-    // actually ended — never leak them to the whole room while a turn is
-    // still live.
-    roundLog: room.status === "playing" ? [] : state.round_log,
+    // The round's completed words and fouls are broadcast to spectators & live scoreboards as they happen.
+    roundLog: state.round_log,
     turnStartedAt: state.turn_started_at,
     durationSec: room.round_duration_sec,
     penaltySec: state.penalty_sec,
