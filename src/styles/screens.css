@@ -146,6 +146,46 @@
   padding-top: var(--space-2);
 }
 
+/* Board: the whole console is ONE lit panel — a nameplate ribbon on top
+   (team, describer, round/score, timer, controls) and the word screen
+   below, divided by a single hairline rather than floating as two
+   separate cards. The marquee bulb strip crowns the console itself. */
+
+.game__board {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--color-surface-solid);
+  border-radius: var(--radius-card);
+  border: 2px solid var(--color-border-solid);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+.game__board::before {
+  content: "";
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  top: 10px;
+  height: 8px;
+  background-image: radial-gradient(
+    circle,
+    var(--color-yellow) 2.6px,
+    transparent 3px
+  );
+  background-size: 18px 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  filter: drop-shadow(0 0 3px rgba(255, 210, 63, 0.65));
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .game__word-area {
   flex: 1;
   display: flex;
@@ -153,54 +193,47 @@
   justify-content: center;
   min-height: 0;
   min-width: 0;
-  position: relative;
+  padding: var(--space-4);
 }
 
-/* HUD: two lit control-desk readouts flanking the board — a team-name
-   plate (left) with an on-air lamp dot, and the timer/menu plate (right)
-   — kept clear of the centered word by the card's own padding. */
+/* Header: the nameplate ribbon — a team plate (who's on the clock, who's
+   describing, the score so far) and a timer/menu cluster, sharing the
+   board's own panel rather than floating as a separate card. */
 
-.game__hud {
-  position: absolute;
-  top: var(--space-3);
-  z-index: 2;
+.game__header {
   display: flex;
-  pointer-events: none;
+  align-items: stretch;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: calc(var(--space-2) + 10px) var(--space-4) var(--space-2);
+  border-bottom: 1.5px solid var(--color-border-solid);
 }
 
-.game__hud > * {
-  pointer-events: auto;
-}
-
-.game__hud--left {
-  left: var(--space-4);
+.game__team-plate {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  background: var(--color-surface-solid);
-  border: 1.5px solid var(--color-border-solid);
-  border-radius: var(--radius-button);
-  padding: var(--space-2) var(--space-3);
-  box-shadow: var(--shadow-panel);
-  max-width: 46vw;
+  justify-content: center;
+  gap: 3px;
 }
 
-.game__hud--right {
-  right: var(--space-4);
-  flex-direction: row;
+.game__timer-cluster {
+  position: relative;
+  display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .game__team-name {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: clamp(1rem, 4vmin, 1.3rem);
+  font-size: clamp(1.05rem, 4.2vmin, 1.4rem);
   font-weight: 800;
   margin: 0;
   letter-spacing: 0.01em;
-  max-width: 40vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -219,22 +252,18 @@
 
 .game__describer {
   font-size: clamp(0.7rem, 2.5vmin, 0.85rem);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
-  color: var(--color-text-secondary);
-  max-width: 40vw;
+  color: var(--color-pass);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Timer: the host-desk lamp plinth. The ring is a chase-light — a single
-   "comet" of light sweeping the rim, borrowed from a step-sequencer's
-   chase and speeding up sharply once the round turns urgent. */
+/* Timer: a lit lamp-plinth readout. No sweep, no spin — just a steady
+   glow that switches to the red warning lamp and pulses once urgent. */
 
 .game__timer {
-  position: relative;
-  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -245,67 +274,24 @@
   line-height: 1;
   margin: 0;
   padding: 0.3em 0.65em;
+  min-width: 2.1em;
   border-radius: var(--radius-chip);
   color: var(--color-yellow);
+  background: var(--color-surface-solid);
   text-shadow: var(--glow-text-gold);
+  box-shadow: var(--glow-gold), var(--shadow-panel);
   transition:
     color 200ms ease-out,
-    background 200ms ease-out;
-}
-
-.game__timer::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  z-index: -2;
-  border-radius: inherit;
-  background: conic-gradient(
-      from 0deg,
-      var(--color-yellow) 0deg 22deg,
-      transparent 22deg 360deg
-    ),
-    var(--color-bg);
-  animation: chaseLight 3.2s linear infinite;
-}
-
-.game__timer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: var(--color-surface-solid);
-  box-shadow: var(--glow-gold), var(--shadow-panel);
+    background 200ms ease-out,
+    box-shadow 200ms ease-out;
 }
 
 .game__timer--urgent {
   color: var(--color-text);
-  text-shadow: none;
-  animation: timerPulse 0.9s ease-in-out infinite;
-}
-
-.game__timer--urgent::before {
-  background: conic-gradient(
-      from 0deg,
-      #ffe9c2 0deg 30deg,
-      transparent 30deg 360deg
-    ),
-    var(--color-bg);
-  animation: chaseLight 0.55s linear infinite;
-}
-
-.game__timer--urgent::after {
   background: var(--color-danger);
+  text-shadow: none;
   box-shadow: var(--glow-danger), var(--shadow-panel);
-}
-
-@keyframes chaseLight {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  animation: timerPulse 0.9s ease-in-out infinite;
 }
 
 @keyframes lampFlicker {
@@ -340,13 +326,27 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   margin: 0;
 }
 
-.game__meta-dot {
+.game__meta-item + .game__meta-item {
+  position: relative;
+  padding-left: calc(var(--space-2) + 4px);
+}
+
+.game__meta-item + .game__meta-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
   opacity: 0.5;
+  transform: translateY(-50%);
 }
 
 .icon-menu-btn,
@@ -446,9 +446,9 @@
    plinth — the one motif that repeats across the whole board — and the
    panel itself sits on a soft stage-lit elevation, never a hard offset. */
 
-.hero-card,
-.word-card {
+.hero-card {
   position: relative;
+  width: 100%;
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
   border: 2px solid var(--color-border-solid);
@@ -456,8 +456,7 @@
   padding: var(--space-5) var(--space-4);
 }
 
-.hero-card::before,
-.word-card::before {
+.hero-card::before {
   content: "";
   position: absolute;
   left: var(--space-4);
@@ -477,9 +476,8 @@
   pointer-events: none;
 }
 
-.hero-card {
-  width: 100%;
-}
+/* Word screen: the board's own display, no chrome of its own — the
+   board panel supplies the border, glow, and bulb strip. */
 
 .word-card {
   width: 100%;
@@ -494,7 +492,7 @@
   animation: wordEnter 180ms ease-out;
 }
 
-.screen--game-urgent .word-card {
+.screen--game-urgent .game__board {
   animation: cardHeat 0.9s ease-in-out infinite;
 }
 
@@ -540,17 +538,25 @@
     display: grid;
     grid-template-columns: minmax(56px, 84px) 1fr minmax(56px, 84px);
     grid-template-rows: 1fr;
-    grid-template-areas: "pass word correct";
+    grid-template-areas: "pass board correct";
     gap: var(--space-1) var(--space-2);
+  }
+
+  .game__board {
+    grid-area: board;
+  }
+
+  .game__header {
+    padding: calc(var(--space-1) + 8px) var(--space-3) var(--space-1);
   }
 
   .game__team-name {
     font-size: 0.9rem;
-    max-width: 32vw;
   }
 
   .game__timer {
     font-size: 1.4rem;
+    padding: 0.2em 0.5em;
   }
 
   .game__meta {
@@ -566,16 +572,11 @@
   }
 
   .game__word-area {
-    grid-area: word;
-    min-height: 0;
-    min-width: 0;
+    padding: var(--space-2) var(--space-3);
   }
 
-  .word-card {
-    padding: var(--space-4) var(--space-3);
-    height: 100%;
-    transform: none;
-  }
+  /* The two rails join the board into one console silhouette: each
+     rounds only its outer corner, the board rounds the rest. */
 
   .game__actions {
     display: contents;
@@ -590,7 +591,6 @@
     padding: var(--space-4) var(--space-2);
     font-size: 1.05rem;
     letter-spacing: 0.04em;
-    border-radius: var(--radius-card);
   }
 
   .game__actions .btn__icon {
@@ -600,10 +600,12 @@
   .game__actions .btn--pass {
     grid-area: pass;
     transform: rotate(180deg);
+    border-radius: 0 var(--radius-card) var(--radius-card) 0;
   }
 
   .game__actions .btn--primary {
     grid-area: correct;
+    border-radius: 0 var(--radius-card) var(--radius-card) 0;
   }
 }
 

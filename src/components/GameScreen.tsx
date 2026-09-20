@@ -88,87 +88,91 @@ export function GameScreen({
         Turn your phone sideways
       </div>
 
-      <div className="game__word-area">
-        {currentWord !== null ? (
-          <WordCard word={isPaused ? "Paused" : currentWord} />
-        ) : (
-          <WordCard word={describerName ? `Waiting for ${describerName}…` : "Waiting…"} />
-        )}
+      <div className="game__board">
+        <div className="game__header">
+          <div className="game__team-plate">
+            <p className="game__team-name">{teamName}</p>
+            {describerName && <p className="game__describer">{describerName} describing</p>}
+            <p className="game__meta">
+              <span className="game__meta-item">{roundLabel}</span>
+              <span className="game__meta-item">Score: {score}</span>
+            </p>
+          </div>
 
-        <div className="game__hud game__hud--left">
-          <p className="game__team-name">{teamName}</p>
-          {describerName && <p className="game__describer">{describerName} describing</p>}
-          <p className="game__meta">
-            <span className="game__meta-item">{roundLabel}</span>
-            <span className="game__meta-item">Score: {score}</span>
-          </p>
+          <div className="game__timer-cluster">
+            <p
+              className={`game__timer${isUrgent ? " game__timer--urgent" : ""}`}
+              aria-live="polite"
+            >
+              {timeRemaining}
+            </p>
+            <button
+              type="button"
+              className="game-pause-btn"
+              onClick={onTogglePause}
+              aria-label={isPaused ? "Resume timer" : "Pause timer"}
+              aria-pressed={isPaused}
+            >
+              {isPaused ? <IconPlay width="1em" height="1em" /> : <IconPause width="1em" height="1em" />}
+            </button>
+            <button
+              type="button"
+              className="icon-menu-btn"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              aria-label="Game menu"
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+            >
+              <IconSettings width="1em" height="1em" />
+            </button>
+
+            {isMenuOpen && (
+              <>
+                <button
+                  type="button"
+                  className="icon-menu__backdrop"
+                  onClick={closeMenu}
+                  aria-label="Close menu"
+                />
+                <div className="icon-menu" role="menu">
+                  <button
+                    type="button"
+                    className="icon-menu__item"
+                    role="menuitem"
+                    onClick={handleSkipRound}
+                  >
+                    <IconSkipForward className="icon-menu__icon" width="1em" height="1em" />
+                    Skip Round
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-menu__item"
+                    role="menuitem"
+                    onClick={handleOpenScoreboard}
+                  >
+                    <IconTrophy className="icon-menu__icon" width="1em" height="1em" />
+                    Scoreboard
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-menu__item"
+                    role="menuitem"
+                    onClick={handleRestart}
+                  >
+                    <IconRefresh className="icon-menu__icon" width="1em" height="1em" />
+                    Restart
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="game__hud game__hud--right">
-          <p
-            className={`game__timer${isUrgent ? " game__timer--urgent" : ""}`}
-            aria-live="polite"
-          >
-            {timeRemaining}
-          </p>
-          <button
-            type="button"
-            className="game-pause-btn"
-            onClick={onTogglePause}
-            aria-label={isPaused ? "Resume timer" : "Pause timer"}
-            aria-pressed={isPaused}
-          >
-            {isPaused ? <IconPlay width="1em" height="1em" /> : <IconPause width="1em" height="1em" />}
-          </button>
-          <button
-            type="button"
-            className="icon-menu-btn"
-            onClick={() => setIsMenuOpen((open) => !open)}
-            aria-label="Game menu"
-            aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-          >
-            <IconSettings width="1em" height="1em" />
-          </button>
-
-          {isMenuOpen && (
-            <>
-              <button
-                type="button"
-                className="icon-menu__backdrop"
-                onClick={closeMenu}
-                aria-label="Close menu"
-              />
-              <div className="icon-menu" role="menu">
-                <button
-                  type="button"
-                  className="icon-menu__item"
-                  role="menuitem"
-                  onClick={handleSkipRound}
-                >
-                  <IconSkipForward className="icon-menu__icon" width="1em" height="1em" />
-                  Skip Round
-                </button>
-                <button
-                  type="button"
-                  className="icon-menu__item"
-                  role="menuitem"
-                  onClick={handleOpenScoreboard}
-                >
-                  <IconTrophy className="icon-menu__icon" width="1em" height="1em" />
-                  Scoreboard
-                </button>
-                <button
-                  type="button"
-                  className="icon-menu__item"
-                  role="menuitem"
-                  onClick={handleRestart}
-                >
-                  <IconRefresh className="icon-menu__icon" width="1em" height="1em" />
-                  Restart
-                </button>
-              </div>
-            </>
+        <div className="game__word-area">
+          {currentWord !== null ? (
+            <WordCard word={isPaused ? "Paused" : currentWord} />
+          ) : (
+            <WordCard word={describerName ? `Waiting for ${describerName}…` : "Waiting…"} />
           )}
         </div>
       </div>
