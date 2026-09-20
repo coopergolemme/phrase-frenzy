@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGuidancePrompt, type Decision } from "./guidance";
+import { AUTO_REFINE_THRESHOLD, buildGuidancePrompt, shouldAutoRefineGuidance, type Decision } from "./guidance";
 
 describe("buildGuidancePrompt", () => {
   it("includes the category label and groups decisions by type", () => {
@@ -57,5 +57,23 @@ describe("buildGuidancePrompt", () => {
 
     expect(prompt).toContain("well under 150");
     expect(prompt).toContain('{ "guidance":');
+  });
+});
+
+describe("shouldAutoRefineGuidance", () => {
+  it("returns false below the threshold", () => {
+    expect(shouldAutoRefineGuidance(AUTO_REFINE_THRESHOLD - 1)).toBe(false);
+  });
+
+  it("returns true exactly at the threshold", () => {
+    expect(shouldAutoRefineGuidance(AUTO_REFINE_THRESHOLD)).toBe(true);
+  });
+
+  it("returns false past the threshold, so it doesn't re-trigger on every later decision", () => {
+    expect(shouldAutoRefineGuidance(AUTO_REFINE_THRESHOLD + 1)).toBe(false);
+  });
+
+  it("returns false at zero", () => {
+    expect(shouldAutoRefineGuidance(0)).toBe(false);
   });
 });

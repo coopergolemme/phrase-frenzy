@@ -15,7 +15,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPrompt, dedupeAgainstExisting, type KnownCategory, type WordRow } from "./curation.ts";
 import { buildSimilarWordsPrompt, filterValidSuggestions, type CandidateWord } from "./similarity.ts";
-import { buildGuidancePrompt, type Decision } from "./guidance.ts";
+import { buildGuidancePrompt, shouldAutoRefineGuidance, type Decision } from "./guidance.ts";
 import { callGeminiForGuidance, callGeminiForSimilarWords, callGeminiForWords } from "./gemini.ts";
 
 const corsHeaders = {
@@ -168,13 +168,21 @@ Deno.serve(async (req: Request) => {
           ),
         });
       case "record-decision": {
+        const categoryId = body.categoryId as string;
         await recordDecision(
           client,
-          body.categoryId as string,
+          categoryId,
           body.text as string,
           body.decision as string,
           body.reason as string | undefined
         );
+        // Best-effort: a Gemini hiccup here must never fail the decision
+        // that was just successfully recorded.
+        try {
+          await maybeAutoRefineGuidance(client, categoryId);
+        } catch (error) {
+          console.error("admin-words auto-refine-guidance error", error);
+        }
         return json({});
       }
       case "refine-guidance":
@@ -325,6 +333,38 @@ async function recordDecision(
 // cost) bounded regardless of how much history a long-lived category
 // accumulates. Most recent decisions matter most for an evolving rubric.
 const GUIDANCE_DECISION_LIMIT = 300;
+
+// Mirrors the decisions_since_guidance subquery in category_health() (see
+// supabase/migrations/20260913060000_curation_guidance.sql) but scoped to
+// one category, so recordDecision can check it cheaply without calling the
+// all-categories RPC.
+async function countDecisionsSinceGuidance(client: SupabaseClient, categoryId: string): Promise<number> {
+  const { data: guidanceRow, error: guidanceError } = await client
+    .from("category_guidance")
+    .select("updated_at")
+    .eq("category_id", categoryId)
+    .maybeSingle();
+  if (guidanceError) throw guidanceError;
+  const since = (guidanceRow as { updated_at: string } | null)?.updated_at ?? new Date(0).toISOString();
+
+  const { count, error } = await client
+    .from("curation_decisions")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", categoryId)
+    .gt("created_at", since);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// Called after every recorded decision — refines guidance itself (the same
+// path the admin's manual "Refine" button uses) once enough decisions have
+// accumulated since the last refine, so a category's rubric stays current
+// even if nobody visits the Category Health tab.
+async function maybeAutoRefineGuidance(client: SupabaseClient, categoryId: string): Promise<void> {
+  const count = await countDecisionsSinceGuidance(client, categoryId);
+  if (!shouldAutoRefineGuidance(count)) return;
+  await refineGuidance(client, categoryId);
+}
 
 async function refineGuidance(client: SupabaseClient, categoryId: string): Promise<string> {
   const [categoryResult, guidanceResult, decisionsResult] = await Promise.all([

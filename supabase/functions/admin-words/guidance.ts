@@ -13,6 +13,21 @@ export interface Decision {
   reason?: string;
 }
 
+// How many decisions accumulate on a category before recordDecision (in
+// index.ts) auto-triggers a refine, instead of waiting for an admin to
+// notice and click "Refine" on the Category Health tab.
+export const AUTO_REFINE_THRESHOLD = 15;
+
+// Fires exactly once as the count crosses the threshold, not on every
+// decision after it. Decisions are recorded fire-and-forget from the
+// client (e.g. "reject all" loops without awaiting), so several can land
+// before an async refine completes and resets the count back to 0 — using
+// `>=` here would re-trigger a refine on every one of those instead of
+// just the one that crossed the line.
+export function shouldAutoRefineGuidance(decisionsSinceGuidance: number): boolean {
+  return decisionsSinceGuidance === AUTO_REFINE_THRESHOLD;
+}
+
 function formatDecision(decision: Decision): string {
   const reason = decision.reason?.trim();
   return reason ? `"${decision.text}" (reason: ${reason})` : `"${decision.text}"`;
