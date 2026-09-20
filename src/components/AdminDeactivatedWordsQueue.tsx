@@ -14,7 +14,7 @@ export function AdminDeactivatedWordsQueue({
   }
 
   return (
-    <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface backdrop-blur-[20px] [-webkit-overflow-scrolling:touch]">
+    <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface [-webkit-overflow-scrolling:touch]">
       {deactivatedWords.map((word) => (
         <div
           key={word.id}

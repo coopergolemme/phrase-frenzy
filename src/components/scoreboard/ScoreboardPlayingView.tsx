@@ -26,7 +26,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
   return (
     <div className="scoreboard-screen scoreboard-playing">
       {/* Top Bar / Header */}
-      <header className="flex items-center justify-between w-full px-8 py-3 bg-surface/40 border-b border-white/10 rounded-2xl backdrop-blur-md">
+      <header className="flex items-center justify-between w-full px-8 py-3 bg-surface/40 border-b border-white/10 rounded-2xl">
         <div className="flex items-center gap-4">
           <span className="text-2xl">🔥</span>
           <div>
@@ -53,7 +53,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
 
       {/* Paused Banner */}
       {isPaused && (
-        <div className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold px-6 py-2.5 rounded-xl text-center backdrop-blur-md animate-pulse">
+        <div className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold px-6 py-2.5 rounded-xl text-center animate-pulse">
           ⏸️ TURN PAUSED BY HOST
         </div>
       )}
@@ -61,7 +61,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
       {/* Main Grid Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-stretch my-auto">
         {/* Left: Active Turn Spotlight & Timer */}
-        <div className="lg:col-span-7 flex flex-col justify-between gap-6 p-8 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-xl">
+        <div className="lg:col-span-7 flex flex-col justify-between gap-6 p-8 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-2xl">
           {/* Active Describer Banner */}
           <div className="flex flex-col gap-1">
             <span className="text-xs font-bold uppercase tracking-widest text-primary">
@@ -122,7 +122,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
         {/* Right: Team Scores Leaderboard & Live Turn Feed */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           {/* Team Scores Leaderboard */}
-          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl backdrop-blur-xl flex flex-col gap-4">
+          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl flex flex-col gap-4">
             <h3 className="text-lg font-display font-bold text-text-primary m-0 flex items-center gap-2">
               <span>🏆</span> Team Scores
             </h3>
@@ -163,7 +163,7 @@ export function ScoreboardPlayingView({ scoreboard, roomCode }: ScoreboardPlayin
           </div>
 
           {/* Live Activity Feed (Correct Guesses + Foul Calls) */}
-          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl backdrop-blur-xl flex flex-col gap-3 flex-1 min-h-[220px]">
+          <div className="p-6 bg-surface-elevated/70 rounded-3xl border border-white/15 shadow-xl flex flex-col gap-3 flex-1 min-h-[220px]">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-display font-bold text-text-primary m-0 flex items-center gap-2">
                 <span>📡</span> Live Activity Feed ({roundLog.length})

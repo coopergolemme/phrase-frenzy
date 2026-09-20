@@ -101,7 +101,7 @@ export function MultiplayerHomeScreen({
           >
             ← Back
           </button>
-          <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
+          <h1 className="m-0 text-center font-display font-normal text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
             Play Online
           </h1>
         </div>
@@ -191,7 +191,7 @@ export function MultiplayerHomeScreen({
           >
             ← Back
           </button>
-          <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
+          <h1 className="m-0 text-center font-display font-normal text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
             Join a Game
           </h1>
         </div>
@@ -200,7 +200,7 @@ export function MultiplayerHomeScreen({
             Enter 6-Letter Room Code
           </label>
           <input
-            className="min-h-touch w-full rounded-button border-2 border-outline bg-surface px-3 py-3 text-center font-display text-[1.6rem] font-bold uppercase tracking-[0.3em] text-text outline-none focus:border-primary placeholder:text-text-secondary placeholder:tracking-normal placeholder:font-sans placeholder:text-base"
+            className="min-h-touch w-full rounded-button border-2 border-outline bg-surface px-3 py-3 text-center font-display text-[1.6rem] font-normal uppercase tracking-[0.3em] text-text outline-none focus:border-primary placeholder:text-text-secondary placeholder:tracking-normal placeholder:font-sans placeholder:text-base"
             type="text"
             placeholder="e.g. ABCDEF"
             value={joinCode}
@@ -252,7 +252,7 @@ export function MultiplayerHomeScreen({
         >
           ← Back
         </button>
-        <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
+        <h1 className="m-0 text-center font-display font-normal text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
           Host a Game
         </h1>
       </div>

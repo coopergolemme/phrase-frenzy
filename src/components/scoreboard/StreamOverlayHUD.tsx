@@ -23,7 +23,7 @@ export function StreamOverlayHUD({ scoreboard, roomCode }: StreamOverlayHUDProps
 
   if (status === "lobby") {
     return (
-      <div className="fixed bottom-6 left-6 right-6 flex items-center justify-between p-4 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 text-white shadow-2xl">
+      <div className="fixed bottom-6 left-6 right-6 flex items-center justify-between p-4 rounded-2xl bg-black/80 border border-white/10 text-white shadow-2xl">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🔥</span>
           <div>
@@ -46,7 +46,7 @@ export function StreamOverlayHUD({ scoreboard, roomCode }: StreamOverlayHUDProps
         {/* Latest Activity Popup Notification */}
         {latestEvent && (
           <div
-            className={`self-start px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 backdrop-blur-md border animate-bounce ${
+            className={`self-start px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border animate-bounce ${
               latestEvent.outcome === "correct"
                 ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                 : "bg-rose-500/30 border-rose-500/50 text-rose-300"
@@ -60,7 +60,7 @@ export function StreamOverlayHUD({ scoreboard, roomCode }: StreamOverlayHUDProps
           </div>
         )}
 
-        <div className="flex items-center gap-6 p-4 rounded-2xl bg-slate-950/85 border border-white/15 text-white shadow-2xl backdrop-blur-lg">
+        <div className="flex items-center gap-6 p-4 rounded-2xl bg-slate-950/85 border border-white/15 text-white shadow-2xl">
           {/* Animated Timer */}
           <div
             className={`flex flex-col items-center justify-center min-w-[90px] py-2 px-3 rounded-xl border ${
@@ -110,7 +110,7 @@ export function StreamOverlayHUD({ scoreboard, roomCode }: StreamOverlayHUDProps
       </div>
 
       {/* Right Corner Leaderboard */}
-      <div className="flex flex-col gap-1.5 p-3.5 rounded-2xl bg-slate-950/85 border border-white/15 text-white shadow-2xl backdrop-blur-lg pointer-events-auto max-w-[240px]">
+      <div className="flex flex-col gap-1.5 p-3.5 rounded-2xl bg-slate-950/85 border border-white/15 text-white shadow-2xl pointer-events-auto max-w-[240px]">
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 flex items-center justify-between">
           <span>Match Standings</span>
           <span className="font-mono text-primary">{roomCode}</span>

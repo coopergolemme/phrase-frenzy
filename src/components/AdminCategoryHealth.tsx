@@ -85,7 +85,7 @@ export function AdminCategoryHealth({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
+      <div className="rounded-card border border-outline bg-surface p-4">
         <h2 className="m-0 mb-3 text-base font-bold">Words per category</h2>
         <ResponsiveContainer
           width="100%"
@@ -111,7 +111,7 @@ export function AdminCategoryHealth({
         </ResponsiveContainer>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px]">
+      <div className="overflow-hidden rounded-card border border-outline bg-surface">
         {sorted.map((category) => {
           const totalRounds = category.correct + category.skipped;
           const correctRate = totalRounds > 0 ? category.correct / totalRounds : null;

@@ -12,8 +12,8 @@ export function ScoreboardPodiumView({ teams }: ScoreboardPodiumViewProps) {
     <div className="scoreboard-screen scoreboard-podium text-center">
       {/* Title */}
       <header className="flex flex-col items-center gap-2 mb-8">
-        <span className="text-5xl animate-bounce">👑</span>
-        <h1 className="text-4xl lg:text-6xl font-display font-black tracking-tight bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent m-0">
+        <span className="text-5xl">👑</span>
+        <h1 className="text-4xl lg:text-6xl font-display font-normal tracking-tight text-yellow [text-shadow:0_0_18px_rgba(255,210,63,0.7),0_0_46px_rgba(255,210,63,0.35)] m-0">
           MATCH CHAMPIONS!
         </h1>
         <p className="text-lg text-text-secondary m-0">Final Tournament Standings</p>
@@ -23,7 +23,7 @@ export function ScoreboardPodiumView({ teams }: ScoreboardPodiumViewProps) {
       <main className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl my-auto items-end">
         {/* 2nd Place */}
         {standings[1] && (
-          <div className="flex flex-col items-center p-6 rounded-3xl bg-slate-800/80 border border-slate-400/30 shadow-xl backdrop-blur-xl h-[320px] justify-between order-2 md:order-1">
+          <div className="flex flex-col items-center p-6 rounded-3xl bg-slate-800/80 border border-slate-400/30 shadow-xl h-[320px] justify-between order-2 md:order-1">
             <div className="flex flex-col items-center gap-2">
               <span className="text-3xl">🥈</span>
               <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
@@ -41,7 +41,7 @@ export function ScoreboardPodiumView({ teams }: ScoreboardPodiumViewProps) {
 
         {/* 1st Place Champion */}
         {winner && (
-          <div className="flex flex-col items-center p-8 rounded-3xl bg-gradient-to-b from-amber-500/30 via-yellow-500/20 to-surface-elevated border-2 border-amber-400 shadow-2xl backdrop-blur-xl h-[380px] justify-between ring-4 ring-amber-400/20 order-1 md:order-2 scale-105">
+          <div className="flex flex-col items-center p-8 rounded-3xl bg-gradient-to-b from-amber-500/30 via-yellow-500/20 to-surface-elevated border-2 border-amber-400 shadow-2xl h-[380px] justify-between ring-4 ring-amber-400/20 order-1 md:order-2 scale-105">
             <div className="flex flex-col items-center gap-2">
               <span className="text-5xl animate-pulse">🏆</span>
               <span className="text-xs font-black uppercase tracking-widest text-amber-300">
@@ -59,7 +59,7 @@ export function ScoreboardPodiumView({ teams }: ScoreboardPodiumViewProps) {
 
         {/* 3rd Place */}
         {standings[2] && (
-          <div className="flex flex-col items-center p-6 rounded-3xl bg-amber-950/40 border border-amber-700/30 shadow-xl backdrop-blur-xl h-[280px] justify-between order-3">
+          <div className="flex flex-col items-center p-6 rounded-3xl bg-amber-950/40 border border-amber-700/30 shadow-xl h-[280px] justify-between order-3">
             <div className="flex flex-col items-center gap-2">
               <span className="text-3xl">🥉</span>
               <span className="text-xs font-bold uppercase tracking-widest text-amber-500">

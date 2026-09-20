@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IconCheck, IconFlag, IconSkipForward } from "./icons";
 import type { WordStats } from "../utils/wordStats";
 
 const FREQUENTLY_SKIPPED_THRESHOLD = 2;
@@ -56,8 +57,13 @@ export function WordStatsSheet({
             <div className="review-row" key={word}>
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="review-row__word">{word}</span>
-                <span className="text-[0.85rem] text-text-secondary">
-                  ✅ {correct} &nbsp; ⏭️ {skipped}
+                <span className="flex items-center gap-3 text-[0.85rem] text-text-secondary">
+                  <span className="flex items-center gap-1">
+                    <IconCheck width="1em" height="1em" className="text-primary" /> {correct}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <IconSkipForward width="1em" height="1em" /> {skipped}
+                  </span>
                 </span>
               </div>
               <div className="review-row__actions">
@@ -68,7 +74,7 @@ export function WordStatsSheet({
                   aria-pressed={flagged}
                   aria-label={flagged ? `Unflag "${word}"` : `Flag "${word}" as too hard`}
                 >
-                  🚩
+                  <IconFlag width="1em" height="1em" />
                 </button>
               </div>
             </div>

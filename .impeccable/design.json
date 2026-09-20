@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-20T00:00:00Z",
+  "title": "Design System: Phrase Frenzy",
+  "extensions": {
+    "colorMeta": {
+      "stage-black": { "role": "neutral", "displayName": "Stage Black", "canonical": "#120d0a" },
+      "panel-solid": { "role": "neutral", "displayName": "Panel Solid", "canonical": "#241a12" },
+      "panel-raised": { "role": "neutral", "displayName": "Panel Raised", "canonical": "#2f2216" },
+      "surface-tint": { "role": "neutral", "displayName": "Surface Tint", "canonical": "rgba(245, 234, 217, 0.1)" },
+      "border-tint": { "role": "neutral", "displayName": "Border Tint", "canonical": "rgba(245, 234, 217, 0.14)" },
+      "border-solid": { "role": "neutral", "displayName": "Border Solid", "canonical": "rgba(245, 234, 217, 0.24)" },
+      "outline": { "role": "neutral", "displayName": "Outline", "canonical": "rgba(245, 234, 217, 0.2)" },
+      "gold-win": { "role": "tertiary", "displayName": "Gold Win", "canonical": "#ffd23f" },
+      "gold-win-pressed": { "role": "tertiary", "displayName": "Gold Win Pressed", "canonical": "#d9a812" },
+      "green-correct": { "role": "primary", "displayName": "Green Correct", "canonical": "#34d17a" },
+      "green-correct-pressed": { "role": "primary", "displayName": "Green Correct Pressed", "canonical": "#1c9f5b" },
+      "amber-pass": { "role": "secondary", "displayName": "Amber Pass", "canonical": "#ffab2e" },
+      "amber-pass-pressed": { "role": "secondary", "displayName": "Amber Pass Pressed", "canonical": "#d1830f" },
+      "red-warning": { "role": "secondary", "displayName": "Red Warning", "canonical": "#ff4b3e" },
+      "red-warning-pressed": { "role": "secondary", "displayName": "Red Warning Pressed", "canonical": "#d92c22" },
+      "disabled": { "role": "neutral", "displayName": "Disabled", "canonical": "#453a2e" },
+      "text-primary": { "role": "neutral", "displayName": "Warm Ink", "canonical": "#f5ead9" },
+      "text-secondary": { "role": "neutral", "displayName": "Warm Ink Muted", "canonical": "#c9b8a0" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Titan One Display", "purpose": "Timer numeral, tabular scores, marquee-style screen titles only." },
+      "body": { "displayName": "Nunito Body", "purpose": "Buttons, lists, labels, meta text; body copy is always semibold or heavier." }
+    },
+    "shadows": [
+      { "name": "glow-primary", "value": "0 0 16px 1px rgba(52, 209, 122, 0.55), 0 0 40px 10px rgba(52, 209, 122, 0.22)", "purpose": "Lit correct/live lamp glow." },
+      { "name": "glow-pass", "value": "0 0 16px 1px rgba(255, 171, 46, 0.55), 0 0 40px 10px rgba(255, 171, 46, 0.22)", "purpose": "Lit pass/ring-in lamp glow." },
+      { "name": "glow-danger", "value": "0 0 16px 1px rgba(255, 75, 62, 0.6), 0 0 40px 10px rgba(255, 75, 62, 0.26)", "purpose": "Urgent timer, foul banner, active flag." },
+      { "name": "glow-gold", "value": "0 0 18px 2px rgba(255, 210, 63, 0.6), 0 0 46px 12px rgba(255, 210, 63, 0.26)", "purpose": "Win/round-complete lamp glow." },
+      { "name": "glow-text-gold", "value": "0 0 10px rgba(255, 210, 63, 0.7), 0 0 28px rgba(255, 210, 63, 0.35)", "purpose": "Text-shadow companion to glow-gold for the timer numeral and titles." },
+      { "name": "shadow-off", "value": "5px 5px 0 0 rgba(0, 0, 0, 0.5)", "purpose": "Hard flat offset for off/inactive/idle state; never used with blur or on live elements." },
+      { "name": "shadow-panel", "value": "0 12px 28px -8px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(255, 255, 255, 0.04) inset", "purpose": "Ambient resting elevation for cards, HUD plates, menus." }
+    ],
+    "motion": [
+      { "name": "chase-light", "value": "conic-gradient rim sweep, 3.2s linear infinite (0.55s when urgent)", "purpose": "Comet of light circling the timer ring; the build's signature timer treatment." },
+      { "name": "timer-pulse", "value": "scale(1) -> scale(1.08), 0.9s ease-in-out infinite", "purpose": "Urgent-state timer numeral pulse in the final 10 seconds." },
+      { "name": "card-heat", "value": "border/box-shadow oscillation to danger red, 0.9s ease-in-out infinite", "purpose": "Word card border flashes red while the timer is urgent." },
+      { "name": "lamp-flicker", "value": "opacity 1 -> 0.4 -> 1 over a 2.6s cycle, mostly held at full", "purpose": "Subtle flicker on the active-team on-air dot to read as a live fixture, not a static icon." },
+      { "name": "screen-enter", "value": "opacity 0->1, translateY 8px->0, 220ms ease-out", "purpose": "Default screen/sheet/menu entrance transition." }
+    ],
+    "breakpoints": [
+      { "name": "landscape-compact", "value": "(orientation: landscape) and (max-height: 2000px)", "purpose": "Primary active-play layout for this mobile-only app; phone held sideways mid-round." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (Correct)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The 'correct' ding lamp button on the game screen and elsewhere primary action is affirmative.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><span class=\"ds-btn-icon\">✓</span>Correct</button>",
+      "css": ".ds-btn { border: 1.5px solid; border-radius: 16px; font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.01em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 16px; transition: transform 90ms ease-out, box-shadow 90ms ease-out, filter 120ms ease-out; } .ds-btn:active { transform: translateY(2px) scale(0.98); filter: brightness(1.12); } .ds-btn-primary { background: #34d17a; color: #08160e; border-color: #1c9f5b; box-shadow: 0 0 16px 1px rgba(52,209,122,.55), 0 0 40px 10px rgba(52,209,122,.22); } .ds-btn-primary:disabled { background: #453a2e; color: #c9b8a0; border-color: #453a2e; box-shadow: 5px 5px 0 0 rgba(0,0,0,.5); cursor: not-allowed; }"
+    },
+    {
+      "name": "Pass Button",
+      "kind": "button",
+      "refersTo": "button-pass",
+      "description": "The ring-in/pass lamp button paired with Correct.",
+      "html": "<button class=\"ds-btn ds-btn-pass\">Pass</button>",
+      "css": ".ds-btn-pass { border: 1.5px solid #d1830f; border-radius: 16px; font-family: 'Nunito', sans-serif; font-weight: 800; min-height: 48px; padding: 12px 16px; background: #ffab2e; color: #2b1a03; box-shadow: 0 0 16px 1px rgba(255,171,46,.55), 0 0 40px 10px rgba(255,171,46,.22); cursor: pointer; } .ds-btn-pass:active { transform: translateY(2px) scale(0.98); filter: brightness(1.12); }"
+    },
+    {
+      "name": "Outline Button (Idle Lamp)",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Idle/unlit control state — sits on the desk unlit with the hard flat off-shadow.",
+      "html": "<button class=\"ds-btn-outline\">Refresh Words</button>",
+      "css": ".ds-btn-outline { background: #241a12; border: 1.5px solid rgba(245,234,217,0.24); color: #f5ead9; border-radius: 16px; min-height: 44px; padding: 8px 12px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.8rem; box-shadow: 5px 5px 0 0 rgba(0,0,0,.5); cursor: pointer; } .ds-btn-outline:active { box-shadow: 2px 2px 0 0 rgba(0,0,0,.5); transform: translateY(1px) scale(0.97); }"
+    },
+    {
+      "name": "Host-Desk Plinth Card",
+      "kind": "card",
+      "refersTo": "hero-card",
+      "description": "The shared panel material for the hero card and centered word card; carries the recurring marquee-bulb strip along its top edge.",
+      "html": "<div class=\"ds-plinth\"><p class=\"ds-plinth-text\">WORD</p></div>",
+      "css": ".ds-plinth { position: relative; background: #241a12; border-radius: 20px; border: 2px solid rgba(245,234,217,0.24); box-shadow: 0 12px 28px -8px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.04) inset; padding: 24px 16px; } .ds-plinth::before { content: ''; position: absolute; left: 16px; right: 16px; top: 10px; height: 8px; background-image: radial-gradient(circle, #ffd23f 2.6px, transparent 3px); background-size: 18px 100%; background-repeat: repeat-x; filter: drop-shadow(0 0 3px rgba(255,210,63,.65)); opacity: 0.9; } .ds-plinth-text { font-family: 'Titan One', sans-serif; font-weight: 400; color: #f5ead9; text-shadow: 0 0 22px rgba(245,234,217,.22); text-align: center; margin: 0; }"
+    },
+    {
+      "name": "Chase-Light Timer",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: a lit numeral plinth ringed by a rotating conic-gradient chase light, escalating in speed and color as time runs low.",
+      "html": "<p class=\"ds-timer\">12</p>",
+      "css": ".ds-timer { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; font-family: 'Titan One', sans-serif; font-size: 1.9rem; font-variant-numeric: tabular-nums; padding: 0.3em 0.65em; border-radius: 999px; color: #ffd23f; text-shadow: 0 0 10px rgba(255,210,63,.7), 0 0 28px rgba(255,210,63,.35); } .ds-timer::before { content: ''; position: absolute; inset: -3px; z-index: -2; border-radius: inherit; background: conic-gradient(from 0deg, #ffd23f 0deg 22deg, transparent 22deg 360deg), #120d0a; animation: ds-chase 3.2s linear infinite; } .ds-timer::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #241a12; box-shadow: 0 0 18px 2px rgba(255,210,63,.6), 0 0 46px 12px rgba(255,210,63,.26); } @keyframes ds-chase { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }"
+    },
+    {
+      "name": "Stroke Icon (Check)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "One example from the single hand-authored stroke-SVG icon set replacing all UI emoji — round caps, 2px stroke, currentColor, 24x24 viewBox.",
+      "html": "<svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12.5l5 5L20 6\"/></svg>",
+      "css": ".ds-icon { width: 24px; height: 24px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Gameshow Buzzer Board",
+    "overview": "The screen is the host desk's countdown display, not a card describing a game. Every readout — the word, the timer, the tally lamps — reads as a physical lit fixture on a stage-lit desk rather than as flat app UI: soft colored bulb-glow for anything live, and a hard flat graphic shadow for anything off or inactive, so which lamp is lit is never ambiguous. This was chosen (Impeccable's Pick) over an assigned 'Stadium Scoreboard Jumbotron' direction during the direction round; it deliberately refuses both the generic 'quiz app' default (gradient card, sticker emoji, generic bold sans) and the muted glassy premium-minimalist dark-mode alternative. The build is code-led — no comp/image round ran in this environment — so every token is read directly from src/index.css and src/styles/screens.css as shipped, not from planning intent.",
+    "keyCharacteristics": [
+      "Warm stage-light palette on a near-black ground — never a cool or neutral dark mode.",
+      "Two shadow languages that are never mixed: soft colored glow for lit/live, hard flat offset for off/inactive.",
+      "A repeating marquee-bulb strip motif across every plinth-style panel (hero card, word card).",
+      "A chase-light conic-gradient ring that sweeps the timer and accelerates in the final seconds.",
+      "All iconography is a single hand-authored stroke-SVG set — no emoji, no icon font."
+    ],
+    "rules": [
+      { "name": "The Two-Shadow Rule", "body": "A color only ever appears with one of two shadow treatments: a soft colored glow for something live/lit, or the flat offset shadow-off for something off/inactive/idle. Never blend the two on the same element.", "section": "colors" },
+      { "name": "The Rare Gold Rule", "body": "Gold is the win/round-complete color. It marks the timer's resting numeral, the marquee-bulb motif, and completion states — not general accents or default buttons.", "section": "colors" },
+      { "name": "The Numerals-Get-The-Marquee-Face Rule", "body": "Titan One is reserved for the timer and tabular scores plus short titles; body copy, buttons, and lists stay in Nunito.", "section": "typography" },
+      { "name": "The Hard-Shadow-Means-Off Rule", "body": "shadow-off's flat offset shadow is raised from a declined precisionist-industrial-plate challenger specifically to answer 'whose turn/lamp is on' at a glance. It is a state signal, not a general decorative shadow style — don't apply it to elements that aren't communicating an off/idle state.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do pair every live/lit color state with its glow shadow and every off/idle state with the flat shadow-off offset — never the reverse.",
+      "Do use Titan One only for numerals and short marquee titles; keep body copy, lists, and buttons in Nunito.",
+      "Do reuse the marquee-bulb-strip motif as the one recurring signature ornament on plinth-style panels; don't invent a second competing ornament.",
+      "Do keep the landscape three-column pass | word | correct grid as the primary active-play layout; it is this world's answer to one-handed mid-round play."
+    ],
+    "donts": [
+      "Don't introduce a soft blur/glass treatment as a working depth technique — blur-glass is deliberately none; the world's material is flat-panel-plus-glow, not frosted glass. (Some component classes still reference var(--blur-glass); this is inert legacy CSS, not a token to build on.)",
+      "Don't use a cool, muted, or glassy dark-mode palette anywhere in this world — the direction contract explicitly rejects 'premium minimalist' dark mode as a predictable opposite.",
+      "Don't reintroduce emoji or an icon font for UI chrome (buttons, menus, HUD) — the system already replaced all UI emoji with the single stroke-SVG set in src/components/icons.tsx. Word-category emoji sourced from the word-bank data (e.g. category chips in CategoryPickerSheet) are pre-existing content, not a UI icon convention — don't extend that pattern to new UI surfaces.",
+      "Don't treat src/components/scoreboard/*View.tsx, StreamOverlayHUD.tsx, or AdminScreen.tsx/its Admin* subcomponents as carrying this system — they were only mechanically touched and still run their own bespoke Tailwind purple/pink/emerald gradient palette unrelated to these tokens. This is a documented, deferred gap, not part of the shipped design system."
+    ]
+  }
+}

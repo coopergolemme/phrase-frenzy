@@ -16,15 +16,17 @@
   min-width: 0;
 }
 
-/* Buttons: chunky "arcade button" with a hard offset shadow that the
-   button presses flat into on tap — the tactile hot-potato feedback. */
+/* Buttons: lit ring-in lamps. A live lamp (primary/pass) carries a soft
+   colored glow and brightens on tap, like a bulb confirming the press; an
+   idle control (outline) sits on the desk unlit, in the same flat hard
+   shadow reserved for whatever is off/inactive. */
 
 .btn {
-  border: 2.5px solid var(--color-text);
+  border: 1.5px solid var(--color-border-solid);
   border-radius: var(--radius-button);
   font-family: var(--font-system);
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.01em;
   cursor: pointer;
   display: flex;
@@ -33,7 +35,6 @@
   gap: var(--space-2);
   min-height: 48px;
   padding: var(--space-3) var(--space-4);
-  box-shadow: 0 4px 0 0 var(--btn-shadow, var(--color-text));
   transition:
     transform 90ms ease-out,
     box-shadow 90ms ease-out,
@@ -44,14 +45,13 @@
 }
 
 .btn__icon {
-  font-size: 0.9em;
+  display: inline-flex;
   line-height: 1;
 }
 
 .btn:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 0 var(--btn-shadow, var(--color-text));
-  filter: brightness(0.96);
+  transform: translateY(2px) scale(0.98);
+  filter: brightness(1.12);
 }
 
 .btn--large {
@@ -61,48 +61,46 @@
 }
 
 .btn--primary {
-  --btn-shadow: var(--color-primary-pressed);
   background: var(--color-primary);
-  color: #0e1f15;
-  border-color: #0e1f15;
+  color: #08160e;
+  border-color: var(--color-primary-pressed);
+  box-shadow: var(--glow-primary);
 }
 
 .btn--primary:disabled {
   background: var(--color-disabled);
   color: var(--color-text-secondary);
   border-color: var(--color-disabled);
-  box-shadow: none;
+  box-shadow: var(--shadow-off);
   cursor: not-allowed;
 }
 
 .btn--pass {
-  --btn-shadow: var(--color-pass-pressed);
   background: var(--color-pass);
   color: #2b1a03;
-  border-color: #2b1a03;
+  border-color: var(--color-pass-pressed);
+  box-shadow: var(--glow-pass);
 }
 
 .btn--pass:disabled {
   background: var(--color-disabled);
   color: var(--color-text-secondary);
   border-color: var(--color-disabled);
-  box-shadow: none;
+  box-shadow: var(--shadow-off);
   cursor: not-allowed;
 }
 
 /* Buttons (continued) */
 
 .btn--outline {
-  background: var(--color-surface);
-  backdrop-filter: var(--blur-glass);
-  -webkit-backdrop-filter: var(--blur-glass);
-  border: 2.5px solid var(--color-text);
+  background: var(--color-surface-solid);
+  border: 1.5px solid var(--color-border-solid);
   color: var(--color-text);
-  box-shadow: 0 4px 0 0 var(--color-border-solid);
+  box-shadow: var(--shadow-off);
 }
 
 .btn--outline:active {
-  box-shadow: 0 0 0 0 var(--color-border-solid);
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.5);
 }
 
 .btn--outline:disabled {
@@ -129,17 +127,17 @@
 .btn--text:active {
   transform: none;
   box-shadow: none;
+  filter: none;
 }
 
 .btn--small {
   min-height: var(--touch-target-min);
   padding: var(--space-2) var(--space-3);
   font-size: 0.8rem;
-  box-shadow: 0 3px 0 0 var(--btn-shadow, var(--color-border-solid));
 }
 
 .btn--small:active {
-  transform: translateY(3px);
+  transform: translateY(1px) scale(0.97);
 }
 
 /* Game screen */
@@ -158,8 +156,9 @@
   position: relative;
 }
 
-/* HUD: team/round/score and timer/menu overlaid on the word card's
-   corners, kept clear of the centered word by the card's own padding. */
+/* HUD: two lit control-desk readouts flanking the board — a team-name
+   plate (left) with an on-air lamp dot, and the timer/menu plate (right)
+   — kept clear of the centered word by the card's own padding. */
 
 .game__hud {
   position: absolute;
@@ -178,6 +177,12 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  background: var(--color-surface-solid);
+  border: 1.5px solid var(--color-border-solid);
+  border-radius: var(--radius-button);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-panel);
+  max-width: 46vw;
 }
 
 .game__hud--right {
@@ -188,6 +193,9 @@
 }
 
 .game__team-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: clamp(1rem, 4vmin, 1.3rem);
   font-weight: 800;
   margin: 0;
@@ -196,6 +204,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.game__team-name::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: var(--glow-primary);
+  animation: lampFlicker 2.6s ease-in-out infinite;
 }
 
 .game__describer {
@@ -209,21 +228,100 @@
   white-space: nowrap;
 }
 
+/* Timer: the host-desk lamp plinth. The ring is a chase-light — a single
+   "comet" of light sweeping the rim, borrowed from a step-sequencer's
+   chase and speeding up sharply once the round turns urgent. */
+
 .game__timer {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(1.5rem, 6.5vmin, 2.1rem);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 6vmin, 1.9rem);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   margin: 0;
+  padding: 0.3em 0.65em;
+  border-radius: var(--radius-chip);
   color: var(--color-yellow);
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
-  transition: color 200ms ease-out;
+  text-shadow: var(--glow-text-gold);
+  transition:
+    color 200ms ease-out,
+    background 200ms ease-out;
+}
+
+.game__timer::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(
+      from 0deg,
+      var(--color-yellow) 0deg 22deg,
+      transparent 22deg 360deg
+    ),
+    var(--color-bg);
+  animation: chaseLight 3.2s linear infinite;
+}
+
+.game__timer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--color-surface-solid);
+  box-shadow: var(--glow-gold), var(--shadow-panel);
 }
 
 .game__timer--urgent {
-  color: var(--color-danger);
-  animation: timerPulse 1s ease-in-out infinite;
+  color: var(--color-text);
+  text-shadow: none;
+  animation: timerPulse 0.9s ease-in-out infinite;
+}
+
+.game__timer--urgent::before {
+  background: conic-gradient(
+      from 0deg,
+      #ffe9c2 0deg 30deg,
+      transparent 30deg 360deg
+    ),
+    var(--color-bg);
+  animation: chaseLight 0.55s linear infinite;
+}
+
+.game__timer--urgent::after {
+  background: var(--color-danger);
+  box-shadow: var(--glow-danger), var(--shadow-panel);
+}
+
+@keyframes chaseLight {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lampFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.4;
+  }
+  96% {
+    opacity: 1;
+  }
 }
 
 @keyframes timerPulse {
@@ -232,7 +330,7 @@
     transform: scale(1);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.08);
   }
 }
 
@@ -254,9 +352,7 @@
 .icon-menu-btn,
 .game-pause-btn {
   border: 1.5px solid var(--color-border-solid);
-  background: var(--color-surface);
-  backdrop-filter: var(--blur-glass);
-  -webkit-backdrop-filter: var(--blur-glass);
+  background: var(--color-surface-solid);
   color: var(--color-text);
   width: 36px;
   height: 36px;
@@ -265,21 +361,25 @@
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: var(--shadow-off);
   transition:
     transform 80ms ease-out,
-    background 120ms ease-out;
+    background 120ms ease-out,
+    box-shadow 80ms ease-out;
 }
 
 .icon-menu-btn:active,
 .game-pause-btn:active {
   background: var(--color-border);
-  transform: scale(0.92);
+  transform: translateY(2px) scale(0.94);
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.5);
 }
 
 .game-pause-btn[aria-pressed="true"] {
   background: var(--color-yellow);
   color: #2b1a03;
   border-color: var(--color-yellow-pressed);
+  box-shadow: var(--glow-gold);
 }
 
 .icon-menu__backdrop {
@@ -302,10 +402,10 @@
   gap: 2px;
   min-width: 180px;
   background: var(--color-surface-solid);
-  border: 2px solid var(--color-border-solid);
+  border: 1.5px solid var(--color-border-solid);
   border-radius: var(--radius-button);
   padding: var(--space-1);
-  box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-panel);
   animation: screenEnter 120ms ease-out;
 }
 
@@ -341,29 +441,44 @@
   text-align: center;
 }
 
-/* Hero card: a ticket-stub panel with a chalk outline, a torn/perforated
-   top edge, and a hard offset shadow — reused for headline content
-   across the round-summary and final-standings screens. */
+/* Host-desk plinth: the panel material shared by the hero card and the
+   word card. A row of lit marquee bulbs traces the top edge of every
+   plinth — the one motif that repeats across the whole board — and the
+   panel itself sits on a soft stage-lit elevation, never a hard offset. */
 
-.hero-card {
+.hero-card,
+.word-card {
   position: relative;
-  width: 100%;
   background: var(--color-surface-solid);
   border-radius: var(--radius-card);
-  border: 3px solid var(--color-text);
-  box-shadow: 6px 6px 0 0 var(--color-yellow);
+  border: 2px solid var(--color-border-solid);
+  box-shadow: var(--shadow-panel);
   padding: var(--space-5) var(--space-4);
 }
 
-.hero-card::before {
+.hero-card::before,
+.word-card::before {
   content: "";
   position: absolute;
   left: var(--space-4);
   right: var(--space-4);
-  top: 0;
-  height: 0;
-  border-top: 1.5px dashed var(--color-border-solid);
+  top: 10px;
+  height: 8px;
+  background-image: radial-gradient(
+    circle,
+    var(--color-yellow) 2.6px,
+    transparent 3px
+  );
+  background-size: 18px 100%;
+  background-repeat: repeat-x;
+  background-position: center;
+  filter: drop-shadow(0 0 3px rgba(255, 210, 63, 0.65));
+  opacity: 0.9;
   pointer-events: none;
+}
+
+.hero-card {
+  width: 100%;
 }
 
 .word-card {
@@ -371,45 +486,39 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  background: var(--color-surface-solid);
-  border-radius: var(--radius-card);
-  border: 3px solid var(--color-text);
-  box-shadow: 8px 8px 0 0 var(--color-yellow);
-  padding: var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  position: relative;
   overflow: hidden;
-  transform: rotate(-1deg);
   animation: wordEnter 180ms ease-out;
 }
 
 .screen--game-urgent .word-card {
-  animation: cardHeat 1s ease-in-out infinite;
+  animation: cardHeat 0.9s ease-in-out infinite;
 }
 
 @keyframes cardHeat {
   0%,
   100% {
-    border-color: var(--color-text);
-    box-shadow: 8px 8px 0 0 var(--color-yellow);
+    border-color: var(--color-border-solid);
+    box-shadow: var(--shadow-panel);
   }
   50% {
     border-color: var(--color-danger);
-    box-shadow: 8px 8px 0 0 var(--color-danger);
+    box-shadow: var(--glow-danger), var(--shadow-panel);
   }
 }
 
 .word-card__text {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.15;
   white-space: normal;
   overflow-wrap: normal;
   word-break: normal;
   color: var(--color-text);
+  text-shadow: 0 0 22px rgba(245, 234, 217, 0.22);
   max-width: 100%;
   min-width: 0;
 }
@@ -569,14 +678,15 @@
 }
 
 .standings__row--leader {
-  background: rgba(58, 217, 126, 0.18);
+  background: rgba(52, 209, 122, 0.16);
   border-color: var(--color-primary);
+  box-shadow: var(--glow-primary);
   font-weight: 800;
 }
 
 .standings__score {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 400;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
 }
@@ -607,15 +717,16 @@
 
 .review-sheet__title {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 400;
   font-size: 1.15rem;
   margin: 0;
   color: var(--color-yellow);
+  text-shadow: var(--glow-text-gold);
 }
 
 .review-sheet__close {
-  border: 2px solid var(--color-text);
-  background: var(--color-disabled);
+  border: 1.5px solid var(--color-border-solid);
+  background: var(--color-surface-solid);
   color: var(--color-text);
   width: var(--touch-target-min);
   height: var(--touch-target-min);
@@ -624,6 +735,7 @@
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: var(--shadow-off);
   transition:
     transform 80ms ease-out,
     filter 120ms ease-out;
@@ -699,7 +811,7 @@
 
 .flag-btn--active {
   opacity: 1;
-  background: rgba(255, 70, 103, 0.22);
+  background: rgba(255, 75, 62, 0.22);
   border-color: var(--color-danger);
 }
 
@@ -745,7 +857,7 @@
 .outcome-pill--correct {
   background: var(--color-primary);
   border-color: var(--color-primary-pressed);
-  color: #0e1f15;
+  color: #08160e;
 }
 
 .outcome-pill--skipped {
@@ -800,11 +912,11 @@
 @keyframes wordEnter {
   from {
     opacity: 0;
-    transform: scale(0.9) rotate(-1deg);
+    transform: scale(0.94);
   }
   to {
     opacity: 1;
-    transform: scale(1) rotate(-1deg);
+    transform: scale(1);
   }
 }
 

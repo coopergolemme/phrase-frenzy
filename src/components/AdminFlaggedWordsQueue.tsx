@@ -52,7 +52,7 @@ export function AdminFlaggedWordsQueue({
   };
 
   return (
-    <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface backdrop-blur-[20px] [-webkit-overflow-scrolling:touch]">
+    <div className="max-h-[65vh] overflow-y-auto rounded-card border border-outline bg-surface [-webkit-overflow-scrolling:touch]">
       {activeFlaggedWords.map((flagged) => {
         const suggestions = similarSuggestions[flagged.id];
         const isConfirming = confirmingId === flagged.id;

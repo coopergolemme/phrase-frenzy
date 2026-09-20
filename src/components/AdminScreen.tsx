@@ -362,7 +362,7 @@ export function AdminScreen() {
         <div className="screen-container flex min-h-0 flex-col gap-3">
           <div className="flex shrink-0 flex-col gap-1">
             {backLink}
-            <h1 className="m-0 font-display font-bold text-xl text-yellow">Admin</h1>
+            <h1 className="m-0 font-display font-normal text-xl text-yellow">Admin</h1>
           </div>
           <div className="flex justify-center py-10">
             <div
@@ -381,7 +381,7 @@ export function AdminScreen() {
       <div className="screen-container flex min-h-0 flex-col gap-3">
         <div className="flex shrink-0 flex-col gap-3">
           {backLink}
-          <h1 className="m-0 font-display font-bold text-xl text-yellow">Admin</h1>
+          <h1 className="m-0 font-display font-normal text-xl text-yellow">Admin</h1>
           <div className="flex gap-1 border-b border-border-solid" role="tablist">
             {TABS.map((tab) => (
               <button
@@ -405,7 +405,7 @@ export function AdminScreen() {
           {error && <p className="m-0 text-center text-[0.9rem] leading-snug text-danger">{error}</p>}
           {activeTab === "curation" && (
             <>
-              <div className="rounded-card border border-outline bg-surface p-4 backdrop-blur-[20px]">
+              <div className="rounded-card border border-outline bg-surface p-4">
                 <h2 className="m-0 mb-3 text-base font-bold">Generate</h2>
                 <AdminGenerateForm isGenerating={isGenerating} onGenerate={handleGenerate} />
               </div>

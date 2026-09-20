@@ -13,10 +13,9 @@ export function ScoreboardLobbyView({ roomCode, lobby }: ScoreboardLobbyViewProp
   return (
     <div className="scoreboard-screen scoreboard-lobby">
       {/* Header Banner */}
-      <header className="scoreboard-header flex items-center justify-between w-full px-8 py-4 bg-surface/50 border-b border-white/10 rounded-2xl backdrop-blur-md">
+      <header className="scoreboard-header flex items-center justify-between w-full px-8 py-4 bg-surface/50 border-b border-white/10 rounded-2xl">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🔥</span>
-          <h1 className="text-2xl font-display font-extrabold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent m-0">
+          <h1 className="text-2xl font-display font-normal tracking-tight text-yellow [text-shadow:0_0_12px_rgba(255,210,63,0.7)] m-0">
             PHRASE FRENZY
           </h1>
         </div>
@@ -29,7 +28,7 @@ export function ScoreboardLobbyView({ roomCode, lobby }: ScoreboardLobbyViewProp
       {/* Main Content Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start my-auto">
         {/* Left: Join Information Card */}
-        <div className="lg:col-span-5 flex flex-col items-center text-center p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-xl">
+        <div className="lg:col-span-5 flex flex-col items-center text-center p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl">
           <span className="text-xs font-bold uppercase tracking-widest text-text-secondary mb-2">
             Join on your phone
           </span>
@@ -86,7 +85,7 @@ export function ScoreboardLobbyView({ roomCode, lobby }: ScoreboardLobbyViewProp
               return (
                 <div
                   key={teamIdx}
-                  className={`p-6 rounded-2xl border bg-gradient-to-br ${colorStyle} backdrop-blur-md shadow-lg flex flex-col justify-between min-h-[220px]`}
+                  className={`p-6 rounded-2xl border bg-gradient-to-br ${colorStyle} shadow-lg flex flex-col justify-between min-h-[220px]`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-4">

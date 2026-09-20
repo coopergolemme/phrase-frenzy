@@ -68,7 +68,7 @@ export function SpectatorScreen({
           <p className="m-0 text-[1.1rem] font-bold tracking-wide text-text-secondary">
             This round
           </p>
-          <p className="m-[4px_0_0] font-display font-bold text-[4rem] text-primary">
+          <p className="m-[4px_0_0] font-display font-normal text-[4rem] text-primary">
             {roundScore}
           </p>
           <p className="m-0 text-text-secondary">words guessed</p>
@@ -78,7 +78,7 @@ export function SpectatorScreen({
           <p className="m-0 text-[1.1rem] font-bold tracking-wide text-text-secondary">
             {teamName} total
           </p>
-          <p className="m-[4px_0_0] font-display font-bold text-[3rem] text-primary">
+          <p className="m-[4px_0_0] font-display font-normal text-[3rem] text-primary">
             {teamTotalScore}
           </p>
         </div>
