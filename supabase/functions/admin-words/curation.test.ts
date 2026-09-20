@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPrompt,
   dedupeAgainstExisting,
+  MAX_EXISTING_WORDS_IN_PROMPT,
   MAX_INSTRUCTIONS_LENGTH,
   type GeneratedBatch,
   type KnownCategory,
@@ -58,6 +59,28 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt([ANIMALS], new Map());
 
     expect(prompt).toContain("existing words: []");
+  });
+
+  it("shows a category's full existing-words list unannotated when under the limit", () => {
+    const existing = new Map([["food", ["pizza", "taco"]]]);
+
+    const prompt = buildPrompt([FOOD], existing);
+
+    expect(prompt).toContain(`existing words: ${JSON.stringify(["pizza", "taco"])}`);
+    expect(prompt).not.toContain("is a sample, not exhaustive");
+  });
+
+  it("truncates a category's existing-words list when it exceeds MAX_EXISTING_WORDS_IN_PROMPT", () => {
+    const allWords = Array.from({ length: MAX_EXISTING_WORDS_IN_PROMPT + 25 }, (_, i) => `word-${i}`);
+    const existing = new Map([["food", allWords]]);
+
+    const prompt = buildPrompt([FOOD], existing);
+    const shown = allWords.slice(0, MAX_EXISTING_WORDS_IN_PROMPT);
+
+    expect(prompt).toContain(
+      `existing words (showing ${MAX_EXISTING_WORDS_IN_PROMPT} of ${allWords.length} — list is a sample, not exhaustive): ${JSON.stringify(shown)}`
+    );
+    expect(prompt).not.toContain(`word-${allWords.length - 1}`);
   });
 
   it("instructs the model to reuse an existing category or propose a new one", () => {

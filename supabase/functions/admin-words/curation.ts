@@ -73,6 +73,14 @@ export const MAX_INSTRUCTIONS_LENGTH = 300;
 
 export const DEFAULT_WORD_COUNT = 10;
 
+// Bounds how many of a category's existing words get shown to the model per
+// generate call — mirrors SIMILARITY_CANDIDATE_LIMIT/GUIDANCE_DECISION_LIMIT
+// in index.ts. This list is filing/dedup *guidance* only: the real dedupe
+// guarantee comes from dedupeAgainstExisting() checking the full existing-word
+// set afterward, so truncating what the model sees can't let a duplicate
+// through — it only keeps the prompt bounded as a category's word bank grows.
+export const MAX_EXISTING_WORDS_IN_PROMPT = 150;
+
 export function buildPrompt(
   categories: KnownCategory[],
   existingWordsByCategory: Map<string, string[]>,
@@ -82,9 +90,14 @@ export function buildPrompt(
   const categoryList = categories
     .map((c) => {
       const existing = existingWordsByCategory.get(c.id) ?? [];
+      const shown = existing.slice(0, MAX_EXISTING_WORDS_IN_PROMPT);
+      const truncated = existing.length > shown.length;
+      const existingLabel = truncated
+        ? `existing words (showing ${shown.length} of ${existing.length} — list is a sample, not exhaustive)`
+        : "existing words";
       const guidance = guidanceByCategory?.get(c.id)?.trim();
       const guidanceLine = guidance ? `\n  curation guidance: "${guidance}"` : "";
-      return `- id: "${c.id}", label: "${c.label}"\n  existing words: ${JSON.stringify(existing)}${guidanceLine}`;
+      return `- id: "${c.id}", label: "${c.label}"\n  ${existingLabel}: ${JSON.stringify(shown)}${guidanceLine}`;
     })
     .join("\n");
 
