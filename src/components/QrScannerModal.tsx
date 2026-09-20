@@ -173,7 +173,7 @@ export function QrScannerModal({ isOpen, onClose, onScanSuccess }: QrScannerModa
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-label="Scan QR Code"
@@ -181,7 +181,7 @@ export function QrScannerModal({ isOpen, onClose, onScanSuccess }: QrScannerModa
       <div className="relative flex w-full max-w-md flex-col items-center gap-4 rounded-card border border-outline bg-surface-solid p-5 shadow-2xl">
         {/* Header */}
         <div className="flex w-full items-center justify-between border-b border-border-solid pb-3">
-          <h2 className="m-0 font-display text-[1.3rem] font-bold text-yellow">
+          <h2 className="m-0 font-display text-[1.3rem] font-normal text-yellow">
             Scan Room QR Code
           </h2>
           <button

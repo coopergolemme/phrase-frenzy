@@ -1,3 +1,4 @@
+import { IconTrophy } from "./icons";
 import type { MatchRecord } from "../utils/matchHistory";
 
 interface MatchHistorySheetProps {
@@ -41,8 +42,10 @@ export function MatchHistorySheet({ history, onClose }: MatchHistorySheetProps) 
                   (match.winnerNames.includes(team.name) ? " standings__row--leader" : "")
                 }
               >
-                <span className="standings__name">
-                  {match.winnerNames.includes(team.name) ? "🏆 " : ""}
+                <span className="standings__name flex items-center gap-1.5">
+                  {match.winnerNames.includes(team.name) && (
+                    <IconTrophy width="1em" height="1em" className="text-yellow" />
+                  )}
                   {team.name}
                 </span>
                 <span className="standings__score">{team.score}</span>

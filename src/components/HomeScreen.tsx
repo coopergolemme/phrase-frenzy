@@ -2,6 +2,15 @@ import { useState } from "react";
 import { FlaggedWordsSheet } from "./FlaggedWordsSheet";
 import { WordStatsSheet } from "./WordStatsSheet";
 import { MatchHistorySheet } from "./MatchHistorySheet";
+import {
+  IconChart,
+  IconDownload,
+  IconFlag,
+  IconFlask,
+  IconHistory,
+  IconRefresh,
+  IconWrench,
+} from "./icons";
 import type { WordStats } from "../utils/wordStats";
 import type { MatchRecord } from "../utils/matchHistory";
 
@@ -64,16 +73,16 @@ export function HomeScreen({
   return (
     <div className="screen flex flex-col justify-between pt-6 pb-4 landscape-compact:pt-2 landscape-compact:pb-2 landscape-compact:overflow-y-auto">
       <div className="flex flex-col gap-4 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-5">
-        <div className="flex flex-col items-center gap-3 landscape-compact:flex-1 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-4">
+        <div className="flex flex-col items-center gap-3 min-w-0 landscape-compact:flex-1 landscape-compact:flex-row landscape-compact:items-center landscape-compact:gap-4">
           <img
             src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
             alt=""
             width={72}
             height={72}
-            className="h-[72px] w-[72px] rounded-[1.25rem] shadow-[0_4px_0_rgba(0,0,0,0.35)]"
+            className="h-[72px] w-[72px] flex-shrink-0 rounded-[1.25rem] shadow-[0_12px_28px_-8px_rgba(0,0,0,0.65)]"
           />
-          <div className="flex flex-col gap-4 landscape-compact:gap-2">
-            <h1 className="m-0 -rotate-1 text-center font-display font-bold text-[clamp(1.75rem,7.5vmin,2.5rem)] leading-tight text-yellow [text-shadow:3px_3px_0_rgba(0,0,0,0.35)] landscape-compact:text-left">
+          <div className="flex min-w-0 flex-col gap-4 landscape-compact:gap-2">
+            <h1 className="m-0 truncate text-center font-display font-normal text-[clamp(1.75rem,7.5vmin,2.5rem)] leading-tight text-yellow [text-shadow:0_0_12px_rgba(255,210,63,0.7),0_0_32px_rgba(255,210,63,0.35)] landscape-compact:text-left">
               Phrase Frenzy
             </h1>
             {refreshWordsError && (
@@ -83,7 +92,7 @@ export function HomeScreen({
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 min-w-0 landscape-compact:flex-1">
           <button className="btn btn--primary btn--large" onClick={onStart}>
             Start Game
           </button>
@@ -99,33 +108,25 @@ export function HomeScreen({
           <div className="flex flex-wrap justify-center gap-2">
             {flaggedWords.length > 0 && (
               <button type="button" className="btn btn--small btn--outline" onClick={() => openSheet("flags")}>
-                <span className="btn__icon" aria-hidden="true">
-                  🚩
-                </span>
+                <IconFlag className="btn__icon" width="1em" height="1em" />
                 Flagged ({flaggedWords.length})
               </button>
             )}
             {hasWordStats && (
               <button type="button" className="btn btn--small btn--outline" onClick={() => openSheet("stats")}>
-                <span className="btn__icon" aria-hidden="true">
-                  📊
-                </span>
+                <IconChart className="btn__icon" width="1em" height="1em" />
                 Stats
               </button>
             )}
             {matchHistory.length > 0 && (
               <button type="button" className="btn btn--small btn--outline" onClick={() => openSheet("history")}>
-                <span className="btn__icon" aria-hidden="true">
-                  🕐
-                </span>
+                <IconHistory className="btn__icon" width="1em" height="1em" />
                 History
               </button>
             )}
             {canInstall && (
               <button type="button" className="btn btn--small btn--outline" onClick={handleInstall}>
-                <span className="btn__icon" aria-hidden="true">
-                  ⬇️
-                </span>
+                <IconDownload className="btn__icon" width="1em" height="1em" />
                 Install
               </button>
             )}
@@ -135,22 +136,16 @@ export function HomeScreen({
               onClick={handleRefreshWords}
               disabled={isRefreshingWords}
             >
-              <span className="btn__icon" aria-hidden="true">
-                🔄
-              </span>
+              <IconRefresh className="btn__icon" width="1em" height="1em" />
               {isRefreshingWords ? "Refreshing…" : "Refresh Words"}
             </button>
             <button type="button" className="btn btn--small btn--outline" onClick={handleOpenAdmin}>
-              <span className="btn__icon" aria-hidden="true">
-                🛠️
-              </span>
+              <IconWrench className="btn__icon" width="1em" height="1em" />
               Admin
             </button>
             {import.meta.env.DEV && onStartTestGame && (
               <button type="button" className="btn btn--small btn--outline" onClick={handleStartTestGame}>
-                <span className="btn__icon" aria-hidden="true">
-                  🧪
-                </span>
+                <IconFlask className="btn__icon" width="1em" height="1em" />
                 Test Game
               </button>
             )}

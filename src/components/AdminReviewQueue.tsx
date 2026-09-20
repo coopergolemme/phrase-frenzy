@@ -55,7 +55,7 @@ export function AdminReviewQueue({
       {[...byCategory.values()].map((group) => (
         <section
           key={group.categoryId}
-          className="overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px]"
+          className="overflow-hidden rounded-card border border-outline bg-surface"
         >
           <div className="flex items-center justify-between gap-2 border-b border-border-solid px-4 py-3">
             <span className="flex min-w-0 items-center gap-2 font-bold">

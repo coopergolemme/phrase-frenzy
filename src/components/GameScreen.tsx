@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { WordCard } from "./WordCard";
 import { ScoreboardSheet } from "./ScoreboardSheet";
+import {
+  IconAlertSiren,
+  IconCheck,
+  IconCross,
+  IconPause,
+  IconPlay,
+  IconRefresh,
+  IconRotatePhone,
+  IconSettings,
+  IconSkipForward,
+  IconTrophy,
+} from "./icons";
 import type { Team } from "../hooks/useGameState";
 
 interface GameScreenProps {
@@ -64,7 +76,7 @@ export function GameScreen({
     <div className={`screen screen--game${isUrgent ? " screen--game-urgent" : ""}${lastFoul ? " screen--foul-flash" : ""}`}>
       {lastFoul && (
         <div className="foul-alert-banner" role="alert" aria-live="assertive">
-          <span className="foul-alert-banner__icon">🚨</span>
+          <IconAlertSiren className="foul-alert-banner__icon" width="1.1em" height="1.1em" />
           <span>
             <strong>FOUL CALLED BY {lastFoul.spectatorName.toUpperCase()}!</strong> (-{lastFoul.penaltySec}s)
           </span>
@@ -72,9 +84,7 @@ export function GameScreen({
       )}
 
       <div className="game__rotate-hint">
-        <span className="game__rotate-hint-icon" aria-hidden="true">
-          📱
-        </span>
+        <IconRotatePhone className="game__rotate-hint-icon" width="1.1em" height="1.1em" />
         Turn your phone sideways
       </div>
 
@@ -108,7 +118,7 @@ export function GameScreen({
             aria-label={isPaused ? "Resume timer" : "Pause timer"}
             aria-pressed={isPaused}
           >
-            {isPaused ? "▶" : "⏸"}
+            {isPaused ? <IconPlay width="1em" height="1em" /> : <IconPause width="1em" height="1em" />}
           </button>
           <button
             type="button"
@@ -118,7 +128,7 @@ export function GameScreen({
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
           >
-            ⚙️
+            <IconSettings width="1em" height="1em" />
           </button>
 
           {isMenuOpen && (
@@ -136,9 +146,7 @@ export function GameScreen({
                   role="menuitem"
                   onClick={handleSkipRound}
                 >
-                  <span className="icon-menu__icon" aria-hidden="true">
-                    ⏭
-                  </span>
+                  <IconSkipForward className="icon-menu__icon" width="1em" height="1em" />
                   Skip Round
                 </button>
                 <button
@@ -147,9 +155,7 @@ export function GameScreen({
                   role="menuitem"
                   onClick={handleOpenScoreboard}
                 >
-                  <span className="icon-menu__icon" aria-hidden="true">
-                    🏆
-                  </span>
+                  <IconTrophy className="icon-menu__icon" width="1em" height="1em" />
                   Scoreboard
                 </button>
                 <button
@@ -158,9 +164,7 @@ export function GameScreen({
                   role="menuitem"
                   onClick={handleRestart}
                 >
-                  <span className="icon-menu__icon" aria-hidden="true">
-                    🔄
-                  </span>
+                  <IconRefresh className="icon-menu__icon" width="1em" height="1em" />
                   Restart
                 </button>
               </div>
@@ -175,9 +179,7 @@ export function GameScreen({
           onClick={onPass}
           disabled={actionsDisabled}
         >
-          <span className="btn__icon" aria-hidden="true">
-            ✕
-          </span>
+          <IconCross className="btn__icon" width="1.1em" height="1.1em" />
           Pass
         </button>
         <button
@@ -185,9 +187,7 @@ export function GameScreen({
           onClick={onCorrect}
           disabled={actionsDisabled}
         >
-          <span className="btn__icon" aria-hidden="true">
-            ✓
-          </span>
+          <IconCheck className="btn__icon" width="1.1em" height="1.1em" />
           Correct
         </button>
       </div>

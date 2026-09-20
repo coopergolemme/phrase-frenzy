@@ -45,7 +45,7 @@ export function MultiplayerLobbyScreen({
   if (!session) {
     return (
       <div className="screen justify-center items-center gap-4 text-center">
-        <h1 className="m-0 font-display font-bold text-[1.5rem] text-yellow">
+        <h1 className="m-0 font-display font-normal text-[1.5rem] text-yellow">
           Join Room <span className="tracking-wider">{roomCode}</span>
         </h1>
         <div className="flex w-full flex-col gap-1 text-left">
@@ -117,8 +117,8 @@ export function MultiplayerLobbyScreen({
 
   return (
     <div className="screen justify-center items-center gap-4 text-center">
-      <h1 className="m-0 font-display font-bold text-[1.5rem] text-yellow">Room Code</h1>
-      <p className="m-0 font-display text-[2.5rem] font-bold tracking-[0.3em] text-primary">
+      <h1 className="m-0 font-display font-normal text-[1.5rem] text-yellow [text-shadow:0_0_12px_rgba(255,210,63,0.7)]">Room Code</h1>
+      <p className="m-0 font-display text-[2.5rem] font-normal tracking-[0.3em] text-primary [text-shadow:0_0_18px_rgba(52,209,122,0.55)]">
         {roomCode}
       </p>
       <p className="m-0 text-text-secondary">Share this code so others can join.</p>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IconFlag } from "./icons";
 import type { RoundLogEntry, Team } from "../hooks/useGameState";
 
 interface RoundSummaryScreenProps {
@@ -37,7 +38,7 @@ export function RoundSummaryScreen({
           <p className="m-0 text-[1.1rem] font-bold tracking-wide text-text-secondary">
             {teamName}'s round
           </p>
-          <p className="m-[4px_0_0] font-display font-bold text-[3.25rem] text-primary landscape-compact:text-[clamp(1.8rem,9vh,3.25rem)]">
+          <p className="m-[4px_0_0] font-display font-normal text-[3.25rem] text-primary [text-shadow:0_0_18px_rgba(52,209,122,0.5)] landscape-compact:text-[clamp(1.8rem,9vh,3.25rem)]">
             {roundScore}
           </p>
           <p className="m-0 mb-4 text-text-secondary">words guessed</p>
@@ -117,7 +118,7 @@ export function RoundSummaryScreen({
                           : `Flag "${entry.word}" as too hard`
                       }
                     >
-                      🚩
+                      <IconFlag width="1em" height="1em" />
                     </button>
                   </div>
                 </div>

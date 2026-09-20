@@ -139,7 +139,7 @@ export function TeamSetupScreen({
           >
             ← Back
           </button>
-          <h1 className="m-0 text-center font-display font-bold text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
+          <h1 className="m-0 text-center font-display font-normal text-[clamp(1.3rem,6vmin,1.7rem)] leading-tight text-yellow">
             Set Up Teams
           </h1>
         </div>
@@ -148,7 +148,7 @@ export function TeamSetupScreen({
           <div className="flex flex-col gap-3 landscape-compact:gap-2">
             {teamNames.map((name, index) => (
               <div className="flex flex-col gap-2" key={index}>
-                <div className="flex items-center gap-3 rounded-button border border-outline bg-surface px-3 py-2 backdrop-blur-[20px]">
+                <div className="flex items-center gap-3 rounded-button border border-outline bg-surface px-3 py-2">
                   <input
                     className="min-h-touch flex-1 border-none bg-transparent font-[inherit] text-[1.05rem] text-text outline-none placeholder:text-text-secondary"
                     type="text"
@@ -217,7 +217,7 @@ export function TeamSetupScreen({
           </button>
         </div>
 
-        <div className="flex flex-col overflow-hidden rounded-card border border-outline bg-surface backdrop-blur-[20px] landscape-compact:min-w-0 landscape-compact:flex-1">
+        <div className="flex flex-col overflow-hidden rounded-card border border-outline bg-surface landscape-compact:min-w-0 landscape-compact:flex-1">
           <button
             type="button"
             className="flex min-h-touch w-full items-center justify-between border-b border-border-solid px-4 py-3 font-[inherit] text-base text-text transition-transform transition-[filter] duration-[80ms] active:scale-[0.98] active:brightness-[0.97]"

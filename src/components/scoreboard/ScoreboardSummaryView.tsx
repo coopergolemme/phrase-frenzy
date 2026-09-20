@@ -13,7 +13,7 @@ export function ScoreboardSummaryView({ scoreboard }: ScoreboardSummaryViewProps
 
   return (
     <div className="scoreboard-screen scoreboard-summary">
-      <header className="flex items-center justify-between w-full px-8 py-4 bg-surface/40 border-b border-white/10 rounded-2xl backdrop-blur-md">
+      <header className="flex items-center justify-between w-full px-8 py-4 bg-surface/40 border-b border-white/10 rounded-2xl">
         <div className="flex items-center gap-3">
           <span className="text-3xl">⏱️</span>
           <div>
@@ -34,7 +34,7 @@ export function ScoreboardSummaryView({ scoreboard }: ScoreboardSummaryViewProps
 
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-stretch my-auto">
         {/* Turn Performance Card */}
-        <div className="lg:col-span-6 flex flex-col justify-between p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-xl">
+        <div className="lg:col-span-6 flex flex-col justify-between p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-text-secondary">
               Turn Result
@@ -101,7 +101,7 @@ export function ScoreboardSummaryView({ scoreboard }: ScoreboardSummaryViewProps
         </div>
 
         {/* Current Leaderboard Standings */}
-        <div className="lg:col-span-6 p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-6 p-8 bg-surface-elevated/80 rounded-3xl border border-white/15 shadow-2xl flex flex-col justify-between">
           <div>
             <h3 className="text-xl font-display font-bold text-text-primary m-0 mb-6 flex items-center gap-2">
               <span>📊</span> Current Leaderboard
