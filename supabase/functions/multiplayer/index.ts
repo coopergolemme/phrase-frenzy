@@ -791,6 +791,51 @@ async function nextTurn(client: SupabaseClient, body: Record<string, unknown>): 
   EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "playing" }, nextState));
 }
 
+// Host-only early end to the whole game, from a live round or a round
+// summary. A live round is banked first (same scoring as finalizeRound)
+// so the points already earned this turn still count in the final
+// standings.
+async function endGame(client: SupabaseClient, body: Record<string, unknown>): Promise<void> {
+  const roomCode = requireNonEmptyString(body.roomCode, "roomCode").toUpperCase();
+  const playerToken = requireNonEmptyString(body.playerToken, "playerToken");
+
+  const [room, state] = await fetchRoomAndState(client, roomCode);
+  if (room.status !== "playing" && room.status !== "roundSummary") {
+    throw new ApiError("The game isn't in progress", 409);
+  }
+
+  const { data: hostRow, error: hostError } = await client
+    .from("room_players")
+    .select("player_token")
+    .eq("room_code", roomCode)
+    .eq("join_order", 0)
+    .maybeSingle();
+  if (hostError) throw hostError;
+  if (!hostRow || (hostRow as { player_token: string }).player_token !== playerToken) {
+    throw new ApiError("Only the host can end the game", 403);
+  }
+
+  let finalState = state;
+  if (room.status === "playing") {
+    const activeTeamIndex = state.turn_order[state.turn_index];
+    const teams = applyCorrect(state.teams, activeTeamIndex, state.round_score);
+    finalState = { ...state, teams, paused_at: null };
+    const { error: stateError } = await client
+      .from("room_state")
+      .update({ teams, paused_at: null, updated_at: new Date().toISOString() })
+      .eq("room_code", roomCode);
+    if (stateError) throw stateError;
+  }
+
+  const { error: roomError } = await client
+    .from("rooms")
+    .update({ status: "gameOver" })
+    .eq("code", roomCode);
+  if (roomError) throw roomError;
+
+  EdgeRuntime.waitUntil(publishPublicState(client, { ...room, status: "gameOver" }, finalState));
+}
+
 // Resets an in-progress or finished room for a rematch with the same
 // players/teams: fresh scores, turn order, and word deck, without touching
 // room_players/room_roster. Host-only, mirroring startGame's authorization
@@ -919,6 +964,9 @@ Deno.serve(async (req: Request) => {
         return json({});
       case "restartGame":
         await restartGame(client, body);
+        return json({});
+      case "endGame":
+        await endGame(client, body);
         return json({});
       default:
         return json({ error: `Unknown action "${body.action}"` }, 400);

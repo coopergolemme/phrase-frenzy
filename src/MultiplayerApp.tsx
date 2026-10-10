@@ -118,6 +118,13 @@ interface InGameProps {
 
 function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGameProps) {
   const game = useMultiplayerGame(session, players);
+  const handleEndGame = game.isHost
+    ? () => {
+        if (window.confirm("End the game for everyone now? Current scores become final.")) {
+          game.handleEndGame();
+        }
+      }
+    : undefined;
 
   if (game.status === "gameOver") {
     return (
@@ -153,6 +160,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             onToggleWordOutcome={() => { }}
             isWordFlagged={isWordFlagged}
             onToggleFlag={onToggleFlag}
+            onEndGame={handleEndGame}
           />
         </div>
       </div>
@@ -172,6 +180,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             timeRemaining={game.timeRemaining}
             foulPenaltySec={game.foulPenaltySec}
             onFoul={game.handleFoul}
+            onEndGame={handleEndGame}
           />
         </div>
       </div>
@@ -206,6 +215,7 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             }
           }}
           onTogglePause={game.handleTogglePause}
+          onEndGame={handleEndGame}
         />
       </div>
     </div>

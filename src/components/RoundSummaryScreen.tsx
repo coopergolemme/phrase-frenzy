@@ -13,6 +13,8 @@ interface RoundSummaryScreenProps {
   onToggleWordOutcome: (index: number) => void;
   isWordFlagged: (word: string) => boolean;
   onToggleFlag: (word: string) => void;
+  // Multiplayer host only — ends the whole game for every device.
+  onEndGame?: () => void;
 }
 
 export function RoundSummaryScreen({
@@ -26,6 +28,7 @@ export function RoundSummaryScreen({
   onToggleWordOutcome,
   isWordFlagged,
   onToggleFlag,
+  onEndGame,
 }: RoundSummaryScreenProps) {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const standings = [...teams].sort((a, b) => b.totalScore - a.totalScore);
@@ -73,6 +76,12 @@ export function RoundSummaryScreen({
       <button className="btn btn--primary btn--large w-full" onClick={onNext}>
         {isLastTurn ? "See Final Results" : `Next Team's Turn — ${nextTeamName}`}
       </button>
+
+      {onEndGame && !isLastTurn && (
+        <button type="button" className="btn btn--outline w-full" onClick={onEndGame}>
+          End Game Now
+        </button>
+      )}
 
       {isReviewOpen && (
         <div className="review-sheet">

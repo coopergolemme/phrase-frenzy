@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useMultiplayerGame } from "./useMultiplayerGame";
 import * as realtime from "../utils/multiplayerRealtime";
+import * as api from "../utils/multiplayerApi";
 import * as matchHistoryModule from "./useMatchHistory";
 import * as wordStatsModule from "./useWordStats";
 import * as gameSyncModule from "./useGameSync";
@@ -55,6 +56,24 @@ describe("useMultiplayerGame", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("lets only the host end the game", async () => {
+    const endGameSpy = vi.spyOn(api, "endGame").mockResolvedValue({});
+
+    const { result: host } = renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+    await act(async () => {
+      host.current.handleEndGame();
+    });
+    expect(endGameSpy).toHaveBeenCalledWith("TEST01", "token-1");
+
+    endGameSpy.mockClear();
+    const guestSession: MultiplayerSession = { ...mockSession, playerId: "p2", playerToken: "token-2" };
+    const { result: guest } = renderHook(() => useMultiplayerGame(guestSession, mockLobbyPlayers));
+    await act(async () => {
+      guest.current.handleEndGame();
+    });
+    expect(endGameSpy).not.toHaveBeenCalled();
   });
 
   it("returns default values before public state loads", async () => {

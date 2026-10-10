@@ -5,6 +5,7 @@ import {
   IconAlertSiren,
   IconCheck,
   IconCross,
+  IconFlag,
   IconPause,
   IconPlay,
   IconRefresh,
@@ -32,6 +33,8 @@ interface GameScreenProps {
   onSkipRound: () => void;
   onRestart: () => void;
   onTogglePause: () => void;
+  // Multiplayer host only — ends the whole game for every device.
+  onEndGame?: () => void;
 }
 
 export function GameScreen({
@@ -49,6 +52,7 @@ export function GameScreen({
   onSkipRound,
   onRestart,
   onTogglePause,
+  onEndGame,
 }: GameScreenProps) {
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,6 +74,11 @@ export function GameScreen({
   const handleRestart = () => {
     closeMenu();
     onRestart();
+  };
+
+  const handleEndGame = () => {
+    closeMenu();
+    onEndGame?.();
   };
 
   return (
@@ -167,6 +176,17 @@ export function GameScreen({
                   <IconRefresh className="icon-menu__icon" width="1em" height="1em" />
                   Restart
                 </button>
+                {onEndGame && (
+                  <button
+                    type="button"
+                    className="icon-menu__item"
+                    role="menuitem"
+                    onClick={handleEndGame}
+                  >
+                    <IconFlag className="icon-menu__icon" width="1em" height="1em" />
+                    End Game
+                  </button>
+                )}
               </div>
             </>
           )}

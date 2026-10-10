@@ -10,6 +10,8 @@ interface SpectatorScreenProps {
   timeRemaining: number;
   foulPenaltySec?: number;
   onFoul?: () => void;
+  // Multiplayer host only — ends the whole game for every device.
+  onEndGame?: () => void;
 }
 
 // Shown on a non-active player's own device while a teammate or opponent
@@ -23,6 +25,7 @@ export function SpectatorScreen({
   timeRemaining,
   foulPenaltySec = 2,
   onFoul,
+  onEndGame,
 }: SpectatorScreenProps) {
   const [cooldownSec, setCooldownSec] = useState(0);
   const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
@@ -97,6 +100,12 @@ export function SpectatorScreen({
             <span>{cooldownSec > 0 ? `Buzzed! (${cooldownSec}s)` : `FOUL! (${penaltyLabel})`}</span>
           </button>
         </div>
+      )}
+
+      {onEndGame && (
+        <button type="button" className="btn btn--outline w-full" onClick={onEndGame}>
+          End Game
+        </button>
       )}
     </div>
   );
