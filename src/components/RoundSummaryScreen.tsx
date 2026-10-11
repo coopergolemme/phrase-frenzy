@@ -15,6 +15,8 @@ interface RoundSummaryScreenProps {
   // Ids of teams that have taken their turn this round; null hides the
   // played/up-next badges (round complete, or not tracked).
   playedThisRoundTeamIds?: string[] | null;
+  // Online multiplayer has no phone to pass, so it gets "Up next" wording.
+  passAndPlay?: boolean;
   onNext: () => void;
   onToggleWordOutcome: (index: number) => void;
   isWordFlagged: (word: string) => boolean;
@@ -31,6 +33,7 @@ export function RoundSummaryScreen({
   nextDescriberName = null,
   nextGuesserNames = [],
   playedThisRoundTeamIds = null,
+  passAndPlay = true,
   onNext,
   onToggleWordOutcome,
   isWordFlagged,
@@ -94,7 +97,15 @@ export function RoundSummaryScreen({
       {!isLastTurn && nextDescriberName && (
         <div className="w-full">
           <p className="m-0 text-[0.95rem] text-text-secondary">
-            Pass the phone to <span className="font-bold text-text">{nextDescriberName}</span>
+            {passAndPlay ? (
+              <>
+                Pass the phone to <span className="font-bold text-text">{nextDescriberName}</span>
+              </>
+            ) : (
+              <>
+                Up next: <span className="font-bold text-text">{nextTeamName}</span>
+              </>
+            )}
           </p>
           <p className="m-[2px_0_0] text-[1.1rem] font-bold">
             {guessersLabel

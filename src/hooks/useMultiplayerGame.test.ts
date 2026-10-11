@@ -5,6 +5,7 @@ import * as realtime from "../utils/multiplayerRealtime";
 import * as matchHistoryModule from "./useMatchHistory";
 import * as wordStatsModule from "./useWordStats";
 import * as gameSyncModule from "./useGameSync";
+import * as audio from "../utils/audio";
 import type { PublicGameState, LobbyPlayer } from "../utils/multiplayerApi";
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 
@@ -141,5 +142,88 @@ describe("useMultiplayerGame", () => {
 
     expect(mockAddMatch).toHaveBeenCalledWith(gameOverState.teams, gameOverState.roundsPerTeam);
     expect(mockFinishMatch).toHaveBeenCalled();
+  });
+
+  describe("audio cues and next-turn info", () => {
+    const baseState: PublicGameState = {
+      status: "playing",
+      teams: [
+        { id: "t0", name: "Team 1", totalScore: 0, members: ["Alice", "Cara"] },
+        { id: "t1", name: "Team 2", totalScore: 0, members: ["Bob", "Dan", "Eve"] },
+      ],
+      turnOrder: [0, 1, 0, 1],
+      turnIndex: 0,
+      roundsPerTeam: 2,
+      roundScore: 0,
+      roundLog: [],
+      turnStartedAt: "",
+      durationSec: 60,
+      penaltySec: 0,
+      pausedAt: null,
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-10-11T12:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("plays the turn-start fanfare once for a freshly started turn", () => {
+      const fanfare = vi.spyOn(audio, "playTurnStartSound").mockImplementation(() => {});
+      renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+      const state = { ...baseState, turnStartedAt: new Date().toISOString() };
+
+      act(() => subscriberCallback!(state));
+      act(() => subscriberCallback!({ ...state, roundScore: 1 }));
+
+      expect(fanfare).toHaveBeenCalledTimes(1);
+    });
+
+    it("skips the fanfare when joining a turn already well underway", () => {
+      const fanfare = vi.spyOn(audio, "playTurnStartSound").mockImplementation(() => {});
+      renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+
+      act(() =>
+        subscriberCallback!({
+          ...baseState,
+          turnStartedAt: new Date(Date.now() - 20_000).toISOString(),
+        })
+      );
+
+      expect(fanfare).not.toHaveBeenCalled();
+    });
+
+    it("buzzes once when the clock runs out", () => {
+      vi.spyOn(audio, "playTurnStartSound").mockImplementation(() => {});
+      const buzzer = vi.spyOn(audio, "playBuzzerSound").mockImplementation(() => {});
+      renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+
+      act(() => subscriberCallback!({ ...baseState, turnStartedAt: new Date().toISOString() }));
+      expect(buzzer).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(61_000);
+      });
+      expect(buzzer).toHaveBeenCalledTimes(1);
+    });
+
+    it("exposes the next describer, guessers, and who has played this round", () => {
+      const { result } = renderHook(() => useMultiplayerGame(mockSession, mockLobbyPlayers));
+
+      act(() =>
+        subscriberCallback!({
+          ...baseState,
+          status: "roundSummary",
+          turnStartedAt: new Date().toISOString(),
+        })
+      );
+
+      expect(result.current.nextDescriberName).toBe("Bob");
+      expect(result.current.nextGuesserNames).toEqual(["Dan", "Eve"]);
+      expect(result.current.playedThisRoundTeamIds).toEqual(["t0"]);
+    });
   });
 });

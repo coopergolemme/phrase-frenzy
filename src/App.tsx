@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useGameStatusHash } from "./hooks/useGameStatusHash";
 import { useCountdown } from "./hooks/useCountdown";
@@ -12,12 +12,13 @@ import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
+import { useCountdownTicks } from "./hooks/useCountdownTicks";
+import { getDescriberName, getGuesserNames, getPlayedThisRoundTeamIds } from "./game/turnRoles";
 import { ReadyScreen } from "./components/ReadyScreen";
 import {
   playBuzzerSound,
   playCorrectSound,
   playPassSound,
-  playTickSound,
   playTurnStartSound,
   triggerHaptic,
   unlockAudio,
@@ -28,8 +29,6 @@ import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 const DEFAULT_ROUND_DURATION_SEC = 60;
 const PASS_PENALTY_SEC = 3;
 const TEST_GAME_DURATION_SEC = 99999;
-const TICK_START_SEC = 10;
-const URGENT_TICK_SEC = 5;
 
 function App() {
   const {
@@ -111,22 +110,7 @@ function App() {
     onExpire
   );
 
-  // Tick once per second through the final stretch of a turn.
-  const lastTickedSecRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (state.gameStatus !== "playing" || isPaused) {
-      lastTickedSecRef.current = null;
-      return;
-    }
-    if (
-      timeRemaining > 0 &&
-      timeRemaining <= TICK_START_SEC &&
-      lastTickedSecRef.current !== timeRemaining
-    ) {
-      lastTickedSecRef.current = timeRemaining;
-      playTickSound(timeRemaining <= URGENT_TICK_SEC);
-    }
-  }, [state.gameStatus, isPaused, timeRemaining]);
+  useCountdownTicks(state.gameStatus === "playing" && !isPaused, timeRemaining);
 
   // Fanfare as each turn starts. The tap that started it (Ready / next turn)
   // also unlocks audio on iOS.
@@ -153,42 +137,28 @@ function App() {
     }
   }, [reset]);
 
-  // Describers rotate through a team's members, one per turn that team takes.
-  const getDescriberName = (teamIndex: number, turnIndex: number): string | null => {
-    const team = state.teams[teamIndex];
-    if (!team || team.members.length === 0) return null;
-    const turnsTaken = state.turnOrder
-      .slice(0, turnIndex)
-      .filter((index) => index === teamIndex).length;
-    return team.members[turnsTaken % team.members.length];
-  };
-
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
-  const describerName = getDescriberName(activeTeamIndex, state.turnIndex);
-  const guesserNames =
-    activeTeam && describerName
-      ? activeTeam.members.filter((member) => member !== describerName)
-      : [];
+  const describerName = getDescriberName(
+    state.teams,
+    state.turnOrder,
+    activeTeamIndex,
+    state.turnIndex
+  );
+  const guesserNames = getGuesserNames(activeTeam, describerName);
   const currentRoundNumber =
     state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
   const isLastTurn = state.turnIndex + 1 >= state.turnOrder.length;
   const nextTeamIndex = state.turnOrder[state.turnIndex + 1];
-  // Turn order is round-robin, so mid-round every team up to the active one
-  // has played this round. Null once the round is complete (or solo games).
-  const isMidRound = state.teams.length > 1 && activeTeamIndex < state.teams.length - 1;
-  const playedThisRoundTeamIds = isMidRound
-    ? state.teams.slice(0, activeTeamIndex + 1).map((team) => team.id)
-    : null;
+  const playedThisRoundTeamIds = getPlayedThisRoundTeamIds(state.teams, activeTeamIndex);
 
   const nextTeam = isLastTurn ? undefined : state.teams[nextTeamIndex];
   const nextTeamName = nextTeam?.name ?? null;
-  const nextDescriberName = nextTeam ? getDescriberName(nextTeamIndex, state.turnIndex + 1) : null;
-  const nextGuesserNames =
-    nextTeam && nextDescriberName
-      ? nextTeam.members.filter((member) => member !== nextDescriberName)
-      : [];
+  const nextDescriberName = nextTeam
+    ? getDescriberName(state.teams, state.turnOrder, nextTeamIndex, state.turnIndex + 1)
+    : null;
+  const nextGuesserNames = getGuesserNames(nextTeam, nextDescriberName);
 
   const handleBeginTurn = useCallback(() => {
     unlockAudio();

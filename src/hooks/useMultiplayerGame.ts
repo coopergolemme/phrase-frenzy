@@ -15,7 +15,16 @@ import {
 import type { MultiplayerSession } from "../utils/multiplayerSession";
 import { fetchPublicState, subscribeToPublicState } from "../utils/multiplayerRealtime";
 import { drawNextWordSeeded, type RoundLogEntry, type WordOutcome } from "../game/turnLogic";
-import { playBuzzerSound, triggerHaptic } from "../utils/audio";
+import {
+  playBuzzerSound,
+  playCorrectSound,
+  playPassSound,
+  playTurnStartSound,
+  triggerHaptic,
+  unlockAudio,
+} from "../utils/audio";
+import { getDescriberName, getGuesserNames, getPlayedThisRoundTeamIds } from "../game/turnRoles";
+import { useCountdownTicks } from "./useCountdownTicks";
 
 import { useMatchHistory } from "./useMatchHistory";
 import { useWordStats } from "./useWordStats";
@@ -37,6 +46,9 @@ interface LocalDeck {
 }
 
 const TICK_MS = 250;
+// A device that first sees a turn later than this after it started (a
+// rejoin or slow realtime delivery) skips the turn-start fanfare.
+const TURN_START_SOUND_WINDOW_MS = 3000;
 
 function computeRemaining(state: PublicGameState): number {
   // While paused, freeze at the instant the pause began instead of "now" —
@@ -62,6 +74,8 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const [localRoundLog, setLocalRoundLog] = useState<RoundLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const timeUpSentForTurnRef = useRef<string | null>(null);
+  const turnStartSoundForTurnRef = useRef<number | null>(null);
+  const timeUpSoundForTurnRef = useRef<number | null>(null);
   const wordFetchedForTurnRef = useRef<string | null>(null);
   const localDeckRef = useRef<LocalDeck | null>(null);
   const lastRecordedTurnRef = useRef<string | null>(null);
@@ -89,6 +103,12 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
       matchRecordedRef.current = false;
       lastRecordedTurnRef.current = null;
       resetSession();
+    }
+
+    // A restart replays turn indexes from 0, so let their sounds fire again.
+    if (state.status === "lobby" || state.status === "gameOver") {
+      turnStartSoundForTurnRef.current = null;
+      timeUpSoundForTurnRef.current = null;
     }
 
     if ((state.status === "roundSummary" || state.status === "gameOver") && state.roundLog) {
@@ -142,10 +162,25 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   useEffect(() => {
     if (!state || state.status !== "playing") return;
     timeUpSentForTurnRef.current = null;
+
+    // Every device plays the turn-start fanfare and the time-up buzzer, so
+    // the whole room hears them; keyed by turnIndex since turnStartedAt
+    // shifts on pause/resume.
+    if (turnStartSoundForTurnRef.current !== state.turnIndex) {
+      turnStartSoundForTurnRef.current = state.turnIndex;
+      const sinceStartMs = Date.now() - new Date(state.turnStartedAt).getTime();
+      if (!state.pausedAt && sinceStartMs < TURN_START_SOUND_WINDOW_MS) playTurnStartSound();
+    }
+
     const tick = () => {
       const remaining = computeRemaining(state);
       setTimeRemaining(remaining);
       if (state.pausedAt) return;
+      if (remaining <= 0 && timeUpSoundForTurnRef.current !== state.turnIndex) {
+        timeUpSoundForTurnRef.current = state.turnIndex;
+        playBuzzerSound();
+        triggerHaptic([200, 80, 200]);
+      }
       if (remaining <= 0 && timeUpSentForTurnRef.current !== state.turnStartedAt) {
         timeUpSentForTurnRef.current = state.turnStartedAt;
         // Wait for every queued correct/pass to finish persisting first —
@@ -174,10 +209,9 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
   const teamTurnsTaken = state
     ? state.turnOrder.slice(0, state.turnIndex).filter((t) => t === activeTeamIndex).length
     : 0;
-  const describerName =
-    activeTeam && activeTeam.members.length > 0
-      ? activeTeam.members[teamTurnsTaken % activeTeam.members.length]
-      : null;
+  const describerName = state
+    ? getDescriberName(state.teams, state.turnOrder, activeTeamIndex, state.turnIndex)
+    : null;
   const isDescriber =
     activeTeamIndex === myTeamIndex &&
     activeTeam !== null &&
@@ -248,12 +282,20 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   const isPaused = state?.pausedAt != null;
 
+  // Only the describer's device ticks — a roomful of phones ticking slightly
+  // out of sync would be a mess.
+  useCountdownTicks(state?.status === "playing" && isDescriber && !isPaused, timeRemaining);
+
   const handleCorrect = useCallback(() => {
-    if (isDescriber && !isPaused) advance("correct");
+    if (!isDescriber || isPaused || !localDeckRef.current) return;
+    playCorrectSound();
+    advance("correct");
   }, [isDescriber, isPaused, advance]);
 
   const handlePass = useCallback(() => {
-    if (isDescriber && !isPaused) advance("passed");
+    if (!isDescriber || isPaused || !localDeckRef.current) return;
+    playPassSound();
+    advance("passed");
   }, [isDescriber, isPaused, advance]);
 
   // Gated the same way handleCorrect/handlePass are — only the active
@@ -278,6 +320,7 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   const handleNextTurn = useCallback(() => {
     if (!isHost) return;
+    unlockAudio();
     apiNextTurn(session.roomCode, session.playerToken).catch((err) =>
       setError(err instanceof Error ? err.message : "Couldn't advance to the next turn")
     );
@@ -299,8 +342,17 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
 
   const isLastTurn = state ? state.turnIndex + 1 >= state.turnOrder.length : false;
   const nextTeamIndex = state ? state.turnOrder[state.turnIndex + 1] : undefined;
-  const nextTeamName =
-    !isLastTurn && state && nextTeamIndex !== undefined ? state.teams[nextTeamIndex]?.name ?? null : null;
+  const nextTeam =
+    !isLastTurn && state && nextTeamIndex !== undefined ? state.teams[nextTeamIndex] : undefined;
+  const nextTeamName = nextTeam?.name ?? null;
+  const nextDescriberName =
+    state && nextTeam && nextTeamIndex !== undefined
+      ? getDescriberName(state.teams, state.turnOrder, nextTeamIndex, state.turnIndex + 1)
+      : null;
+  const nextGuesserNames = getGuesserNames(nextTeam, nextDescriberName);
+  const playedThisRoundTeamIds = state
+    ? getPlayedThisRoundTeamIds(state.teams, activeTeamIndex)
+    : null;
   const currentRoundNumber =
     state && state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
@@ -330,6 +382,9 @@ export function useMultiplayerGame(session: MultiplayerSession, lobbyPlayers: Lo
     roundsPerTeam: state?.roundsPerTeam ?? 1,
     isLastTurn,
     nextTeamName,
+    nextDescriberName,
+    nextGuesserNames,
+    playedThisRoundTeamIds,
     error,
     handleCorrect,
     handlePass,

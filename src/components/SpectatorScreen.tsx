@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { playBuzzerSound, triggerHaptic } from "../utils/audio";
+import { isSoundMuted, playBuzzerSound, setSoundMuted, triggerHaptic } from "../utils/audio";
+import { IconVolume, IconVolumeOff } from "./icons";
 
 interface SpectatorScreenProps {
   teamName: string;
@@ -25,6 +26,7 @@ export function SpectatorScreen({
   onFoul,
 }: SpectatorScreenProps) {
   const [cooldownSec, setCooldownSec] = useState(0);
+  const [isMuted, setIsMuted] = useState(isSoundMuted);
   const isUrgent = timeRemaining <= 10 && timeRemaining > 0;
 
   useEffect(() => {
@@ -43,6 +45,11 @@ export function SpectatorScreen({
     setCooldownSec(2);
   };
 
+  const handleToggleSound = () => {
+    setSoundMuted(!isMuted);
+    setIsMuted(!isMuted);
+  };
+
   const penaltyLabel = foulPenaltySec > 0 ? `-${foulPenaltySec}s` : "No penalty";
 
   return (
@@ -55,12 +62,27 @@ export function SpectatorScreen({
           )}
           <p className="m-0 text-[0.75rem] text-text-secondary">{roundLabel}</p>
         </div>
-        <p
-          className={`game__timer m-0${isUrgent ? " game__timer--urgent" : ""}`}
-          aria-live="polite"
-        >
-          {timeRemaining}
-        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="game-pause-btn"
+            onClick={handleToggleSound}
+            aria-label={isMuted ? "Turn sound on" : "Turn sound off"}
+            aria-pressed={isMuted}
+          >
+            {isMuted ? (
+              <IconVolumeOff width="1em" height="1em" />
+            ) : (
+              <IconVolume width="1em" height="1em" />
+            )}
+          </button>
+          <p
+            className={`game__timer m-0${isUrgent ? " game__timer--urgent" : ""}`}
+            aria-live="polite"
+          >
+            {timeRemaining}
+          </p>
+        </div>
       </div>
 
       <div className="flex w-full flex-col gap-4">

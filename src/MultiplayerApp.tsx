@@ -11,6 +11,7 @@ import { GameScreen } from "./components/GameScreen";
 import { SpectatorScreen } from "./components/SpectatorScreen";
 import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
+import { unlockAudio } from "./utils/audio";
 import type { LobbyPlayer } from "./utils/multiplayerApi";
 import type { MultiplayerSession } from "./utils/multiplayerSession";
 
@@ -54,6 +55,10 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
             isBusy={room.isBusy}
             error={room.error}
             onCreate={(params) => {
+              // Every tap before the game starts doubles as the iOS audio
+              // unlock, since non-host devices may not tap again until
+              // they're describing.
+              unlockAudio();
               void room.create(params);
             }}
             onJoin={(code) => {
@@ -85,9 +90,11 @@ function MultiplayerApp({ initialRoomCode }: MultiplayerAppProps) {
             isBusy={room.isBusy}
             error={room.error}
             onJoin={(name, teamIndex) => {
+              unlockAudio();
               void room.join({ roomCode, name, teamIndex });
             }}
             onStart={() => {
+              unlockAudio();
               void room.startGame();
             }}
             onLeave={handleLeave}
@@ -145,6 +152,10 @@ function InGame({ session, players, onLeave, isWordFlagged, onToggleFlag }: InGa
             teams={game.teams}
             isLastTurn={game.isLastTurn}
             nextTeamName={game.nextTeamName}
+            nextDescriberName={game.nextDescriberName}
+            nextGuesserNames={game.nextGuesserNames}
+            playedThisRoundTeamIds={game.playedThisRoundTeamIds}
+            passAndPlay={false}
             onNext={game.handleNextTurn}
             // Manual post-round score correction isn't networked yet — see
             // the plan's known limitations. The review list itself (and
