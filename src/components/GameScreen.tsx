@@ -12,7 +12,10 @@ import {
   IconSettings,
   IconSkipForward,
   IconTrophy,
+  IconVolume,
+  IconVolumeOff,
 } from "./icons";
+import { isSoundMuted, setSoundMuted } from "../utils/audio";
 import type { Team } from "../hooks/useGameState";
 
 interface GameScreenProps {
@@ -52,6 +55,7 @@ export function GameScreen({
 }: GameScreenProps) {
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(isSoundMuted);
   const isUrgent = !isPaused && timeRemaining <= 10 && timeRemaining > 0;
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -65,6 +69,11 @@ export function GameScreen({
   const handleOpenScoreboard = () => {
     closeMenu();
     setIsScoreboardOpen(true);
+  };
+
+  const handleToggleSound = () => {
+    setSoundMuted(!isMuted);
+    setIsMuted(!isMuted);
   };
 
   const handleRestart = () => {
@@ -157,6 +166,20 @@ export function GameScreen({
                 >
                   <IconTrophy className="icon-menu__icon" width="1em" height="1em" />
                   Scoreboard
+                </button>
+                <button
+                  type="button"
+                  className="icon-menu__item"
+                  role="menuitemcheckbox"
+                  aria-checked={!isMuted}
+                  onClick={handleToggleSound}
+                >
+                  {isMuted ? (
+                    <IconVolumeOff className="icon-menu__icon" width="1em" height="1em" />
+                  ) : (
+                    <IconVolume className="icon-menu__icon" width="1em" height="1em" />
+                  )}
+                  {isMuted ? "Sound Off" : "Sound On"}
                 </button>
                 <button
                   type="button"

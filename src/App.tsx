@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGameState } from "./hooks/useGameState";
 import { useGameStatusHash } from "./hooks/useGameStatusHash";
 import { useCountdown } from "./hooks/useCountdown";
@@ -13,12 +13,23 @@ import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
 import { ReadyScreen } from "./components/ReadyScreen";
+import {
+  playBuzzerSound,
+  playCorrectSound,
+  playPassSound,
+  playTickSound,
+  playTurnStartSound,
+  triggerHaptic,
+  unlockAudio,
+} from "./utils/audio";
 import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
 const DEFAULT_ROUND_DURATION_SEC = 60;
 const PASS_PENALTY_SEC = 3;
 const TEST_GAME_DURATION_SEC = 99999;
+const TICK_START_SEC = 10;
+const URGENT_TICK_SEC = 5;
 
 function App() {
   const {
@@ -73,6 +84,7 @@ function App() {
       categoryIds: string[],
       roundDuration: number
     ) => {
+      unlockAudio();
       setRoundDurationSec(roundDuration);
       resetSession();
       startTournament(teamNames, teamMembers, roundsPerTeam, categoryIds, flaggedWords, categories);
@@ -81,12 +93,15 @@ function App() {
   );
 
   const handleStartTestGame = useCallback(() => {
+    unlockAudio();
     setRoundDurationSec(TEST_GAME_DURATION_SEC);
     resetSession();
     startTournament(["Test Team"], [[]], 1, [], flaggedWords, categories);
   }, [startTournament, flaggedWords, categories, resetSession]);
 
   const onExpire = useCallback(() => {
+    playBuzzerSound();
+    triggerHaptic([200, 80, 200]);
     timeUp();
   }, [timeUp]);
 
@@ -96,14 +111,39 @@ function App() {
     onExpire
   );
 
+  // Tick once per second through the final stretch of a turn.
+  const lastTickedSecRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (state.gameStatus !== "playing" || isPaused) {
+      lastTickedSecRef.current = null;
+      return;
+    }
+    if (
+      timeRemaining > 0 &&
+      timeRemaining <= TICK_START_SEC &&
+      lastTickedSecRef.current !== timeRemaining
+    ) {
+      lastTickedSecRef.current = timeRemaining;
+      playTickSound(timeRemaining <= URGENT_TICK_SEC);
+    }
+  }, [state.gameStatus, isPaused, timeRemaining]);
+
+  // Fanfare as each turn starts. The tap that started it (Ready / next turn)
+  // also unlocks audio on iOS.
+  useEffect(() => {
+    if (state.gameStatus === "playing") playTurnStartSound();
+  }, [state.gameStatus, state.turnIndex]);
+
   const handlePass = useCallback(() => {
     if (isPaused) return;
+    playPassSound();
     applyPenalty(PASS_PENALTY_SEC);
     markPass();
   }, [applyPenalty, markPass, isPaused]);
 
   const handleCorrect = useCallback(() => {
     if (isPaused) return;
+    playCorrectSound();
     markCorrect();
   }, [markCorrect, isPaused]);
 
@@ -150,7 +190,13 @@ function App() {
       ? nextTeam.members.filter((member) => member !== nextDescriberName)
       : [];
 
+  const handleBeginTurn = useCallback(() => {
+    unlockAudio();
+    beginTurn();
+  }, [beginTurn]);
+
   const handleNextTurn = useCallback(() => {
+    unlockAudio();
     recordRoundLog(state.roundLog);
     trackTurn(state.roundLog);
     if (isLastTurn) {
@@ -219,7 +265,7 @@ function App() {
             roundLabel={`Round ${currentRoundNumber} of ${state.roundsPerTeam}`}
             describerName={describerName}
             guesserNames={guesserNames}
-            onReady={beginTurn}
+            onReady={handleBeginTurn}
           />
         )}
 
