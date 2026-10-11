@@ -2,7 +2,7 @@ import type { GameState, GameStatus } from "../hooks/useGameState";
 
 const STORAGE_KEY = "phrase-frenzy:game-state";
 
-const KNOWN_STATUSES: GameStatus[] = ["home", "teamSetup", "playing", "roundSummary", "gameOver"];
+const KNOWN_STATUSES: GameStatus[] = ["home", "teamSetup", "ready", "playing", "roundSummary", "gameOver"];
 
 function isValidGameState(value: unknown): value is GameState {
   if (typeof value !== "object" || value === null) return false;

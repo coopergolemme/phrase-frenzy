@@ -62,4 +62,27 @@ describe("useGameState", () => {
       expect.objectContaining({ gameStatus: "teamSetup" })
     );
   });
+
+  it("waits on the ready screen after starting, until the turn begins", () => {
+    loadGameStateMock.mockReturnValue(null);
+    const categories = [{ id: "food", label: "Food", emoji: "", words: ["Taco", "Pizza"] }];
+
+    const { result } = renderHook(() => useGameState());
+
+    act(() => {
+      result.current.startTournament(["Red"], [["Ann", "Bo"]], 1, ["food"], [], categories);
+    });
+    expect(result.current.state.gameStatus).toBe("ready");
+
+    // Gameplay actions are ignored until the describer taps Ready.
+    act(() => {
+      result.current.markCorrect();
+    });
+    expect(result.current.state.roundScore).toBe(0);
+
+    act(() => {
+      result.current.beginTurn();
+    });
+    expect(result.current.state.gameStatus).toBe("playing");
+  });
 });

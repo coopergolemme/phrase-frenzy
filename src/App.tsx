@@ -12,6 +12,7 @@ import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
+import { ReadyScreen } from "./components/ReadyScreen";
 import { RoundSummaryScreen } from "./components/RoundSummaryScreen";
 import { FinalStandingsScreen } from "./components/FinalStandingsScreen";
 
@@ -24,6 +25,7 @@ function App() {
     state,
     startTeamSetup,
     startTournament,
+    beginTurn,
     markCorrect,
     markPass,
     timeUp,
@@ -124,6 +126,10 @@ function App() {
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
   const describerName = getDescriberName(activeTeamIndex, state.turnIndex);
+  const guesserNames =
+    activeTeam && describerName
+      ? activeTeam.members.filter((member) => member !== describerName)
+      : [];
   const currentRoundNumber =
     state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
@@ -204,6 +210,16 @@ function App() {
             onBack={reset}
             knownPlayerNames={knownPlayerNames}
             knownTeamNames={knownTeamNames}
+          />
+        )}
+
+        {state.gameStatus === "ready" && activeTeam && (
+          <ReadyScreen
+            teamName={activeTeam.name}
+            roundLabel={`Round ${currentRoundNumber} of ${state.roundsPerTeam}`}
+            describerName={describerName}
+            guesserNames={guesserNames}
+            onReady={beginTurn}
           />
         )}
 

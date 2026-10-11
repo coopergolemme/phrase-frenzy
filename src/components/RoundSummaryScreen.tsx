@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IconFlag } from "./icons";
+import { formatNameList } from "../utils/formatNameList";
 import type { RoundLogEntry, Team } from "../hooks/useGameState";
 
 interface RoundSummaryScreenProps {
@@ -170,11 +171,6 @@ export function RoundSummaryScreen({
       )}
     </div>
   );
-}
-
-function formatNameList(names: string[]): string {
-  if (names.length <= 2) return names.join(" & ");
-  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
 }
 
 function RoundStatusBadge({ played, upNext }: { played: boolean; upNext: boolean }) {

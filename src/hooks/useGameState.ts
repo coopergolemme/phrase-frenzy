@@ -10,6 +10,7 @@ export type { RoundLogEntry, Team, WordOutcome };
 export type GameStatus =
   | "home"
   | "teamSetup"
+  | "ready"
   | "playing"
   | "roundSummary"
   | "gameOver";
@@ -40,6 +41,7 @@ type GameAction =
       flaggedWords: string[];
       categories: WordCategory[];
     }
+  | { type: "BEGIN_TURN" }
   | { type: "CORRECT" }
   | { type: "PASS" }
   | { type: "TIME_UP" }
@@ -88,7 +90,9 @@ function reducer(state: GameState, action: GameAction): GameState {
       const deckOrder = shuffle(wordBank);
       return {
         ...initialState,
-        gameStatus: "playing",
+        // The first turn waits on a "ready" screen so the timer doesn't start
+        // until the phone is in the describer's hands.
+        gameStatus: "ready",
         teams,
         roundsPerTeam: action.roundsPerTeam,
         turnOrder: buildTurnOrder(teams.length, action.roundsPerTeam),
@@ -102,6 +106,10 @@ function reducer(state: GameState, action: GameAction): GameState {
         deckIndex: 1,
       };
     }
+
+    case "BEGIN_TURN":
+      if (state.gameStatus !== "ready") return state;
+      return { ...state, gameStatus: "playing" };
 
     case "CORRECT": {
       if (state.gameStatus !== "playing") return state;
@@ -235,6 +243,7 @@ export function useGameState() {
         flaggedWords,
         categories,
       }),
+    beginTurn: () => dispatch({ type: "BEGIN_TURN" }),
     markCorrect: () => dispatch({ type: "CORRECT" }),
     markPass: () => dispatch({ type: "PASS" }),
     timeUp: () => dispatch({ type: "TIME_UP" }),
