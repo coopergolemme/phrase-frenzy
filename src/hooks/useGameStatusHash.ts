@@ -6,6 +6,7 @@ import type { GameStatus } from "./useGameState";
 export const GAME_STATUS_HASHES: Record<GameStatus, string> = {
   home: "",
   teamSetup: "#teamSetup",
+  ready: "#ready",
   playing: "#playing",
   roundSummary: "#roundSummary",
   gameOver: "#gameOver",

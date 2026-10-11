@@ -12,6 +12,7 @@ import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import { HomeScreen } from "./components/HomeScreen";
 import { TeamSetupScreen } from "./components/TeamSetupScreen";
 import { GameScreen } from "./components/GameScreen";
+import { ReadyScreen } from "./components/ReadyScreen";
 import {
   playBuzzerSound,
   playCorrectSound,
@@ -35,6 +36,7 @@ function App() {
     state,
     startTeamSetup,
     startTournament,
+    beginTurn,
     markCorrect,
     markPass,
     timeUp,
@@ -126,8 +128,8 @@ function App() {
     }
   }, [state.gameStatus, isPaused, timeRemaining]);
 
-  // Fanfare as each turn starts. The tap that started it (start game / next
-  // turn) also unlocks audio on iOS.
+  // Fanfare as each turn starts. The tap that started it (Ready / next turn)
+  // also unlocks audio on iOS.
   useEffect(() => {
     if (state.gameStatus === "playing") playTurnStartSound();
   }, [state.gameStatus, state.turnIndex]);
@@ -164,6 +166,10 @@ function App() {
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
   const describerName = getDescriberName(activeTeamIndex, state.turnIndex);
+  const guesserNames =
+    activeTeam && describerName
+      ? activeTeam.members.filter((member) => member !== describerName)
+      : [];
   const currentRoundNumber =
     state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
@@ -183,6 +189,11 @@ function App() {
     nextTeam && nextDescriberName
       ? nextTeam.members.filter((member) => member !== nextDescriberName)
       : [];
+
+  const handleBeginTurn = useCallback(() => {
+    unlockAudio();
+    beginTurn();
+  }, [beginTurn]);
 
   const handleNextTurn = useCallback(() => {
     unlockAudio();
@@ -245,6 +256,16 @@ function App() {
             onBack={reset}
             knownPlayerNames={knownPlayerNames}
             knownTeamNames={knownTeamNames}
+          />
+        )}
+
+        {state.gameStatus === "ready" && activeTeam && (
+          <ReadyScreen
+            teamName={activeTeam.name}
+            roundLabel={`Round ${currentRoundNumber} of ${state.roundsPerTeam}`}
+            describerName={describerName}
+            guesserNames={guesserNames}
+            onReady={handleBeginTurn}
           />
         )}
 

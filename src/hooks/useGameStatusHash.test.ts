@@ -13,6 +13,7 @@ describe("useGameStatusHash", () => {
     const cases: [GameStatus, string][] = [
       ["home", ""],
       ["teamSetup", "#teamSetup"],
+      ["ready", "#ready"],
       ["playing", "#playing"],
       ["roundSummary", "#roundSummary"],
       ["gameOver", "#gameOver"],
