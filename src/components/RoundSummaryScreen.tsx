@@ -11,6 +11,9 @@ interface RoundSummaryScreenProps {
   nextTeamName: string | null;
   nextDescriberName?: string | null;
   nextGuesserNames?: string[];
+  // Ids of teams that have taken their turn this round; null hides the
+  // played/up-next badges (round complete, or not tracked).
+  playedThisRoundTeamIds?: string[] | null;
   onNext: () => void;
   onToggleWordOutcome: (index: number) => void;
   isWordFlagged: (word: string) => boolean;
@@ -26,6 +29,7 @@ export function RoundSummaryScreen({
   nextTeamName,
   nextDescriberName = null,
   nextGuesserNames = [],
+  playedThisRoundTeamIds = null,
   onNext,
   onToggleWordOutcome,
   isWordFlagged,
@@ -35,6 +39,9 @@ export function RoundSummaryScreen({
   const standings = [...teams].sort((a, b) => b.totalScore - a.totalScore);
   const leadingScore = standings[0]?.totalScore ?? 0;
   const guessersLabel = formatNameList(nextGuesserNames);
+  const upNextTeamId = playedThisRoundTeamIds
+    ? teams.find((team) => !playedThisRoundTeamIds.includes(team.id))?.id
+    : undefined;
 
   return (
     <div className="screen justify-center items-center gap-5 text-center landscape-compact:gap-3 landscape-compact:overflow-y-auto">
@@ -68,7 +75,15 @@ export function RoundSummaryScreen({
                 (team.totalScore === leadingScore ? " standings__row--leader" : "")
               }
             >
-              <span className="standings__name">{team.name}</span>
+              <span className="standings__name">
+                {team.name}
+                {playedThisRoundTeamIds && (
+                  <RoundStatusBadge
+                    played={playedThisRoundTeamIds.includes(team.id)}
+                    upNext={team.id === upNextTeamId}
+                  />
+                )}
+              </span>
               <span className="standings__score">{team.totalScore}</span>
             </div>
           ))}
@@ -160,4 +175,10 @@ export function RoundSummaryScreen({
 function formatNameList(names: string[]): string {
   if (names.length <= 2) return names.join(" & ");
   return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}
+
+function RoundStatusBadge({ played, upNext }: { played: boolean; upNext: boolean }) {
+  if (played) return <span className="round-badge round-badge--played">Played</span>;
+  if (upNext) return <span className="round-badge round-badge--next">Up next</span>;
+  return <span className="round-badge">Yet to play</span>;
 }

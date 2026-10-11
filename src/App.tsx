@@ -129,6 +129,13 @@ function App() {
 
   const isLastTurn = state.turnIndex + 1 >= state.turnOrder.length;
   const nextTeamIndex = state.turnOrder[state.turnIndex + 1];
+  // Turn order is round-robin, so mid-round every team up to the active one
+  // has played this round. Null once the round is complete (or solo games).
+  const isMidRound = state.teams.length > 1 && activeTeamIndex < state.teams.length - 1;
+  const playedThisRoundTeamIds = isMidRound
+    ? state.teams.slice(0, activeTeamIndex + 1).map((team) => team.id)
+    : null;
+
   const nextTeam = isLastTurn ? undefined : state.teams[nextTeamIndex];
   const nextTeamName = nextTeam?.name ?? null;
   const nextDescriberName = nextTeam ? getDescriberName(nextTeamIndex, state.turnIndex + 1) : null;
@@ -228,6 +235,7 @@ function App() {
             nextTeamName={nextTeamName}
             nextDescriberName={nextDescriberName}
             nextGuesserNames={nextGuesserNames}
+            playedThisRoundTeamIds={playedThisRoundTeamIds}
             onNext={handleNextTurn}
             onToggleWordOutcome={toggleWordOutcome}
             isWordFlagged={isFlagged}
