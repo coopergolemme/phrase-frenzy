@@ -691,6 +691,30 @@
   font-variant-numeric: tabular-nums;
 }
 
+.round-badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--color-outline);
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.round-badge--played {
+  background: rgba(52, 209, 122, 0.16);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.round-badge--next {
+  border-color: var(--color-yellow);
+  color: var(--color-yellow);
+}
+
 /* Round review sheet */
 
 .review-sheet {
