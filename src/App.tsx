@@ -111,21 +111,31 @@ function App() {
     }
   }, [reset]);
 
+  // Describers rotate through a team's members, one per turn that team takes.
+  const getDescriberName = (teamIndex: number, turnIndex: number): string | null => {
+    const team = state.teams[teamIndex];
+    if (!team || team.members.length === 0) return null;
+    const turnsTaken = state.turnOrder
+      .slice(0, turnIndex)
+      .filter((index) => index === teamIndex).length;
+    return team.members[turnsTaken % team.members.length];
+  };
+
   const activeTeamIndex = state.turnOrder[state.turnIndex];
   const activeTeam = state.teams[activeTeamIndex];
-  const teamTurnsTaken = state.turnOrder
-    .slice(0, state.turnIndex)
-    .filter((teamIndex) => teamIndex === activeTeamIndex).length;
-  const describerName =
-    activeTeam && activeTeam.members.length > 0
-      ? activeTeam.members[teamTurnsTaken % activeTeam.members.length]
-      : null;
+  const describerName = getDescriberName(activeTeamIndex, state.turnIndex);
   const currentRoundNumber =
     state.teams.length > 0 ? Math.floor(state.turnIndex / state.teams.length) + 1 : 1;
 
   const isLastTurn = state.turnIndex + 1 >= state.turnOrder.length;
   const nextTeamIndex = state.turnOrder[state.turnIndex + 1];
-  const nextTeamName = isLastTurn ? null : state.teams[nextTeamIndex]?.name ?? null;
+  const nextTeam = isLastTurn ? undefined : state.teams[nextTeamIndex];
+  const nextTeamName = nextTeam?.name ?? null;
+  const nextDescriberName = nextTeam ? getDescriberName(nextTeamIndex, state.turnIndex + 1) : null;
+  const nextGuesserNames =
+    nextTeam && nextDescriberName
+      ? nextTeam.members.filter((member) => member !== nextDescriberName)
+      : [];
 
   const handleNextTurn = useCallback(() => {
     recordRoundLog(state.roundLog);
@@ -216,6 +226,8 @@ function App() {
             teams={state.teams}
             isLastTurn={isLastTurn}
             nextTeamName={nextTeamName}
+            nextDescriberName={nextDescriberName}
+            nextGuesserNames={nextGuesserNames}
             onNext={handleNextTurn}
             onToggleWordOutcome={toggleWordOutcome}
             isWordFlagged={isFlagged}

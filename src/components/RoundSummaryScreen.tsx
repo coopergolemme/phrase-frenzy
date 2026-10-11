@@ -9,6 +9,8 @@ interface RoundSummaryScreenProps {
   teams: Team[];
   isLastTurn: boolean;
   nextTeamName: string | null;
+  nextDescriberName?: string | null;
+  nextGuesserNames?: string[];
   onNext: () => void;
   onToggleWordOutcome: (index: number) => void;
   isWordFlagged: (word: string) => boolean;
@@ -22,6 +24,8 @@ export function RoundSummaryScreen({
   teams,
   isLastTurn,
   nextTeamName,
+  nextDescriberName = null,
+  nextGuesserNames = [],
   onNext,
   onToggleWordOutcome,
   isWordFlagged,
@@ -30,6 +34,7 @@ export function RoundSummaryScreen({
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const standings = [...teams].sort((a, b) => b.totalScore - a.totalScore);
   const leadingScore = standings[0]?.totalScore ?? 0;
+  const guessersLabel = formatNameList(nextGuesserNames);
 
   return (
     <div className="screen justify-center items-center gap-5 text-center landscape-compact:gap-3 landscape-compact:overflow-y-auto">
@@ -69,6 +74,19 @@ export function RoundSummaryScreen({
           ))}
         </div>
       </div>
+
+      {!isLastTurn && nextDescriberName && (
+        <div className="w-full">
+          <p className="m-0 text-[0.95rem] text-text-secondary">
+            Pass the phone to <span className="font-bold text-text">{nextDescriberName}</span>
+          </p>
+          <p className="m-[2px_0_0] text-[1.1rem] font-bold">
+            {guessersLabel
+              ? `${nextDescriberName} describes to ${guessersLabel}`
+              : `${nextDescriberName} is describing`}
+          </p>
+        </div>
+      )}
 
       <button className="btn btn--primary btn--large w-full" onClick={onNext}>
         {isLastTurn ? "See Final Results" : `Next Team's Turn — ${nextTeamName}`}
@@ -137,4 +155,9 @@ export function RoundSummaryScreen({
       )}
     </div>
   );
+}
+
+function formatNameList(names: string[]): string {
+  if (names.length <= 2) return names.join(" & ");
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
 }
